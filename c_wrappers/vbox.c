@@ -6,8 +6,6 @@
 //       ClientInitialize() function.
 #include "VBoxCAPIGlue.c"
 
-#include <stdio.h>
-
 nsresult GoVboxFAILED(nsresult result) {
   return FAILED(result);
 }
@@ -31,7 +29,7 @@ HRESULT GoVboxClientThreadUninitialize() {
   return g_pVBoxFuncs->pfnClientThreadUninitialize();
 }
 void GoVboxClientUninitialize() {
-  return g_pVBoxFuncs->pfnClientUninitialize();
+  g_pVBoxFuncs->pfnClientUninitialize();
 }
 HRESULT GoVboxGetVirtualBox(IVirtualBoxClient* client, IVirtualBox** cbox) {
   return IVirtualBoxClient_GetVirtualBox(client, cbox);
@@ -58,14 +56,4 @@ HRESULT GoVboxGetMachines(IVirtualBox* cbox, IMachine*** machines,
       (IUnknown ***)machines, machineCount, safeArray);
   g_pVBoxFuncs->pfnSafeArrayDestroy(safeArray);
   return result;
-}
-
-void GoVboxDerpTest() {
-  IVirtualBoxClient* client;
-
-  printf("%x\n", GoVboxCGlueInit());
-  printf("%d %d\n", GoVboxGetAppVersion(), GoVboxGetApiVersion());
-  //printf("%x\n", GoVboxClientThreadInitialize());
-  printf("%x\n", GoVboxClientInitialize(&client));
-  printf("%p\n", client);
 }

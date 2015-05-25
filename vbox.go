@@ -1,4 +1,4 @@
-package main
+package vbox
 
 /*
 #cgo CFLAGS: -I third_party/VirtualBoxSDK/sdk/bindings/c/include
@@ -17,97 +17,81 @@ import (
   "unsafe"
 )
 
-// This singleton gets initialized by Init().
+// These singletons get initialized by Init().
 var client *C.IVirtualBoxClient = nil
+var cbox *C.IVirtualBox = nil
+var glueInitialized = false
 
 var AppVersion uint = 0
 var ApiVersion uint = 0
 
+// Init initializes the VirtualBox global data structures.
+//
+// Due to VirtualBox oddness, Init should ideally be called in the
+// application's main thread. The odds of this happening are maximized by
+// calling Init() from the application's main goroutine.
+//
+// It returns any error encountered.
 func Init() error {
   // For convenience, Init() is idempotent.
-  if client != nil {
-    return nil
+
+  if glueInitialized == false {
+    result := C.GoVboxCGlueInit()
+    if C.GoVboxFAILED(result) != 0 {
+      cmessage := C.GoString(&C.g_szVBoxErrMsg[0])
+      return errors.New(fmt.Sprintf("VBoxCGlueInit failed: %s", cmessage))
+    }
+
+    glueInitialized = true
+    AppVersion = uint(C.GoVboxGetAppVersion())
+    ApiVersion = uint(C.GoVboxGetApiVersion())
   }
 
-  result := C.GoVboxCGlueInit()
-  if C.GoVboxFAILED(result) != 0 {
-    cmessage := C.GoString(&C.g_szVBoxErrMsg[0])
-    return errors.New(fmt.Sprintf("VBoxCGlueInit failed: %s", cmessage))
-  }
-
-  AppVersion = uint(C.GoVboxGetAppVersion())
-  ApiVersion = uint(C.GoVboxGetApiVersion())
-  fmt.Printf("VBox App: %d API: %d\n", AppVersion, ApiVersion)
-
-  result = C.GoVboxClientInitialize(&client)
-  fmt.Printf("HRESULT: %x %v\n", result, client)
-  if C.GoVboxFAILED(result) != 0 {
-    fmt.Printf("FAILED: %x\n", C.GoVboxFAILED(result))
-    client = nil
-    return errors.New(fmt.Sprintf("pfnClientInitialize failed: %x", result))
-  }
-  fmt.Printf("%#v\n", client)
-  return nil
-}
-func Deinit() error {
   if client == nil {
-    return nil
-  }
-
-  C.GoVboxClientUninitialize()
-  client = nil
-  return nil
-}
-
-type VirtualBox struct {
-  cbox *C.IVirtualBox
-  csession *C.ISession
-}
-type Machine struct {
-  Box *VirtualBox
-  cmachine *C.IMachine
-}
-
-func (vbox *VirtualBox) Init() error {
-  C.GoVboxDerpTest()
-  return nil
-
-  if err := Init(); err != nil {
-    return err
-  }
-
-  result := C.GoVboxGetVirtualBox(client, &vbox.cbox)
-  if C.GoVboxFAILED(result) != 0 {
-    return errors.New("Failed to get IVirtualBox")
-  }
-
-  result = C.GoVboxGetSession(client, &vbox.csession)
-  if C.GoVboxFAILED(result) != 0 {
-    return errors.New("Failed to get ISession")
-  }
-  return nil
-}
-func (vbox *VirtualBox) Release() error {
-  if vbox.csession != nil {
-    result := C.GoVboxISessionRelease(vbox.csession)
-    if C.GoVboxFAILED(result) != 0 {
-      return errors.New("Failed to release ISession")
+    result := C.GoVboxClientInitialize(&client)
+    if C.GoVboxFAILED(result) != 0 || client == nil {
+      client = nil
+      return errors.New(fmt.Sprintf("pfnClientInitialize failed: %x", result))
     }
-    vbox.csession = nil
   }
-  if vbox.cbox != nil {
-    result := C.GoVboxIVirtualBoxRelease(vbox.cbox)
-    if C.GoVboxFAILED(result) != 0 {
-      return errors.New("Failed to release IVirtualBox")
+
+  if cbox == nil {
+    result := C.GoVboxGetVirtualBox(client, &cbox)
+    if C.GoVboxFAILED(result) != 0 || cbox == nil {
+      cbox = nil
+      return errors.New(fmt.Sprintf("Failed to get IVirtualBox: %x", result))
     }
-    vbox.cbox = nil
   }
+
   return nil
 }
-func (vbox* VirtualBox) GetRevision() (int, error) {
+
+// Deinit cleans up the VirtualBox global state.
+// After this method is called, all VirtualBox-related objects are invalid.
+// It returns any error encountered.
+func Deinit() error {
+  if cbox != nil {
+    result := C.GoVboxIVirtualBoxRelease(cbox)
+    if C.GoVboxFAILED(result) != 0 {
+      return errors.New(
+          fmt.Sprintf("Failed to release IVirtualBox: %x", result))
+    }
+    cbox = nil
+  }
+
+  if client != nil {
+    C.GoVboxClientUninitialize()
+    client = nil
+  }
+
+  return nil
+}
+
+// GetRevision returns VirtualBox's SVN revision as a number.
+func GetRevision() (int, error) {
   var revision C.ULONG
 
-  result := C.GoVboxGetRevision(vbox.cbox, &revision)
+  result := C.GoVboxGetRevision(cbox, &revision)
   if C.GoVboxFAILED(result) != 0 {
     return 0, errors.New("Failed to get IVirtualBox revision")
   }
@@ -115,13 +99,19 @@ func (vbox* VirtualBox) GetRevision() (int, error) {
   return int(revision), nil
 }
 
-func (vbox* VirtualBox) GetMachines() ([]Machine, error) {
+// The description of a VirtualBox machine
+type Machine struct {
+  cmachine *C.IMachine
+}
+
+func GetMachines() ([]Machine, error) {
   var cmachinesPtr **C.IMachine
   var machinesCount C.ULONG
 
-  result := C.GoVboxGetMachines(vbox.cbox, &cmachinesPtr, &machinesCount)
+  result := C.GoVboxGetMachines(cbox, &cmachinesPtr, &machinesCount)
   if C.GoVboxFAILED(result) != 0 || cmachinesPtr == nil {
-    return nil, errors.New("Failed to get IMachine array")
+    return nil, errors.New(
+        fmt.Sprintf("Failed to get IMachine array: %x", result))
   }
 
   sliceHeader := reflect.SliceHeader{
@@ -133,7 +123,7 @@ func (vbox* VirtualBox) GetMachines() ([]Machine, error) {
 
   var machines = make([]Machine, machinesCount)
   for i := range cmachinesSlice {
-    machines[i] = Machine{vbox, cmachinesSlice[i]}
+    machines[i] = Machine{cmachinesSlice[i]}
   }
 
   C.free(unsafe.Pointer(cmachinesPtr))
@@ -141,8 +131,39 @@ func (vbox* VirtualBox) GetMachines() ([]Machine, error) {
   return machines, nil
 }
 
+// Release frees up the VirtualBox data associated with this machine.
+// After the call, this instance is invalid, and using it will cause errors.
+// It returns any error encountered.
 func (machine* Machine) Release() error {
   if machine.cmachine != nil {
   }
   return nil
 }
+
+type Session struct {
+  csession *C.ISession
+}
+
+func (session *Session) Init() error {
+  if err := Init(); err != nil {
+    return err
+  }
+
+  result := C.GoVboxGetSession(client, &session.csession)
+  if C.GoVboxFAILED(result) != 0 || session.csession == nil {
+    session.csession = nil
+    return errors.New(fmt.Sprintf("Failed to get ISession: %x", result))
+  }
+  return nil
+}
+func (session *Session) Release() error {
+  if session.csession != nil {
+    result := C.GoVboxISessionRelease(session.csession)
+    if C.GoVboxFAILED(result) != 0 {
+      return errors.New(fmt.Sprintf("Failed to release ISession: %x", result))
+    }
+    session.csession = nil
+  }
+  return nil
+}
+
