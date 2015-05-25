@@ -4266,7 +4266,7 @@ struct IVirtualBoxVtbl
 #define IVirtualBox_get_GenericNetworkDrivers(p, aGenericNetworkDrivers) ((p)->lpVtbl->GetGenericNetworkDrivers(p, aGenericNetworkDrivers))
 #define IVirtualBox_GetGenericNetworkDrivers(p, aGenericNetworkDrivers) ((p)->lpVtbl->GetGenericNetworkDrivers(p, aGenericNetworkDrivers))
 #define IVirtualBox_ComposeMachineFilename(p, aName, aGroup, aCreateFlags, aBaseFolder, aFile) ((p)->lpVtbl->ComposeMachineFilename(p, aName, aGroup, aCreateFlags, aBaseFolder, aFile))
-#define IVirtualBox_CreateMachine(p, aSettingsFile, aName, aGroups, aOsTypeId, aFlags, aMachine) ((p)->lpVtbl->CreateMachine(p, aSettingsFile, aName, aGroups, aOsTypeId, aFlags, aMachine))
+#define IVirtualBox_CreateMachine(p, aSettingsFile, aName, aGroupSize, aGroups, aOsTypeId, aFlags, aMachine) ((p)->lpVtbl->CreateMachine(p, aSettingsFile, aName, aGroupSize, aGroups, aOsTypeId, aFlags, aMachine))
 #define IVirtualBox_OpenMachine(p, aSettingsFile, aMachine) ((p)->lpVtbl->OpenMachine(p, aSettingsFile, aMachine))
 #define IVirtualBox_RegisterMachine(p, aMachine) ((p)->lpVtbl->RegisterMachine(p, aMachine))
 #define IVirtualBox_FindMachine(p, aNameOrId, aMachine) ((p)->lpVtbl->FindMachine(p, aNameOrId, aMachine))

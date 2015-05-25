@@ -8,22 +8,12 @@ import (
 )
 
 func TestAppVersion(t *testing.T) {
-  Init()
-  if err := Init(); err != nil {
-    t.Fatal(err)
-  }
-
   if AppVersion <= 4003000 {
     t.Error("AppVersion below 4.3: %d", AppVersion)
   }
 }
 
 func TestGetRevision(t *testing.T) {
-  Init()
-  if err := Init(); err != nil {
-    t.Fatal(err)
-  }
-
   revision, err := GetRevision()
   if err != nil {
     t.Fatal(err)
@@ -33,19 +23,38 @@ func TestGetRevision(t *testing.T) {
   }
 }
 
-func TestGetMachines(t *testing.T) {
-  machines, err := GetMachines()
+func TestGetGuestOsTypes(t *testing.T) {
+  types, err := GetGuestOsTypes()
   if err != nil {
     t.Fatal(err)
   }
-  if len(machines) == 0 {
-    t.Error("GetMachines failed")
+  if len(types) == 0 {
+    t.Error("GetTypes returned empty array")
   }
 
-  for _, machine := range machines {
-    if err := machine.Release(); err != nil {
+  hasLinux := false
+  hasWindows764 := false
+  for _, osType := range types {
+    id, err := osType.GetId()
+    if err != nil {
       t.Error(err)
     }
+    switch id {
+    case "Linux":
+      hasLinux = true
+    case "Windows7_64":
+      hasWindows764 = true
+    }
+    if err := osType.Release(); err != nil {
+      t.Error(err)
+    }
+  }
+
+  if hasLinux == false {
+    t.Error("Linux type not found")
+  }
+  if hasWindows764 == false {
+    t.Error("Windows7_64 type not found")
   }
 }
 

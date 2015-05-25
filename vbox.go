@@ -89,56 +89,87 @@ func Deinit() error {
 
 // GetRevision returns VirtualBox's SVN revision as a number.
 func GetRevision() (int, error) {
-  var revision C.ULONG
+  if err := Init(); err != nil {
+    return 0, err
+  }
 
+  var revision C.ULONG
   result := C.GoVboxGetRevision(cbox, &revision)
   if C.GoVboxFAILED(result) != 0 {
-    return 0, errors.New("Failed to get IVirtualBox revision")
+    return 0, errors.New(
+        fmt.Sprintf("Failed to get IVirtualBox revision: %x", result))
   }
 
   return int(revision), nil
 }
 
-// The description of a VirtualBox machine
-type Machine struct {
-  cmachine *C.IMachine
+// The description of a supported guest OS type
+type GuestOsType struct {
+  ctype *C.IGuestOSType
 }
 
-func GetMachines() ([]Machine, error) {
-  var cmachinesPtr **C.IMachine
-  var machinesCount C.ULONG
+// GetGuestOSTypes returns the guest OS types supported by VirtualBox.
+// It returns a slice of GuestOSType instances and any error encountered.
+func GetGuestOsTypes() ([]GuestOsType, error) {
+  if err := Init(); err != nil {
+    return nil, err
+  }
 
-  result := C.GoVboxGetMachines(cbox, &cmachinesPtr, &machinesCount)
-  if C.GoVboxFAILED(result) != 0 || cmachinesPtr == nil {
+  var ctypesPtr **C.IGuestOSType
+  var typeCount C.ULONG
+
+  result := C.GoVboxGetGuestOSTypes(cbox, &ctypesPtr, &typeCount)
+  if C.GoVboxFAILED(result) != 0 || ctypesPtr == nil {
     return nil, errors.New(
-        fmt.Sprintf("Failed to get IMachine array: %x", result))
+        fmt.Sprintf("Failed to get IGuestOSType array: %x", result))
   }
 
   sliceHeader := reflect.SliceHeader{
-    Data: uintptr(unsafe.Pointer(cmachinesPtr)),
-    Len:  int(machinesCount),
-    Cap:  int(machinesCount),
+    Data: uintptr(unsafe.Pointer(ctypesPtr)),
+    Len:  int(typeCount),
+    Cap:  int(typeCount),
   }
-  cmachinesSlice := *(*[]*C.IMachine)(unsafe.Pointer(&sliceHeader))
+  ctypesSlice := *(*[]*C.IGuestOSType)(unsafe.Pointer(&sliceHeader))
 
-  var machines = make([]Machine, machinesCount)
-  for i := range cmachinesSlice {
-    machines[i] = Machine{cmachinesSlice[i]}
+  var types = make([]GuestOsType, typeCount)
+  for i := range ctypesSlice {
+    types[i] = GuestOsType{ctypesSlice[i]}
   }
 
-  C.free(unsafe.Pointer(cmachinesPtr))
-
-  return machines, nil
+  C.free(unsafe.Pointer(ctypesPtr))
+  return types, nil
 }
 
-// Release frees up the VirtualBox data associated with this machine.
+// GetId returns the string used to identify this OS type in other API calls.
+// It returns a string and any error encountered.
+func (osType *GuestOsType) GetId() (string, error) {
+  var cid *C.char
+  result := C.GoVboxGetGuestOSTypeId(osType.ctype, &cid)
+  if C.GoVboxFAILED(result) != 0 || cid == nil {
+    return "", errors.New(
+        fmt.Sprintf("Failed to get IGuestOSType name: %x", result))
+  }
+
+  id := C.GoString(cid)
+  C.free(unsafe.Pointer(cid))
+  return id, nil
+}
+
+// Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
-func (machine* Machine) Release() error {
-  if machine.cmachine != nil {
+func (osType *GuestOsType) Release() error {
+  if osType.ctype != nil {
+    result := C.GoVboxIGuestOSTypeRelease(osType.ctype)
+    if C.GoVboxFAILED(result) != 0 {
+      return errors.New(
+          fmt.Sprintf("Failed to release IGuestOSType: %x", result))
+    }
+    osType.ctype = nil
   }
   return nil
 }
+
 
 type Session struct {
   csession *C.ISession
@@ -156,6 +187,10 @@ func (session *Session) Init() error {
   }
   return nil
 }
+
+// Release frees up the associated VirtualBox data.
+// After the call, this instance is invalid, and using it will cause errors.
+// It returns any error encountered.
 func (session *Session) Release() error {
   if session.csession != nil {
     result := C.GoVboxISessionRelease(session.csession)
