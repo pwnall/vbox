@@ -16,6 +16,7 @@ import (
   //"unsafe"
 )
 
+// Tracks the progress of a long-running operation.
 type Progress struct {
   cprogress *C.IProgress
 }
@@ -30,6 +31,32 @@ func (progress* Progress) WaitForCompletion(timeout int) error {
     return errors.New(fmt.Sprintf("Failed to wait on IProgress: %x", result))
   }
   return nil
+}
+
+// GetState returns the completion percentage of the tracked operation.
+// It returns a number and any error encountered.
+func (progress* Progress) GetPercent() (int, error) {
+  var cpercent C.PRUint32
+
+  result := C.GoVboxGetProgressPercent(progress.cprogress, &cpercent)
+  if C.GoVboxFAILED(result) != 0 {
+    return 0, errors.New(
+        fmt.Sprintf("Failed to get IProgress percent: %x", result))
+  }
+  return int(cpercent), nil
+}
+
+// GetResultCode returns the result code of the tracked operation.
+// It returns a number and any error encountered.
+func (progress* Progress) GetResultCode() (int, error) {
+  var code C.PRUint32
+
+  result := C.GoVboxGetProgressResultCode(progress.cprogress, &code)
+  if C.GoVboxFAILED(result) != 0 {
+    return 0, errors.New(
+        fmt.Sprintf("Failed to get IProgress result code: %x", result))
+  }
+  return int(code), nil
 }
 
 

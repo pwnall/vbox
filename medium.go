@@ -84,14 +84,19 @@ func (medium* Medium) GetState() (MediumState, error) {
 // It returns a Progress and any error encountered.
 func (medium *Medium) CreateBaseStorage(
     size uint64, variants []MediumVariant) (Progress, error) {
-  cvariants := make([]C.PRUint32, len(variants))
-  for i, variant := range variants {
-    cvariants[i] = C.PRUint32(variant)
+
+  var cvariants *C.PRUint32
+  if len(variants) > 0 {
+    cvariantsSlice := make([]C.PRUint32, len(variants))
+    for i, variant := range variants {
+      cvariantsSlice[i] = C.PRUint32(variant)
+    }
+    cvariants = &cvariantsSlice[0]
   }
 
   var progress Progress
   result := C.GoVboxMediumCreateBaseStorage(medium.cmedium, C.PRInt64(size),
-      C.PRUint32(len(variants)), &cvariants[0], &progress.cprogress)
+      C.PRUint32(len(variants)), cvariants, &progress.cprogress)
   if C.GoVboxFAILED(result) != 0 || progress.cprogress == nil {
     return progress, errors.New(
         fmt.Sprintf("Failed to create IMedium storage: %x", result))
