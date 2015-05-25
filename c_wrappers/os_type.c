@@ -6,7 +6,7 @@ HRESULT GoVboxFAILED(HRESULT result);
 HRESULT GoVboxGetGuestOSTypes(IVirtualBox* cbox, IGuestOSType*** ctypes,
     ULONG* typeCount) {
   SAFEARRAY *safeArray = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();
-  HRESULT result = IVirtualBox_get_GuestOSTypes(cbox,
+  HRESULT result = IVirtualBox_GetGuestOSTypes(cbox,
       ComSafeArrayAsOutIfaceParam(safeArray, IGuestOSType *));
   g_pVBoxFuncs->pfnSafeArrayCopyOutIfaceParamHelper(
       (IUnknown ***)ctypes, typeCount, safeArray);

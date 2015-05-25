@@ -36,7 +36,7 @@ HRESULT GoVboxGetVirtualBox(IVirtualBoxClient* client, IVirtualBox** cbox) {
 }
 
 HRESULT GoVboxGetRevision(IVirtualBox* cbox, ULONG* revision) {
-  return IVirtualBox_get_Revision(cbox, revision);
+  return IVirtualBox_GetRevision(cbox, revision);
 }
 HRESULT GoVboxIVirtualBoxRelease(IVirtualBox* cbox) {
   return IVirtualBox_Release(cbox);

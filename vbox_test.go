@@ -3,6 +3,7 @@ package vbox
 import (
   "fmt"
   "os"
+  "path"
   "strings"
   "testing"
   //"image"
@@ -50,6 +51,18 @@ func TestMain(m *testing.M) {
     fmt.Printf("%v\n", err)
     os.Exit(1)
   }
+
+  cwd, err := os.Getwd()
+  if err != nil {
+    fmt.Printf("%v\n", err)
+    os.Exit(1)
+  }
+  testDir := path.Join(cwd, "test_tmp")
+  if err = os.MkdirAll(testDir, 0777); err != nil {
+    fmt.Printf("%v\n", err)
+    os.Exit(1)
+  }
+
   result := m.Run()
   Deinit()
   os.Exit(result)

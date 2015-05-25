@@ -25,6 +25,16 @@ HRESULT GoVboxGetMachineOSTypeId(IMachine* cmachine, char** cosTypeId) {
   return result;
 
 }
+HRESULT GoVboxGetMachineSettingsFilePath(IMachine* cmachine, char** cpath) {
+  BSTR wpath = NULL;
+  HRESULT result = IMachine_GetSettingsFilePath(cmachine, &wpath);
+  if (FAILED(result))
+    return result;
+
+  g_pVBoxFuncs->pfnUtf16ToUtf8(wpath, cpath);
+  g_pVBoxFuncs->pfnComUnallocString(wpath);
+  return result;
+}
 HRESULT GoVboxGetMachineSettingsModified(IMachine* cmachine,
     PRBool* cmodified) {
   return IMachine_GetSettingsModified(cmachine, cmodified);
@@ -37,7 +47,7 @@ HRESULT GoVboxIMachineRelease(IMachine* cmachine) {
 }
 
 HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char* cname, char* cosTypeId,
-    char* cflags, IMachine **machine) {
+    char* cflags, IMachine** cmachine) {
   BSTR wname;
   HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
   if (FAILED(result))
@@ -58,7 +68,7 @@ HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char* cname, char* cosTypeId,
   }
 
   result = IVirtualBox_CreateMachine(cbox, NULL, wname, 0, NULL, wosTypeId,
-      wflags, machine);
+      wflags, cmachine);
   g_pVBoxFuncs->pfnComUnallocString(wflags);
   g_pVBoxFuncs->pfnComUnallocString(wosTypeId);
   g_pVBoxFuncs->pfnComUnallocString(wname);

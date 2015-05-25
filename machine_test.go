@@ -21,6 +21,11 @@ func TestGetMachines(t *testing.T) {
 }
 
 func TestCreateMachine(t *testing.T) {
+  goldenPath, err := ComposeMachineFilename("pwnall_vbox_test", "", "")
+  if err != nil {
+    t.Fatal(err)
+  }
+
   machine, err := CreateMachine("pwnall_vbox_test", "Linux",
       "forceOverwrite=1")
   if err != nil {
@@ -32,14 +37,21 @@ func TestCreateMachine(t *testing.T) {
   if err != nil {
     t.Error(err)
   } else if name != "pwnall_vbox_test" {
-    t.Error("Wrong machine name", name)
+    t.Error("Wrong machine name: ", name)
   }
 
   osTypeId, err := machine.GetOsTypeId()
   if err != nil {
     t.Error(err)
   } else if osTypeId != "Linux" {
-    t.Error("Wrong OS type ID", osTypeId)
+    t.Error("Wrong OS type ID: ", osTypeId)
+  }
+
+  path, err := machine.GetSettingsFilePath()
+  if err != nil {
+    t.Error(err)
+  } else if path != goldenPath {
+    t.Error("Wrong settings path: ", path, " expected: ", goldenPath)
   }
 
   modified, err := machine.GetSettingsModified()

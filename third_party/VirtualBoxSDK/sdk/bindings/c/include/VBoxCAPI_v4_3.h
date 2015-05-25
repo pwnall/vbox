@@ -11617,7 +11617,7 @@ struct IMediumVtbl
 #define IMedium_SetProperty(p, aName, aValue) ((p)->lpVtbl->SetProperty(p, aName, aValue))
 #define IMedium_GetProperties(p, aNames, aReturnNames, aReturnValues) ((p)->lpVtbl->GetProperties(p, aNames, aReturnNames, aReturnValues))
 #define IMedium_SetProperties(p, aNames, aValues) ((p)->lpVtbl->SetProperties(p, aNames, aValues))
-#define IMedium_CreateBaseStorage(p, aLogicalSize, aVariant, aProgress) ((p)->lpVtbl->CreateBaseStorage(p, aLogicalSize, aVariant, aProgress))
+#define IMedium_CreateBaseStorage(p, aLogicalSize, aVariantSize, aVariant, aProgress) ((p)->lpVtbl->CreateBaseStorage(p, aLogicalSize, aVariantSize, aVariant, aProgress))
 #define IMedium_DeleteStorage(p, aProgress) ((p)->lpVtbl->DeleteStorage(p, aProgress))
 #define IMedium_CreateDiffStorage(p, aTarget, aVariant, aProgress) ((p)->lpVtbl->CreateDiffStorage(p, aTarget, aVariant, aProgress))
 #define IMedium_MergeTo(p, aTarget, aProgress) ((p)->lpVtbl->MergeTo(p, aTarget, aProgress))

@@ -52,6 +52,22 @@ func (machine *Machine) GetOsTypeId() (string, error) {
   return osTypeId, nil
 }
 
+// GetSettingsFilePath returns the path of the machine's settings file.
+// It returns a string and any error encountered.
+func (machine *Machine) GetSettingsFilePath() (string, error) {
+  var cpath *C.char
+  result := C.GoVboxGetMachineSettingsFilePath(machine.cmachine, &cpath)
+  if C.GoVboxFAILED(result) != 0 || cpath == nil {
+    return "", errors.New(
+        fmt.Sprintf("Failed to get IMachine settings file path: %x", result))
+  }
+
+  path := C.GoString(cpath)
+  C.free(unsafe.Pointer(cpath))
+  return path, nil
+}
+
+
 // GetSettingsModified asks VirtualBox if this machine has unsaved settings.
 // It returns a boolean and any error encountered.
 func (machine *Machine) GetSettingsModified() (bool, error) {

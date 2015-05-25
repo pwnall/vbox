@@ -3,3 +3,6 @@
 
 # Vim.
 *.sw*
+
+# Test temporary dir.
+test_tmp/

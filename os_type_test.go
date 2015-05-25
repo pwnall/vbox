@@ -20,6 +20,7 @@ func TestGetGuestOsTypes(t *testing.T) {
     if err != nil {
       t.Error(err)
     }
+    t.Log("Found type: ", id)
     switch id {
     case "Linux":
       hasLinux = true
@@ -29,6 +30,8 @@ func TestGetGuestOsTypes(t *testing.T) {
     if err := osType.Release(); err != nil {
       t.Error(err)
     }
+
+    osType.Release()
   }
 
   if hasLinux == false {
