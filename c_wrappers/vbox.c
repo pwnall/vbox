@@ -34,12 +34,48 @@ void GoVboxClientUninitialize() {
 HRESULT GoVboxGetVirtualBox(IVirtualBoxClient* client, IVirtualBox** cbox) {
   return IVirtualBoxClient_GetVirtualBox(client, cbox);
 }
-HRESULT GoVboxIVirtualBoxRelease(IVirtualBox* cbox) {
-  return IVirtualBox_Release(cbox);
-}
 
 HRESULT GoVboxGetRevision(IVirtualBox* cbox, ULONG* revision) {
   return IVirtualBox_get_Revision(cbox, revision);
+}
+HRESULT GoVboxIVirtualBoxRelease(IVirtualBox* cbox) {
+  return IVirtualBox_Release(cbox);
+}
+HRESULT GoVboxComposeMachineFilename(IVirtualBox* cbox, char* cname,
+    char* cflags, char* cbaseFolder, char **cpath) {
+
+  BSTR wname;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
+  if (FAILED(result))
+    return result;
+
+  BSTR wflags = NULL;
+  result = g_pVBoxFuncs->pfnUtf8ToUtf16(cflags, &wflags);
+  if (FAILED(result)) {
+    g_pVBoxFuncs->pfnComUnallocString(wname);
+  }
+
+  BSTR wbaseFolder;
+  result = g_pVBoxFuncs->pfnUtf8ToUtf16(cbaseFolder, &wbaseFolder);
+  if (FAILED(result)) {
+    g_pVBoxFuncs->pfnComUnallocString(wflags);
+    g_pVBoxFuncs->pfnComUnallocString(wname);
+    return result;
+  }
+
+  BSTR wpath = NULL;
+  result = IVirtualBox_ComposeMachineFilename(cbox, wname, NULL, wflags,
+      wbaseFolder, &wpath);
+  g_pVBoxFuncs->pfnComUnallocString(wbaseFolder);
+  g_pVBoxFuncs->pfnComUnallocString(wflags);
+  g_pVBoxFuncs->pfnComUnallocString(wname);
+  if (FAILED(result))
+    return result;
+
+
+  g_pVBoxFuncs->pfnUtf16ToUtf8(wpath, cpath);
+  g_pVBoxFuncs->pfnComUnallocString(wpath);
+  return result;
 }
 
 HRESULT GoVboxGetSession(IVirtualBoxClient* client, ISession** csession) {

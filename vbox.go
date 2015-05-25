@@ -14,7 +14,7 @@ import (
   "errors"
   "fmt"
   //"reflect"
-  //"unsafe"
+  "unsafe"
 )
 
 // These singletons get initialized by Init().
@@ -101,6 +101,35 @@ func GetRevision() (int, error) {
   }
 
   return int(revision), nil
+}
+
+// ComposeMachineFilename returns a default VM config file path.
+// If baseFolder is empty, VirtualBox's default machine folder will be used.
+// It returns a string and any error encountered.
+func ComposeMachineFilename(
+    name string, flags string, baseFolder string) (string, error) {
+  if err := Init(); err != nil {
+    return "", err
+  }
+
+  var cpath *C.char
+  cname := C.CString(name)
+  cflags := C.CString(flags)
+  cbaseFolder := C.CString(baseFolder)
+  result := C.GoVboxComposeMachineFilename(cbox, cname, cflags, cbaseFolder,
+      &cpath)
+  C.free(unsafe.Pointer(cname))
+  C.free(unsafe.Pointer(cflags))
+  C.free(unsafe.Pointer(cbaseFolder))
+
+  if C.GoVboxFAILED(result) != 0 || cpath == nil {
+    return "", errors.New(
+        fmt.Sprintf("IVirtualBox failed to compose machine name: %x", result))
+  }
+
+  path := C.GoString(cpath)
+  C.free(unsafe.Pointer(cpath))
+  return path, nil
 }
 
 type Session struct {
