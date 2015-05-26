@@ -104,6 +104,17 @@ func (medium *Medium) CreateBaseStorage(
   return progress, nil
 }
 
+// DeleteStorage starts deleting the image backing a storage medium.
+// It returns a Progress and any error encountered.
+func (medium *Medium) DeleteStorage() (Progress, error) {
+  var progress Progress
+  result := C.GoVboxMediumDeleteStorage(medium.cmedium, &progress.cprogress)
+  if C.GoVboxFAILED(result) != 0 || progress.cprogress == nil {
+    return progress, errors.New(
+        fmt.Sprintf("Failed to delete IMedium storage: %x", result))
+  }
+  return progress, nil
+}
 
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.

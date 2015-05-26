@@ -35,7 +35,7 @@ func TestCreateMedium(t *testing.T) {
   }
 }
 
-func TestMedium_CreateBaseStorage(t *testing.T) {
+func TestMedium_CreateBaseStorage_DeleteStorage(t *testing.T) {
   cwd, err := os.Getwd()
   if err != nil {
     t.Fatal(err)
@@ -49,8 +49,14 @@ func TestMedium_CreateBaseStorage(t *testing.T) {
   }
   defer medium.Release()
 
-  // NOTE: The err value is ignored on purpose. We clean up as well as we can.
-  //defer os.Remove(imageFile)
+  // NOTE: VirtualBox errors out if we try to create an image that already
+  //       exists, so we make sure we clean up any left overs from previous
+  //       failed/crashed tests.
+  if _, err = os.Stat(imageFile); err == nil {
+    if err = os.Remove(imageFile); err != nil {
+      t.Fatal(err)
+    }
+  }
 
   imageSize := uint64(1 << 24)  // 16MB
   progress, err := medium.CreateBaseStorage(imageSize,
@@ -85,5 +91,20 @@ func TestMedium_CreateBaseStorage(t *testing.T) {
     t.Error(err)
   } else if state != MediumState_Created {
     t.Error("Unexpected medium state after creation completed: ", state)
+  }
+
+  progress, err = medium.DeleteStorage()
+  if err != nil {
+    t.Fatal(err)
+  }
+  if err = progress.WaitForCompletion(10000); err != nil {
+    t.Fatal(err)
+  }
+
+  state, err = medium.GetState()
+  if err != nil {
+    t.Error(err)
+  } else if state != MediumState_NotCreated {
+    t.Error("Unexpected medium state after deletion completed: ", state)
   }
 }

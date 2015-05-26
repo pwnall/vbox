@@ -30,6 +30,9 @@ HRESULT GoVboxMediumCreateBaseStorage(IMedium* cmedium, PRInt64 size,
   return IMedium_CreateBaseStorage(cmedium, size, variantSize, cvariant,
       cprogress);
 }
+HRESULT GoVboxMediumDeleteStorage(IMedium* cmedium, IProgress** cprogress) {
+  return IMedium_DeleteStorage(cmedium, cprogress);
+}
 HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
   BSTR wlocation = NULL;
   HRESULT result = IMedium_GetLocation(cmedium, &wlocation);
