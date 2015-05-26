@@ -6,3 +6,7 @@
 
 # Test temporary dir.
 test_tmp/
+
+# Sample binaries.
+samples/create_vm/create_vm
+samples/delete_vm/delete_vm
