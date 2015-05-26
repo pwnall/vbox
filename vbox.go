@@ -128,7 +128,7 @@ func ComposeMachineFilename(
   }
 
   path := C.GoString(cpath)
-  C.free(unsafe.Pointer(cpath))
+  C.GoVboxUtf8Free(cpath)
   return path, nil
 }
 

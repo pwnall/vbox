@@ -1,7 +1,9 @@
 #include "VBoxCAPIGlue.h"
 
-// Wrapper declared in vbox.c
+// Wrappers declared in vbox.c
 HRESULT GoVboxFAILED(HRESULT result);
+HRESULT GoVboxArrayOutFree(void* array);
+void GoVboxUtf8Free(char* cstring);
 
 
 HRESULT GoVboxGetMachineName(IMachine* cmachine, char** cname) {
@@ -42,6 +44,18 @@ HRESULT GoVboxGetMachineSettingsModified(IMachine* cmachine,
 HRESULT GoVboxMachineSaveSettings(IMachine* cmachine) {
   return IMachine_SaveSettings(cmachine);
 }
+HRESULT GoVboxMachineUnregister(IMachine* cmachine, PRUint32 cleanupMode,
+    IMedium*** cmedia, ULONG* mediaCount) {
+  SAFEARRAY *safeArray = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();
+  HRESULT result = IMachine_Unregister(cmachine, cleanupMode,
+      ComSafeArrayAsOutIfaceParam(safeArray, IMedium *));
+  if (!FAILED(result)) {
+    result = g_pVBoxFuncs->pfnSafeArrayCopyOutIfaceParamHelper(
+        (IUnknown ***)cmedia, mediaCount, safeArray);
+  }
+  g_pVBoxFuncs->pfnSafeArrayDestroy(safeArray);
+  return result;
+}
 HRESULT GoVboxIMachineRelease(IMachine* cmachine) {
   return IMachine_Release(cmachine);
 }
@@ -56,22 +70,22 @@ HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char* cname, char* cosTypeId,
   BSTR wosTypeId;
   result = g_pVBoxFuncs->pfnUtf8ToUtf16(cosTypeId, &wosTypeId);
   if (FAILED(result)) {
-    g_pVBoxFuncs->pfnComUnallocString(wname);
+    g_pVBoxFuncs->pfnUtf16Free(wname);
     return result;
   }
 
   BSTR wflags = NULL;
   result = g_pVBoxFuncs->pfnUtf8ToUtf16(cflags, &wflags);
   if (FAILED(result)) {
-    g_pVBoxFuncs->pfnComUnallocString(wosTypeId);
-    g_pVBoxFuncs->pfnComUnallocString(wname);
+    g_pVBoxFuncs->pfnUtf16Free(wosTypeId);
+    g_pVBoxFuncs->pfnUtf16Free(wname);
   }
 
   result = IVirtualBox_CreateMachine(cbox, NULL, wname, 0, NULL, wosTypeId,
       wflags, cmachine);
-  g_pVBoxFuncs->pfnComUnallocString(wflags);
-  g_pVBoxFuncs->pfnComUnallocString(wosTypeId);
-  g_pVBoxFuncs->pfnComUnallocString(wname);
+  g_pVBoxFuncs->pfnUtf16Free(wflags);
+  g_pVBoxFuncs->pfnUtf16Free(wosTypeId);
+  g_pVBoxFuncs->pfnUtf16Free(wname);
 
   return result;
 }
@@ -80,8 +94,13 @@ HRESULT GoVboxGetMachines(IVirtualBox* cbox, IMachine*** cmachines,
   SAFEARRAY *safeArray = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();
   HRESULT result = IVirtualBox_GetMachines(cbox,
       ComSafeArrayAsOutIfaceParam(safeArray, IMachine *));
-  g_pVBoxFuncs->pfnSafeArrayCopyOutIfaceParamHelper(
-      (IUnknown ***)cmachines, machineCount, safeArray);
+  if (!FAILED(result)) {
+    result = g_pVBoxFuncs->pfnSafeArrayCopyOutIfaceParamHelper(
+        (IUnknown ***)cmachines, machineCount, safeArray);
+  }
   g_pVBoxFuncs->pfnSafeArrayDestroy(safeArray);
   return result;
+}
+HRESULT GoVboxRegisterMachine(IVirtualBox* cbox, IMachine* cmachine) {
+  return IVirtualBox_RegisterMachine(cbox, cmachine);
 }

@@ -1,7 +1,9 @@
 #include "VBoxCAPIGlue.h"
 
-// Wrapper declared in vbox.c
+// Wrappers declared in vbox.c
 HRESULT GoVboxFAILED(HRESULT result);
+HRESULT GoVboxArrayOutFree(void* array);
+void GoVboxUtf8Free(char* cstring);
 
 
 HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
@@ -14,13 +16,13 @@ HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
   BSTR wlocation;
   result = g_pVBoxFuncs->pfnUtf8ToUtf16(clocation, &wlocation);
   if (FAILED(result)) {
-    g_pVBoxFuncs->pfnComUnallocString(wformat);
+    g_pVBoxFuncs->pfnUtf16Free(wformat);
     return result;
   }
 
   result = IVirtualBox_CreateHardDisk(cbox, wformat, wlocation, cmedium);
-  g_pVBoxFuncs->pfnComUnallocString(wlocation);
-  g_pVBoxFuncs->pfnComUnallocString(wformat);
+  g_pVBoxFuncs->pfnUtf16Free(wlocation);
+  g_pVBoxFuncs->pfnUtf16Free(wformat);
 
   return result;
 }
@@ -34,7 +36,7 @@ HRESULT GoVboxOpenMedium(IVirtualBox* cbox, char* clocation,
 
   result = IVirtualBox_OpenMedium(cbox, wlocation, cdeviceType, caccessType,
       cforceNewUuid, cmedium);
-  g_pVBoxFuncs->pfnComUnallocString(wlocation);
+  g_pVBoxFuncs->pfnUtf16Free(wlocation);
 
   return result;
 }

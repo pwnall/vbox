@@ -32,7 +32,7 @@ func (medium *Medium) GetLocation() (string, error) {
   }
 
   id := C.GoString(clocation)
-  C.free(unsafe.Pointer(clocation))
+  C.GoVboxUtf8Free(clocation)
   return id, nil
 }
 

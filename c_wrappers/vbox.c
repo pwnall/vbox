@@ -9,6 +9,12 @@
 HRESULT GoVboxFAILED(HRESULT result) {
   return FAILED(result);
 }
+HRESULT GoVboxArrayOutFree(void* carray) {
+  return g_pVBoxFuncs->pfnArrayOutFree(carray);
+}
+void GoVboxUtf8Free(char* cstring) {
+  g_pVBoxFuncs->pfnUtf8Free(cstring);
+}
 
 HRESULT GoVboxCGlueInit() {
   return VBoxCGlueInit();
@@ -52,23 +58,23 @@ HRESULT GoVboxComposeMachineFilename(IVirtualBox* cbox, char* cname,
   BSTR wflags = NULL;
   result = g_pVBoxFuncs->pfnUtf8ToUtf16(cflags, &wflags);
   if (FAILED(result)) {
-    g_pVBoxFuncs->pfnComUnallocString(wname);
+    g_pVBoxFuncs->pfnUtf16Free(wname);
   }
 
   BSTR wbaseFolder;
   result = g_pVBoxFuncs->pfnUtf8ToUtf16(cbaseFolder, &wbaseFolder);
   if (FAILED(result)) {
-    g_pVBoxFuncs->pfnComUnallocString(wflags);
-    g_pVBoxFuncs->pfnComUnallocString(wname);
+    g_pVBoxFuncs->pfnUtf16Free(wflags);
+    g_pVBoxFuncs->pfnUtf16Free(wname);
     return result;
   }
 
   BSTR wpath = NULL;
   result = IVirtualBox_ComposeMachineFilename(cbox, wname, NULL, wflags,
       wbaseFolder, &wpath);
-  g_pVBoxFuncs->pfnComUnallocString(wbaseFolder);
-  g_pVBoxFuncs->pfnComUnallocString(wflags);
-  g_pVBoxFuncs->pfnComUnallocString(wname);
+  g_pVBoxFuncs->pfnUtf16Free(wbaseFolder);
+  g_pVBoxFuncs->pfnUtf16Free(wflags);
+  g_pVBoxFuncs->pfnUtf16Free(wname);
   if (FAILED(result))
     return result;
 

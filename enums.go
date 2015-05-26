@@ -18,6 +18,23 @@ const (
   AccessMode_ReadWrite = C.AccessMode_ReadWrite
 )
 
+// Enumeration of CleanupMode values
+type CleanupMode uint
+const (
+  // Unregister the machine, do not detach media or delete snapshots.
+  CleanupMode_UnregisterOnly = C.CleanupMode_UnregisterOnly
+  // Delete snapshots, detach media, do not return any media for closing.
+  CleanupMode_DetachAllReturnNone = C.CleanupMode_DetachAllReturnNone
+  // Delete snapshots, detach media, return hard disks for closing.
+  // This does not return removable media attached to the VM.
+  CleanupMode_DetachAllReturnHardDisksOnly =
+      C.CleanupMode_DetachAllReturnHardDisksOnly
+  // Delete snapshots, detach media, return all media for closing.
+  // This is not recommended by the API documentation, because users generally
+  // want to keep their ISOs around.
+  CleanupMode_Full = C.CleanupMode_Full
+)
+
 // Enumeration of DeviceType values
 type DeviceType uint
 const (

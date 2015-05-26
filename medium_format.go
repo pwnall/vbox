@@ -33,7 +33,7 @@ func (format *MediumFormat) GetId() (string, error) {
   }
 
   id := C.GoString(cid)
-  C.free(unsafe.Pointer(cid))
+  C.GoVboxUtf8Free(cid)
   return id, nil
 }
 
@@ -60,7 +60,7 @@ func (props *SystemProperties) GetMediumFormats() ([]MediumFormat, error) {
   var formatCount C.ULONG
 
   result := C.GoVboxGetMediumFormats(props.cprops, &cformatsPtr, &formatCount)
-  if C.GoVboxFAILED(result) != 0 || cformatsPtr == nil {
+  if C.GoVboxFAILED(result) != 0 || (cformatsPtr == nil && formatCount > 0) {
     return nil, errors.New(
         fmt.Sprintf("Failed to get IMediumFormat array: %x", result))
   }
@@ -77,6 +77,6 @@ func (props *SystemProperties) GetMediumFormats() ([]MediumFormat, error) {
     formats[i] = MediumFormat{cformatsSlice[i]}
   }
 
-  C.free(unsafe.Pointer(cformatsPtr))
+  C.GoVboxArrayOutFree(unsafe.Pointer(cformatsPtr))
   return formats, nil
 }

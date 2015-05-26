@@ -33,7 +33,7 @@ func (machine *Machine) GetName() (string, error) {
   }
 
   name := C.GoString(cname)
-  C.free(unsafe.Pointer(cname))
+  C.GoVboxUtf8Free(cname)
   return name, nil
 }
 
@@ -48,7 +48,7 @@ func (machine *Machine) GetOsTypeId() (string, error) {
   }
 
   osTypeId := C.GoString(cosTypeId)
-  C.free(unsafe.Pointer(cosTypeId))
+  C.GoVboxUtf8Free(cosTypeId)
   return osTypeId, nil
 }
 
@@ -63,7 +63,7 @@ func (machine *Machine) GetSettingsFilePath() (string, error) {
   }
 
   path := C.GoString(cpath)
-  C.free(unsafe.Pointer(cpath))
+  C.GoVboxUtf8Free(cpath)
   return path, nil
 }
 
@@ -92,6 +92,51 @@ func (machine *Machine) SaveSettings() error {
   return nil
 }
 
+// Register adds this to VirtualBox's list of registered machines.
+// It returns any error encountered.
+func (machine *Machine) Register() error {
+  // NOTE: This is a rare case where the underlying VirtualBox API call doesn't
+  //       match the Go object model precisely. Register() really feels like it
+  //       should belong to Machine and not to VirtualBox, because it takes a
+  //       Machine argument, and VirtualBox is a singleton.
+  result := C.GoVboxRegisterMachine(cbox, machine.cmachine)
+  if C.GoVboxFAILED(result) != 0 {
+    return errors.New(fmt.Sprintf("Failed to register IMachine: %x", result))
+  }
+  return nil
+}
+
+// Unregister removes this from VirtualBox's list of registered machines.
+// The returned slice of Medium instances is intended to be passed to
+// DeleteConfig to get all the VM's files cleaned.
+// It returns an array of detached Medium instances and any error encountered.
+func (machine *Machine) Unregister(cleanupMode CleanupMode) ([]Medium, error) {
+  var cmediaPtr **C.IMedium
+  var mediaCount C.ULONG
+
+  result := C.GoVboxMachineUnregister(machine.cmachine,
+      C.PRUint32(cleanupMode), &cmediaPtr, &mediaCount)
+  if C.GoVboxFAILED(result) != 0 || (cmediaPtr == nil && mediaCount != 0) {
+    return nil, errors.New(
+        fmt.Sprintf("Failed to unregister machine: %x", result))
+  }
+
+  sliceHeader := reflect.SliceHeader{
+    Data: uintptr(unsafe.Pointer(cmediaPtr)),
+    Len:  int(mediaCount),
+    Cap:  int(mediaCount),
+  }
+  cmediaSlice := *(*[]*C.IMedium)(unsafe.Pointer(&sliceHeader))
+
+  var media = make([]Medium, mediaCount)
+  for i := range cmediaSlice {
+    media[i] = Medium{cmediaSlice[i]}
+  }
+
+  C.GoVboxArrayOutFree(unsafe.Pointer(cmediaPtr))
+  return media, nil
+}
+
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
@@ -108,8 +153,8 @@ func (machine* Machine) Release() error {
 
 
 // CreateMachine creates a VirtualBox machine.
-// The machine's settings must be saved by calling SaveSettings, and then the
-// machine must be registered by calling Register.
+// The machine must be registered by calling Register before it shows up in the
+// GetMachines list.
 // It returns the created machine and any error encountered.
 func CreateMachine(
     name string, osTypeId string, flags string) (Machine, error) {
@@ -145,7 +190,8 @@ func GetMachines() ([]Machine, error) {
   var machineCount C.ULONG
 
   result := C.GoVboxGetMachines(cbox, &cmachinesPtr, &machineCount)
-  if C.GoVboxFAILED(result) != 0 || cmachinesPtr == nil {
+  if C.GoVboxFAILED(result) != 0 ||
+      (cmachinesPtr == nil && machineCount != 0) {
     return nil, errors.New(
         fmt.Sprintf("Failed to get IMachine array: %x", result))
   }
@@ -162,8 +208,7 @@ func GetMachines() ([]Machine, error) {
     machines[i] = Machine{cmachinesSlice[i]}
   }
 
-  C.free(unsafe.Pointer(cmachinesPtr))
-
+  C.GoVboxArrayOutFree(unsafe.Pointer(cmachinesPtr))
   return machines, nil
 }
 

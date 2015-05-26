@@ -33,7 +33,7 @@ func (osType *GuestOsType) GetId() (string, error) {
   }
 
   id := C.GoString(cid)
-  C.free(unsafe.Pointer(cid))
+  C.GoVboxUtf8Free(cid)
   return id, nil
 }
 
@@ -64,7 +64,7 @@ func GetGuestOsTypes() ([]GuestOsType, error) {
   var typeCount C.ULONG
 
   result := C.GoVboxGetGuestOSTypes(cbox, &ctypesPtr, &typeCount)
-  if C.GoVboxFAILED(result) != 0 || ctypesPtr == nil {
+  if C.GoVboxFAILED(result) != 0 || (ctypesPtr == nil && typeCount != 0) {
     return nil, errors.New(
         fmt.Sprintf("Failed to get IGuestOSType array: %x", result))
   }
@@ -81,7 +81,7 @@ func GetGuestOsTypes() ([]GuestOsType, error) {
     types[i] = GuestOsType{ctypesSlice[i]}
   }
 
-  C.free(unsafe.Pointer(ctypesPtr))
+  C.GoVboxArrayOutFree(unsafe.Pointer(ctypesPtr))
   return types, nil
 }
 

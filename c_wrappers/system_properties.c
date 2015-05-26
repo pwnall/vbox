@@ -1,7 +1,9 @@
 #include "VBoxCAPIGlue.h"
 
-// Wrapper declared in vbox.c
+// Wrappers declared in vbox.c
 HRESULT GoVboxFAILED(HRESULT result);
+HRESULT GoVboxArrayOutFree(void* array);
+void GoVboxUtf8Free(char* cstring);
 
 
 HRESULT GoVboxGetSystemProperties(IVirtualBox* cbox,
