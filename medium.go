@@ -16,37 +16,6 @@ import (
   "unsafe"
 )
 
-// Enumeration of MediumVariant values
-type MediumVariant uint
-
-const (
-  // Default image options.
-  MediumVariant_Standard MediumVariant = C.MediumVariant_Standard
-  // Entire image is allocated at creation time.
-  MediumVariant_Fixed MediumVariant = C.MediumVariant_Fixed
-  // The image's directory is not created.
-  MediumVariant_NoCreateDir MediumVariant = C.MediumVariant_NoCreateDir
-)
-
-// Enumeration of MediumState values
-type MediumState uint
-const (
-  // The medium's backing image was not created or was deleted.
-  MediumState_NotCreated = C.MediumState_NotCreated
-  // The medium's backing image was not created or was deleted.
-  MediumState_Created = C.MediumState_Created
-  // The medium's backing image is locked with a shared reader lock.
-  MediumState_LockedRead = C.MediumState_LockedRead
-  // The medium's backing image is locked with an exclusive writer lock.
-  MediumState_LockedWrite = C.MediumState_LockedWrite
-  // The medium's backing image cannot / was not accessed.
-  MediumState_Inaccessible = C.MediumState_Inaccessible
-  // The medium's backing image is being built.
-  MediumState_Creating = C.MediumState_Creating
-  // The medium's backing image is being deleted.
-  MediumState_Deleting = C.MediumState_Deleting
-)
-
 // The description of a VirtualBox storage medium
 type Medium struct {
   cmedium *C.IMedium
@@ -80,11 +49,24 @@ func (medium* Medium) GetState() (MediumState, error) {
   return MediumState(cstate), nil
 }
 
+// GetSize returns the actual size of the image backing the medium.
+// The returned size can be smaller than the logical size for dynamically grown
+// images.
+// It returns a byte quantity and any error encountered.
+func (medium* Medium) GetSize() (uint64, error) {
+  var csize C.PRUint64
+
+  result := C.GoVboxGetMediumSize(medium.cmedium, &csize)
+  if C.GoVboxFAILED(result) != 0 {
+    return 0, errors.New(fmt.Sprintf("Failed to get IMedium size: %x", result))
+  }
+  return uint64(csize), nil
+}
+
 // CreateBaseStorage starts building a hard disk image.
 // It returns a Progress and any error encountered.
 func (medium *Medium) CreateBaseStorage(
     size uint64, variants []MediumVariant) (Progress, error) {
-
   var cvariants *C.PRUint32
   if len(variants) > 0 {
     cvariantsSlice := make([]C.PRUint32, len(variants))
@@ -116,6 +98,20 @@ func (medium *Medium) DeleteStorage() (Progress, error) {
   return progress, nil
 }
 
+// Close removes the bond between the Medium object and the image backing it.
+// After this call, the Medium instance should be released, as any calls
+// involving it will error out. The image file is not deleted, so it can be
+// bound to a new Medium by calling OpenMedium.
+// It returns any error encountered.
+func (medium *Medium) Close() (error) {
+  result := C.GoVboxMediumClose(medium.cmedium)
+  if C.GoVboxFAILED(result) != 0 {
+    return errors.New(fmt.Sprintf("Failed to close IMedium: %x", result))
+  }
+  return nil
+}
+
+
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
@@ -133,7 +129,7 @@ func (medium* Medium) Release() error {
 
 // CreateHardDisk creates a VirtualBox storage medium for a hard disk image.
 // The disk's contents must be created by calling createBaseStorage.
-// It returns the created medium and any error encountered.
+// It returns the created Medium and any error encountered.
 func CreateHardDisk(formatId string, location string) (Medium, error) {
   var medium Medium
   if err := Init(); err != nil {
@@ -153,3 +149,27 @@ func CreateHardDisk(formatId string, location string) (Medium, error) {
   return medium, nil
 }
 
+// OpenMedium opens an image backing a VirtualBox storage medium.
+// It returns the newly opened Medium and any error encountered.
+func OpenMedium(location string, deviceType DeviceType, accessMode AccessMode,
+    forceNewUuid bool) (Medium, error) {
+  var medium Medium
+  if err := Init(); err != nil {
+    return medium, err
+  }
+
+  clocation := C.CString(location)
+  cforceNewUuid := C.PRBool(0)
+  if forceNewUuid {
+    cforceNewUuid = C.PRBool(1)
+  }
+  result := C.GoVboxOpenMedium(cbox, clocation, C.PRUint32(deviceType),
+      C.PRUint32(accessMode), cforceNewUuid, &medium.cmedium)
+  C.free(unsafe.Pointer(clocation))
+
+  if C.GoVboxFAILED(result) != 0 || medium.cmedium == nil {
+    return medium, errors.New(
+        fmt.Sprintf("Failed to open IMedium: %x", result))
+  }
+  return medium, nil
+}

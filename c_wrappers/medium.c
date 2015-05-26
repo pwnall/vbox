@@ -24,6 +24,20 @@ HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
 
   return result;
 }
+HRESULT GoVboxOpenMedium(IVirtualBox* cbox, char* clocation,
+    PRUint32 cdeviceType, PRUint32 caccessType, PRBool cforceNewUuid,
+    IMedium** cmedium) {
+  BSTR wlocation;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(clocation, &wlocation);
+  if (FAILED(result))
+    return result;
+
+  result = IVirtualBox_OpenMedium(cbox, wlocation, cdeviceType, caccessType,
+      cforceNewUuid, cmedium);
+  g_pVBoxFuncs->pfnComUnallocString(wlocation);
+
+  return result;
+}
 
 HRESULT GoVboxMediumCreateBaseStorage(IMedium* cmedium, PRInt64 size,
     PRUint32 variantSize, PRUint32* cvariant, IProgress** cprogress) {
@@ -32,6 +46,9 @@ HRESULT GoVboxMediumCreateBaseStorage(IMedium* cmedium, PRInt64 size,
 }
 HRESULT GoVboxMediumDeleteStorage(IMedium* cmedium, IProgress** cprogress) {
   return IMedium_DeleteStorage(cmedium, cprogress);
+}
+HRESULT GoVboxMediumClose(IMedium* cmedium) {
+  return IMedium_Close(cmedium);
 }
 HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
   BSTR wlocation = NULL;
@@ -45,6 +62,9 @@ HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
 }
 HRESULT GoVboxGetMediumState(IMedium* cmedium, PRUint32* cstate) {
   return IMedium_GetState(cmedium, cstate);
+}
+HRESULT GoVboxGetMediumSize(IMedium* cmedium, PRUint64* csize) {
+  return IMedium_GetSize(cmedium, csize);
 }
 HRESULT GoVboxIMediumRelease(IMedium* cmedium) {
   return IMedium_Release(cmedium);

@@ -93,6 +93,13 @@ func TestMedium_CreateBaseStorage_DeleteStorage(t *testing.T) {
     t.Error("Unexpected medium state after creation completed: ", state)
   }
 
+  size, err := medium.GetSize()
+  if err != nil {
+    t.Error(err)
+  } else if size <= 0 {
+    t.Error("Invalid image file size: ", size)
+  }
+
   progress, err = medium.DeleteStorage()
   if err != nil {
     t.Fatal(err)
@@ -106,5 +113,52 @@ func TestMedium_CreateBaseStorage_DeleteStorage(t *testing.T) {
     t.Error(err)
   } else if state != MediumState_NotCreated {
     t.Error("Unexpected medium state after deletion completed: ", state)
+  }
+}
+
+func TestOpenMedium_Medium_Close(t *testing.T) {
+  cwd, err := os.Getwd()
+  if err != nil {
+    t.Fatal(err)
+  }
+  testDir := path.Join(cwd, "test_tmp")
+
+  imageFile := path.Join(testDir, "TinyCore-6.2.iso")
+  imageStat, err := os.Stat(imageFile)
+  if err != nil {
+    t.Fatal(err)
+  }
+
+  medium, err := OpenMedium(imageFile, DeviceType_Dvd, AccessMode_ReadOnly,
+      false)
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer medium.Release()
+
+  location, err := medium.GetLocation()
+  if err != nil {
+    t.Error(err)
+  } else if location != imageFile {
+    t.Error("Wrong medium location: ", location, " expected: ", imageFile)
+  }
+
+  state, err := medium.GetState()
+  if err != nil {
+    t.Error(err)
+  } else if state != MediumState_Created {
+    t.Error("Wrong medium state: ", state)
+  }
+
+  imageSize := uint64(imageStat.Size())
+  size, err := medium.GetSize()
+  if err != nil {
+    t.Error(err)
+  } else if size != imageSize {
+    t.Error("Invalid image file size: ", size, " expected: ", imageSize)
+  }
+
+  if err = medium.Close(); err != nil {
+    t.Error(err)
   }
 }
