@@ -85,3 +85,40 @@ const (
   MediumVariant_NoCreateDir MediumVariant = C.MediumVariant_NoCreateDir
 )
 
+// Enumeration of StorageBus values
+type StorageBus uint
+
+const (
+  // Null value that is never used by the API
+  StorageBus_Null = C.StorageBus_Null
+  StorageBus_Ide = C.StorageBus_IDE
+  StorageBus_Sata = C.StorageBus_SATA
+  StorageBus_Scsi = C.StorageBus_SCSI
+  StorageBus_Floppy = C.StorageBus_Floppy
+  StorageBus_Sas = C.StorageBus_SAS
+)
+
+
+// Enumeration of StorageControllerType values
+type StorageControllerType uint
+
+const (
+  // Null value that is never used by the API
+  StorageControllerType_Null = C.StorageControllerType_Null
+  // SCSI controller of the LsiLogic variant
+  StorageControllerType_LsiLogic = C.StorageControllerType_LsiLogic
+  // SCSI controller of the BusLogic variant
+  StorageControllerType_BusLogic = C.StorageControllerType_BusLogic
+  // The only SATA controller available
+  StorageControllerType_IntelAhci = C.StorageControllerType_IntelAhci
+  // IDE controller of the PIIX3 variant
+  StorageControllerType_Piix3 = C.StorageControllerType_PIIX3
+  // IDE controller of the PIIX4 variant
+  StorageControllerType_Piix4 = C.StorageControllerType_PIIX4
+  // IDE controller of the ICH6 variant
+  StorageControllerType_Ich6 = C.StorageControllerType_ICH6
+  // The only floppy drive controller available
+  StorageControllerType_I82078 = C.StorageControllerType_I82078
+  // LsiLogic SCSI controller that uses SAS
+  StorageControllerType_LsiLogicSas = C.StorageControllerType_LsiLogicSas
+)

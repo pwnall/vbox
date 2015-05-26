@@ -33,7 +33,7 @@ func (progress* Progress) WaitForCompletion(timeout int) error {
   return nil
 }
 
-// GetState returns the completion percentage of the tracked operation.
+// GetPercent returns the completion percentage of the tracked operation.
 // It returns a number and any error encountered.
 func (progress* Progress) GetPercent() (int, error) {
   var cpercent C.PRUint32
@@ -63,7 +63,7 @@ func (progress* Progress) GetResultCode() (int, error) {
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
-func (progress* Progress) Release() error {
+func (progress *Progress) Release() error {
   if progress.cprogress != nil {
     result := C.GoVboxIProgressRelease(progress.cprogress)
     if C.GoVboxFAILED(result) != 0 {

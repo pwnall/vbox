@@ -164,7 +164,7 @@ func (machine *Machine) DeleteConfig(media []Medium) (Progress, error) {
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
-func (machine* Machine) Release() error {
+func (machine *Machine) Release() error {
   if machine.cmachine != nil {
     result := C.GoVboxIMachineRelease(machine.cmachine)
     if C.GoVboxFAILED(result) != 0 {

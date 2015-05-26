@@ -115,7 +115,7 @@ func (medium *Medium) Close() (error) {
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
-func (medium* Medium) Release() error {
+func (medium *Medium) Release() error {
   if medium.cmedium != nil {
     result := C.GoVboxIMediumRelease(medium.cmedium)
     if C.GoVboxFAILED(result) != 0 {
