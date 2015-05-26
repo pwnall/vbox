@@ -4,6 +4,7 @@ import (
   "os"
   "path"
   "testing"
+  "time"
 )
 
 func TestCreateMachine(t *testing.T) {
@@ -204,24 +205,14 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   if err := machine.Register(); err != nil {
     t.Fatal(err)
   }
-  defer func() {
-    media, err := machine.Unregister(CleanupMode_DetachAllReturnHardDisksOnly)
-    if err != nil {
-      t.Error(err)
-    }
-    if progress, err := machine.DeleteConfig(media); err != nil {
-      t.Error(err)
-    } else {
-      if err = progress.WaitForCompletion(-1); err != nil {
-        t.Error(err)
-      }
-    }
-  }()
 
   if err = session.LockMachine(machine, LockType_Write); err != nil {
     t.Fatal(err)
   }
   defer session.UnlockMachine()
+
+  // TODO: figure out how to get rid of this
+  time.Sleep(300 * time.Millisecond)
 
   err = machine.AttachDevice("Controller: IDE", 1, 0, DeviceType_Dvd, medium)
   if err != nil {
@@ -240,5 +231,17 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   }
   if location2 != imageFile {
     t.Error("Incorrect medium location: ", location2, " expected: ", imageFile)
+  }
+
+  media, err := machine.Unregister(CleanupMode_DetachAllReturnHardDisksOnly)
+  if err != nil {
+    t.Fatal(err)
+  }
+  progress, err := machine.DeleteConfig(media)
+  if err != nil {
+    t.Fatal(err)
+  }
+  if err = progress.WaitForCompletion(-1); err != nil {
+    t.Error(err)
   }
 }
