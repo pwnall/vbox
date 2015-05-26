@@ -161,6 +161,63 @@ func (machine *Machine) DeleteConfig(media []Medium) (Progress, error) {
   return progress, nil
 }
 
+// AttachDevice connects a Medium to this VM.
+// deviceSlot is 0 for IDE master and 1 for IDE slave. All other bus types use
+// deviceSlot 0.
+// It returns any error encountered.
+func (machine *Machine) AttachDevice(controllerName string,
+    controllerPort int, deviceSlot int, deviceType DeviceType,
+    medium Medium) error {
+  cname := C.CString(controllerName)
+  result := C.GoVboxMachineAttachDevice(machine.cmachine, cname,
+      C.PRInt32(controllerPort), C.PRInt32(deviceSlot), C.PRUint32(deviceType),
+      medium.cmedium)
+  C.free(unsafe.Pointer(cname))
+
+  if C.GoVboxFAILED(result) != 0 {
+    return errors.New(
+        fmt.Sprintf("Failed to attach IMedium to IMachine: %x", result))
+  }
+  return nil
+}
+
+// GetMedium returns a Medium connected to this VM.
+// It returns the requested Medium and any error encountered.
+func (machine *Machine) GetMedium(controllerName string, controllerPort int,
+    deviceSlot int) (Medium, error) {
+  var medium Medium
+  cname := C.CString(controllerName)
+  result := C.GoVboxMachineGetMedium(machine.cmachine, cname,
+      C.PRInt32(controllerPort), C.PRInt32(deviceSlot), &medium.cmedium)
+  C.free(unsafe.Pointer(cname))
+
+  if C.GoVboxFAILED(result) != 0 || (medium.cmedium == nil) {
+    return medium, errors.New(
+        fmt.Sprintf("Failed to get IMedium from IMachine: %x", result))
+  }
+  return medium, nil
+}
+
+// Launch swapns a process that executes this VM.
+// The given session will receive a shared lock on the VM.
+// It returns a Progress and any error encountered.
+func (machine *Machine) Launch(session Session, uiType string,
+    environment string) (Progress, error) {
+  var progress Progress
+  cuiType := C.CString(uiType)
+  cenvironment := C.CString(environment)
+  result := C.GoVboxMachineLaunchVMProcess(machine.cmachine, session.csession,
+      cuiType, cenvironment, &progress.cprogress)
+  C.free(unsafe.Pointer(cuiType))
+  C.free(unsafe.Pointer(cenvironment))
+
+  if C.GoVboxFAILED(result) != 0 || progress.cprogress == nil {
+    return progress, errors.New(
+        fmt.Sprintf("Failed to launch IMachine VM: %x", result))
+  }
+  return progress, nil
+}
+
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
@@ -179,6 +236,7 @@ func (machine *Machine) Release() error {
 // CreateMachine creates a VirtualBox machine.
 // The machine must be registered by calling Register before it shows up in the
 // GetMachines list.
+// Flags is comma-separated. The most interesting flag is forceOverwrite=1.
 // It returns the created machine and any error encountered.
 func CreateMachine(
     name string, osTypeId string, flags string) (Machine, error) {

@@ -13,7 +13,6 @@ import "C"  // cgo's virtual package
 import (
   "errors"
   "fmt"
-  //"reflect"
   "unsafe"
 )
 
@@ -131,35 +130,3 @@ func ComposeMachineFilename(
   C.GoVboxUtf8Free(cpath)
   return path, nil
 }
-
-type Session struct {
-  csession *C.ISession
-}
-
-func (session *Session) Init() error {
-  if err := Init(); err != nil {
-    return err
-  }
-
-  result := C.GoVboxGetSession(client, &session.csession)
-  if C.GoVboxFAILED(result) != 0 || session.csession == nil {
-    session.csession = nil
-    return errors.New(fmt.Sprintf("Failed to get ISession: %x", result))
-  }
-  return nil
-}
-
-// Release frees up the associated VirtualBox data.
-// After the call, this instance is invalid, and using it will cause errors.
-// It returns any error encountered.
-func (session *Session) Release() error {
-  if session.csession != nil {
-    result := C.GoVboxISessionRelease(session.csession)
-    if C.GoVboxFAILED(result) != 0 {
-      return errors.New(fmt.Sprintf("Failed to release ISession: %x", result))
-    }
-    session.csession = nil
-  }
-  return nil
-}
-

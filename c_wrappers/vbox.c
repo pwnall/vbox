@@ -83,10 +83,3 @@ HRESULT GoVboxComposeMachineFilename(IVirtualBox* cbox, char* cname,
   g_pVBoxFuncs->pfnComUnallocString(wpath);
   return result;
 }
-
-HRESULT GoVboxGetSession(IVirtualBoxClient* client, ISession** csession) {
-  return IVirtualBoxClient_GetSession(client, csession);
-}
-HRESULT GoVboxISessionRelease(ISession* csession) {
-  return ISession_Release(csession);
-}

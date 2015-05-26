@@ -54,6 +54,14 @@ const (
   DeviceType_SharedFolder = C.DeviceType_SharedFolder
 )
 
+type LockType uint
+const (
+  // Shared lock that can be used to read the VM settings.
+  LockType_Shared = C.LockType_Shared
+  // Exclusive lock needed to change VM settings or start it.
+  LockType_Write = C.LockType_Write
+)
+
 // Enumeration of MediumState values
 type MediumState uint
 const (
@@ -98,6 +106,35 @@ const (
   StorageBus_Sas = C.StorageBus_SAS
 )
 
+// Enumeration of SessionState values
+type SessionState uint
+
+const (
+  // Null value that is never used by the API
+  SessionState_Null = C.SessionState_Null
+  // The session / machine is not locked.
+  SessionState_Unlocked = C.SessionState_Unlocked
+  // The session / machine is locked.
+  SessionState_Locked = C.SessionState_Locked
+  // Transient state while a VM is locked and started.
+  SessionState_Spawning = C.SessionState_Spawning
+  // The session is getting unlocked.
+  SessionState_Unlocking = C.SessionState_Unlocking
+)
+
+// Enumeration of SessionType values
+type SessionType uint
+
+const (
+  // Null value that is never used by the API
+  SessionType_Null = C.SessionType_Null
+  // The session has an exclusive lock on a VM.
+  SessionType_WriteLock = C.SessionType_WriteLock
+  // The session has launched a VM process.
+  SessionType_Remote = C.SessionType_Remote
+  // The session has a shared lock on a VM.
+  SessionType_Shared = C.SessionType_Shared
+)
 
 // Enumeration of StorageControllerType values
 type StorageControllerType uint

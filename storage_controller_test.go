@@ -6,8 +6,7 @@ import (
 
 
 func TestMachine_AddStorageController(t *testing.T) {
-  machine, err := CreateMachine("pwnall_vbox_test", "Linux",
-      "forceOverwrite=1")
+  machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
   if err != nil {
     t.Fatal(err)
   }
@@ -32,5 +31,16 @@ func TestMachine_AddStorageController(t *testing.T) {
     t.Error(err)
   } else if bus != StorageBus_Ide {
     t.Error("Wrong controller bus: ", bus)
+  }
+
+  if err = controller.SetType(StorageControllerType_Piix4); err != nil {
+    t.Error(err)
+  }
+
+  controllerType, err := controller.GetType()
+  if err != nil {
+    t.Error(err)
+  } else if controllerType != StorageControllerType_Piix4 {
+    t.Error("Wrong controller type: ", controllerType)
   }
 }

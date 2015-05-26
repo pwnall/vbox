@@ -60,6 +60,52 @@ HRESULT GoVboxMachineDeleteConfig(IMachine* cmachine, PRUint32 mediaCount,
     IMedium** cmedia, IProgress** cprogress) {
   return IMachine_DeleteConfig(cmachine, mediaCount, cmedia, cprogress);
 }
+HRESULT GoVboxMachineAttachDevice(IMachine* cmachine, char* cname, PRInt32
+    cport, PRInt32 cdevice, PRUint32 ctype, IMedium* cmedium) {
+  BSTR wname;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
+  if (FAILED(result))
+    return result;
+
+  result = IMachine_AttachDevice(cmachine, wname, cport, cdevice, ctype,
+      cmedium);
+  g_pVBoxFuncs->pfnUtf16Free(wname);
+
+  return result;
+}
+HRESULT GoVboxMachineGetMedium(IMachine* cmachine, char* cname, PRInt32
+    cport, PRInt32 cdevice, IMedium** cmedium) {
+  BSTR wname;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
+  if (FAILED(result))
+    return result;
+
+  result = IMachine_GetMedium(cmachine, wname, cport, cdevice, cmedium);
+  g_pVBoxFuncs->pfnUtf16Free(wname);
+
+  return result;
+}
+HRESULT GoVboxMachineLaunchVMProcess(IMachine* cmachine, ISession* csession,
+    char* cuiType, char* cenvironment, IProgress** cprogress) {
+  BSTR wuiType;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cuiType, &wuiType);
+  if (FAILED(result))
+    return result;
+
+  BSTR wenvironment;
+  result = g_pVBoxFuncs->pfnUtf8ToUtf16(cenvironment, &wenvironment);
+  if (FAILED(result)) {
+    g_pVBoxFuncs->pfnUtf16Free(wuiType);
+    return result;
+  }
+
+  result = IMachine_LaunchVMProcess(cmachine, csession, wuiType, wenvironment,
+      cprogress);
+  g_pVBoxFuncs->pfnUtf16Free(wenvironment);
+  g_pVBoxFuncs->pfnUtf16Free(wuiType);
+
+  return result;
+}
 HRESULT GoVboxIMachineRelease(IMachine* cmachine) {
   return IMachine_Release(cmachine);
 }
