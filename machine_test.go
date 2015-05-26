@@ -1,6 +1,7 @@
 package vbox
 
 import (
+  "os"
   "testing"
 )
 
@@ -85,6 +86,11 @@ func TestMachine_Register_Unregister(t *testing.T) {
     t.Fatal(err)
   }
 
+  configFile, err := machine.GetSettingsFilePath()
+  if err != nil {
+    t.Fatal(err)
+  }
+
   machineList, err := GetMachines()
   if err != nil {
     t.Fatal(err)
@@ -129,5 +135,22 @@ func TestMachine_Register_Unregister(t *testing.T) {
       break
     }
     regMachine.Release()
+  }
+
+  if _, err := os.Stat(configFile); err != nil {
+    t.Error("Could not stat VM config file: ", err)
+  }
+
+  progress, err := machine.DeleteConfig(mediaList)
+  if err != nil {
+    t.Fatal(err)
+  }
+
+  if err = progress.WaitForCompletion(10000); err != nil {
+    t.Fatal(err)
+  }
+
+  if stat, err := os.Stat(configFile); err == nil {
+    t.Error("Could still stat VM config file after DeleteConfig: ", stat)
   }
 }

@@ -118,7 +118,7 @@ func (machine *Machine) Unregister(cleanupMode CleanupMode) ([]Medium, error) {
       C.PRUint32(cleanupMode), &cmediaPtr, &mediaCount)
   if C.GoVboxFAILED(result) != 0 || (cmediaPtr == nil && mediaCount != 0) {
     return nil, errors.New(
-        fmt.Sprintf("Failed to unregister machine: %x", result))
+        fmt.Sprintf("Failed to unregister IMachine: %x", result))
   }
 
   sliceHeader := reflect.SliceHeader{
@@ -135,6 +135,30 @@ func (machine *Machine) Unregister(cleanupMode CleanupMode) ([]Medium, error) {
 
   C.GoVboxArrayOutFree(unsafe.Pointer(cmediaPtr))
   return media, nil
+}
+
+// DeleteConfig removes a VM's config file, and can remove its disk images.
+// The Medium array is intended to be obtained from a previous Unregister call.
+// It returns a Progress instance and any error encountered.
+func (machine *Machine) DeleteConfig(media []Medium) (Progress, error) {
+  var cmediaSlice []*C.IMedium
+  var cmedia **C.IMedium
+  if len(media) > 0 {
+    cmediaSlice = make([]*C.IMedium, len(media))
+    for i, medium := range media {
+      cmediaSlice[i] = medium.cmedium
+    }
+    cmedia = &cmediaSlice[0]
+  }
+
+  var progress Progress
+  result := C.GoVboxMachineDeleteConfig(machine.cmachine,
+    C.PRUint32(len(media)), cmedia, &progress.cprogress)
+  if C.GoVboxFAILED(result) != 0 || progress.cprogress == nil {
+    return progress, errors.New(
+        fmt.Sprintf("Failed to delete IMachine config: %x", result))
+  }
+  return progress, nil
 }
 
 // Release frees up the associated VirtualBox data.

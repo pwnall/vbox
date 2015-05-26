@@ -56,6 +56,10 @@ HRESULT GoVboxMachineUnregister(IMachine* cmachine, PRUint32 cleanupMode,
   g_pVBoxFuncs->pfnSafeArrayDestroy(safeArray);
   return result;
 }
+HRESULT GoVboxMachineDeleteConfig(IMachine* cmachine, PRUint32 mediaCount,
+    IMedium** cmedia, IProgress** cprogress) {
+  return IMachine_DeleteConfig(cmachine, mediaCount, cmedia, cprogress);
+}
 HRESULT GoVboxIMachineRelease(IMachine* cmachine) {
   return IMachine_Release(cmachine);
 }

@@ -6797,7 +6797,7 @@ struct IMachineVtbl
 #define IMachine_SaveSettings(p) ((p)->lpVtbl->SaveSettings(p))
 #define IMachine_DiscardSettings(p) ((p)->lpVtbl->DiscardSettings(p))
 #define IMachine_Unregister(p, aCleanupMode, aMedia) ((p)->lpVtbl->Unregister(p, aCleanupMode, aMedia))
-#define IMachine_DeleteConfig(p, aMedia, aProgress) ((p)->lpVtbl->DeleteConfig(p, aMedia, aProgress))
+#define IMachine_DeleteConfig(p, aMediaSize, aMedia, aProgress) ((p)->lpVtbl->DeleteConfig(p, aMediaSize, aMedia, aProgress))
 #define IMachine_ExportTo(p, aAppliance, aLocation, aDescription) ((p)->lpVtbl->ExportTo(p, aAppliance, aLocation, aDescription))
 #define IMachine_FindSnapshot(p, aNameOrId, aSnapshot) ((p)->lpVtbl->FindSnapshot(p, aNameOrId, aSnapshot))
 #define IMachine_CreateSharedFolder(p, aName, aHostPath, aWritable, aAutomount) ((p)->lpVtbl->CreateSharedFolder(p, aName, aHostPath, aWritable, aAutomount))
