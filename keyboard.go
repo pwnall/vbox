@@ -20,6 +20,25 @@ type Keyboard struct {
   ckeyboard *C.IKeyboard
 }
 
+// PutScancodes posts keyboard scancodes to the guest OS event queue.
+// It returns any error encountered.
+func (keyboard* Keyboard) PutScancodes(scancodes []int) (uint, error) {
+  scancodesCount := len(scancodes)
+  cscancodes := make([]C.PRInt32, scancodesCount)
+  for i, scancode := range scancodes {
+    cscancodes[i] = C.PRInt32(scancode)
+  }
+
+  var ccodesStored C.PRUint32
+  result := C.GoVboxKeyboardPutScancodes(keyboard.ckeyboard,
+      C.PRUint32(scancodesCount), &cscancodes[0], &ccodesStored)
+  if C.GoVboxFAILED(result) != 0 {
+    return uint(ccodesStored), errors.New(
+        fmt.Sprintf("Failed to post IKeyboard scancodes: %x", result))
+  }
+  return uint(ccodesStored), nil
+}
+
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.

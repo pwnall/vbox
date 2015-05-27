@@ -11847,7 +11847,7 @@ struct IKeyboardVtbl
 #define IKeyboard_get_EventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IKeyboard_GetEventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IKeyboard_PutScancode(p, aScancode) ((p)->lpVtbl->PutScancode(p, aScancode))
-#define IKeyboard_PutScancodes(p, aScancodes, aCodesStored) ((p)->lpVtbl->PutScancodes(p, aScancodes, aCodesStored))
+#define IKeyboard_PutScancodes(p, aScancodesSize, aScancodes, aCodesStored) ((p)->lpVtbl->PutScancodes(p, aScancodesSize, aScancodes, aCodesStored))
 #define IKeyboard_PutCAD(p) ((p)->lpVtbl->PutCAD(p))
 #endif /* VBOX_WITH_GLUE */
 

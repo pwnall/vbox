@@ -276,6 +276,10 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
     t.Fatal(err)
   }
 
+  if err = smachine.SaveSettings(); err != nil {
+    t.Fatal(err)
+  }
+
   medium2, err := smachine.GetMedium("GoIDE", 1, 0)
   if err != nil {
     t.Fatal(err)
