@@ -12,6 +12,10 @@ HRESULT GoVboxDisplayGetScreenResolution(IDisplay* cdisplay,
   return IDisplay_GetScreenResolution(cdisplay, cscreenId, cwidth, cheight,
       cbitsPerPixel, cxOrigin, cyOrigin);
 }
+HRESULT GoVboxDisplayTakeScreenShot(IDisplay* cdisplay,
+    PRUint32 cscreenId, PRUint8* cdata, PRUint32 cwidth, PRUint32 cheight) {
+  return IDisplay_TakeScreenShot(cdisplay, cscreenId, cdata, cwidth, cheight);
+}
 HRESULT GoVboxDisplayTakeScreenShotToArray(IDisplay* cdisplay,
     PRUint32 cscreenId, PRUint32 cwidth, PRUint32 cheight,
     PRUint32* cdataSize, PRUint8** cdata) {

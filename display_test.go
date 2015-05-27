@@ -156,6 +156,25 @@ func TestDisplay(t *testing.T) {
     }
   }
 
+  /* NOTE: The fast screenshot method doesn't seem to work.
+  bufferSize := int(resolution.Width * resolution.Height * 4 + 1000)
+  imageBuffer := make([]byte, bufferSize)
+  imageData, err = display.TakeScreenShot(0, imageBuffer, resolution.Width,
+      resolution.Height)
+  if err != nil {
+    t.Error(err)
+  } else {
+    if len(imageData) != bufferSize {
+      t.Error("Incorrect fast screenshot slice length: ", len(imageData),
+          " expected: ", bufferSize)
+    } else if !bytes.Equal(imageData, goldImageData) {
+      t.Error("Incorrect fast screenshot pixel data")
+    }
+  }
+  */
+
+
+
   progress, err = console.PowerDown()
   if err != nil {
     t.Error(err)

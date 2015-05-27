@@ -53,6 +53,30 @@ func (display *Display) GetScreenResolution(screenId uint,
   return nil
 }
 
+// TakeScreenShot takes a screenshot of the VM's display.
+// The slice passed in must be big enough to receive the image data, which is
+// RGBA (4 bytes per pixel).
+// It returns any error encountered.
+func (display *Display) TakeScreenShot(screenId uint, imageData []byte,
+    width uint, height uint) ([]byte, error) {
+  dataSize := int(width * height * 4)
+  if dataSize > cap(imageData) {
+    return nil, errors.New(fmt.Sprintf(
+        "Insufficient slice capacity %d, screenshot needs at least %d",
+        cap(imageData), dataSize))
+  }
+
+  imageData = imageData[:dataSize]
+  cdataPtr := (*C.PRUint8)(unsafe.Pointer(&imageData[0]))
+  result := C.GoVboxDisplayTakeScreenShot(display.cdisplay,
+      C.PRUint32(screenId), cdataPtr, C.PRUint32(width), C.PRUint32(height))
+  if C.GoVboxFAILED(result) != 0 {
+    return nil, errors.New(
+        fmt.Sprintf("Failed to take IDisplay fast screenshot: %x", result))
+  }
+  return imageData, nil
+}
+
 // TakeScreenShotToArray takes a screenshot of the VM's display.
 // It returns a byte slice encoding the image as RGBA, and any error
 // encountered.
@@ -66,14 +90,13 @@ func (display *Display) TakeScreenShotToArray(screenId uint,
       &cdataPtr)
   if C.GoVboxFAILED(result) != 0 {
     return nil, errors.New(
-        fmt.Sprintf("Failed to get IDisplay screenshot: %x", result))
+        fmt.Sprintf("Failed to take IDisplay screenshot: %x", result))
   }
 
   data := C.GoBytes(unsafe.Pointer(cdataPtr), C.int(dataSize))
   C.GoVboxArrayOutFree(unsafe.Pointer(cdataPtr))
   return data, nil
 }
-
 
 // TakeScreenShotPNGToArray takes a screenshot of the VM's display.
 // It returns a byte slice encoding the image as PNG, and any error
@@ -88,7 +111,7 @@ func (display *Display) TakeScreenShotPNGToArray(screenId uint,
       &cdataPtr)
   if C.GoVboxFAILED(result) != 0 {
     return nil, errors.New(
-        fmt.Sprintf("Failed to get IDisplay PNG screenshot: %x", result))
+        fmt.Sprintf("Failed to take IDisplay PNG screenshot: %x", result))
   }
 
   data := C.GoBytes(unsafe.Pointer(cdataPtr), C.int(dataSize))
