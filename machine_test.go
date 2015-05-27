@@ -165,6 +165,49 @@ func TestMachine_Register_Unregister(t *testing.T) {
   }
 }
 
+func TestFindMachine(t *testing.T) {
+  machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer machine.Release()
+
+  if err = machine.Register(); err != nil {
+    t.Fatal(err)
+  }
+
+  machine2, err := FindMachine("pwnall_vbox_test")
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer machine2.Release()
+  name2, err := machine2.GetName()
+  if err != nil {
+    t.Error(err)
+  } else if name2 != "pwnall_vbox_test" {
+    t.Error("Found VM with wrong name: ", name2)
+  }
+
+  mediaList, err := machine.Unregister(CleanupMode_Full)
+  if err != nil {
+    t.Fatal(err)
+  }
+  progress, err := machine.DeleteConfig(mediaList)
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer progress.Release()
+  if err = progress.WaitForCompletion(10000); err != nil {
+    t.Fatal(err)
+  }
+
+  machine3, err := FindMachine("pwnall_vbox_test")
+  if err == nil {
+    t.Error("FindMachine retrieved unregistered VM")
+    machine3.Release()
+  }
+}
+
 func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   cwd, err := os.Getwd()
   if err != nil {

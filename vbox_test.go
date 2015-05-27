@@ -41,4 +41,3 @@ func TestComposeMachineFilename(t *testing.T) {
     t.Error("VM filename without baseFolder doesn't have TestVM.vbox: ", path)
   }
 }
-

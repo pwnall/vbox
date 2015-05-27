@@ -284,6 +284,25 @@ func CreateMachine(
   return machine, nil
 }
 
+// FindMachine returns the VirtualBox machine with the given name.
+// It returns a new Machine instance and any error encountered.
+func FindMachine(nameOrId string) (Machine, error) {
+  var machine Machine
+  if err := Init(); err != nil {
+    return machine, err
+  }
+
+  cnameOrId := C.CString(nameOrId)
+  result := C.GoVboxFindMachine(cbox, cnameOrId, &machine.cmachine)
+  C.free(unsafe.Pointer(cnameOrId))
+
+  if C.GoVboxFAILED(result) != 0 || machine.cmachine == nil {
+    return machine, errors.New(
+        fmt.Sprintf("Failed to find IMachine: %x", result))
+  }
+  return machine, nil
+}
+
 // GetMachines returns the machines known to VirtualBox.
 // It returns a slice of Machine instances and any error encountered.
 func GetMachines() ([]Machine, error) {

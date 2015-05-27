@@ -151,6 +151,18 @@ HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char* cname, char* cosTypeId,
 
   return result;
 }
+HRESULT GoVboxFindMachine(IVirtualBox* cbox, char* cnameOrId,
+    IMachine** cmachine) {
+  BSTR wnameOrId;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cnameOrId, &wnameOrId);
+  if (FAILED(result))
+    return result;
+
+  result = IVirtualBox_FindMachine(cbox, wnameOrId, cmachine);
+  g_pVBoxFuncs->pfnUtf16Free(wnameOrId);
+
+  return result;
+}
 HRESULT GoVboxGetMachines(IVirtualBox* cbox, IMachine*** cmachines,
     ULONG* machineCount) {
   SAFEARRAY *safeArray = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();

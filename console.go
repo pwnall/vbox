@@ -20,6 +20,42 @@ type Console struct {
   cconsole *C.IConsole
 }
 
+// GetDisplay obtains the display of the VM controlled by this.
+// It returns a new Display instance and any error encountered.
+func (console *Console) GetDisplay() (Display, error) {
+  var display Display
+  result := C.GoVboxGetConsoleDisplay(console.cconsole, &display.cdisplay)
+  if C.GoVboxFAILED(result) != 0 {
+    return display, errors.New(
+        fmt.Sprintf("Failed to get IConsole display: %x", result))
+  }
+  return display, nil
+}
+
+// GetKeyboard obtains the keyboard of the VM controlled by this.
+// It returns a new Keyboard instance and any error encountered.
+func (console *Console) GetKeyboard() (Keyboard, error) {
+  var keyboard Keyboard
+  result := C.GoVboxGetConsoleKeyboard(console.cconsole, &keyboard.ckeyboard)
+  if C.GoVboxFAILED(result) != 0 {
+    return keyboard, errors.New(
+        fmt.Sprintf("Failed to get IConsole keyboard: %x", result))
+  }
+  return keyboard, nil
+}
+
+// GetMouse obtains the mouse of the VM controlled by this.
+// It returns a new Mouse instance and any error encountered.
+func (console *Console) GetMouse() (Mouse, error) {
+  var mouse Mouse
+  result := C.GoVboxGetConsoleMouse(console.cconsole, &mouse.cmouse)
+  if C.GoVboxFAILED(result) != 0 {
+    return mouse, errors.New(
+        fmt.Sprintf("Failed to get IConsole mouse: %x", result))
+  }
+  return mouse, nil
+}
+
 // GetMachine obtains the VM associated with this set of VM controls.
 // It returns a new Machine instance and any error encountered.
 func (console *Console) GetMachine() (Machine, error) {
