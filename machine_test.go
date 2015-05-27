@@ -226,7 +226,8 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
     t.Fatal(err)
   }
   defer func() {
-    // TODO: Figure out how to make this not crash.
+    // TODO: Figure out how to make this not error out and cause all following
+    //       tests to fail.
     if err := medium.Close(); err != nil {
       t.Error(err)
     }
@@ -248,6 +249,7 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   if err = controller.SetType(StorageControllerType_Piix4); err != nil {
     t.Fatal(err)
   }
+  controller.Release()
 
   if err = machine.Register(); err != nil {
     t.Fatal(err)
@@ -306,7 +308,7 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
     t.Fatal(err)
   }
   defer progress.Release()
-  if err = progress.WaitForCompletion(-1); err != nil {
+  if err = progress.WaitForCompletion(50000); err != nil {
     t.Error(err)
   }
 }
