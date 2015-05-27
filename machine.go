@@ -93,6 +93,9 @@ func (machine *Machine) SaveSettings() error {
 }
 
 // Register adds this to VirtualBox's list of registered machines.
+// Once a VM is registered, it becomes immutable. Its configuration can only be
+// changed by creating a Session, LockMachine-ing the machine to the session,
+// and obtaining the Session's version of the machine via GetMachine.
 // It returns any error encountered.
 func (machine *Machine) Register() error {
   // NOTE: This is a rare case where the underlying VirtualBox API call doesn't
@@ -165,9 +168,8 @@ func (machine *Machine) DeleteConfig(media []Medium) (Progress, error) {
 // deviceSlot is 0 for IDE master and 1 for IDE slave. All other bus types use
 // deviceSlot 0.
 // It returns any error encountered.
-func (machine *Machine) AttachDevice(controllerName string,
-    controllerPort int, deviceSlot int, deviceType DeviceType,
-    medium Medium) error {
+func (machine *Machine) AttachDevice(controllerName string, controllerPort int,
+    deviceSlot int, deviceType DeviceType, medium Medium) error {
   cname := C.CString(controllerName)
   result := C.GoVboxMachineAttachDevice(machine.cmachine, cname,
       C.PRInt32(controllerPort), C.PRInt32(deviceSlot), C.PRUint32(deviceType),
@@ -177,6 +179,27 @@ func (machine *Machine) AttachDevice(controllerName string,
   if C.GoVboxFAILED(result) != 0 {
     return errors.New(
         fmt.Sprintf("Failed to attach IMedium to IMachine: %x", result))
+  }
+  return nil
+}
+
+// UnmountMedium ejects a removable Medium from this VM.
+// It returns any error encountered.
+func (machine *Machine) UnmountMedium(controllerName string,
+    controllerPort int, deviceSlot int, force bool) error {
+  cforce := C.PRBool(0)
+  if force {
+    cforce = C.PRBool(1)
+  }
+
+  cname := C.CString(controllerName)
+  result := C.GoVboxMachineUnmountMedium(machine.cmachine, cname,
+      C.PRInt32(controllerPort), C.PRInt32(deviceSlot), cforce)
+  C.free(unsafe.Pointer(cname))
+
+  if C.GoVboxFAILED(result) != 0 {
+    return errors.New(
+        fmt.Sprintf("Failed to unmount medium from IMachine: %x", result))
   }
   return nil
 }

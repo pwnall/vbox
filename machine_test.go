@@ -4,7 +4,6 @@ import (
   "os"
   "path"
   "testing"
-  "time"
 )
 
 func TestCreateMachine(t *testing.T) {
@@ -186,8 +185,12 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   if err != nil {
     t.Fatal(err)
   }
-  defer medium.Release()
-  defer medium.Close()
+  defer func() {
+    if err := medium.Close(); err != nil {
+      t.Error(err)
+    }
+    medium.Release()
+  }()
 
   machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
   if err != nil {
@@ -195,31 +198,36 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   }
   defer machine.Release()
 
-  controller, err := machine.AddStorageController(
-      "Controller: IDE", StorageBus_Ide)
+  controller, err := machine.AddStorageController("GoIDE", StorageBus_Ide)
   if err != nil {
     t.Fatal(err)
   }
   defer controller.Release()
 
-  if err := machine.Register(); err != nil {
+  if err = controller.SetType(StorageControllerType_Piix4); err != nil {
+    t.Fatal(err)
+  }
+
+  if err = machine.Register(); err != nil {
     t.Fatal(err)
   }
 
   if err = session.LockMachine(machine, LockType_Write); err != nil {
     t.Fatal(err)
   }
-  defer session.UnlockMachine()
 
-  // TODO: figure out how to get rid of this
-  time.Sleep(300 * time.Millisecond)
+  smachine, err := session.GetMachine()
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer smachine.Release()
 
-  err = machine.AttachDevice("Controller: IDE", 1, 0, DeviceType_Dvd, medium)
+  err = smachine.AttachDevice("GoIDE", 1, 0, DeviceType_Dvd, medium)
   if err != nil {
     t.Fatal(err)
   }
 
-  medium2, err := machine.GetMedium("Controller: IDE", 1, 0)
+  medium2, err := smachine.GetMedium("GoIDE", 1, 0)
   if err != nil {
     t.Fatal(err)
   }
@@ -227,10 +235,19 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
 
   location2, err := medium2.GetLocation()
   if err != nil {
+    t.Error(err)
+  } else if location2 != imageFile {
+    t.Error("Incorrect medium location: ", location2, " expected: ", imageFile)
+  }
+
+  err = smachine.UnmountMedium("GoIDE", 1, 0, true)
+  if err != nil {
     t.Fatal(err)
   }
-  if location2 != imageFile {
-    t.Error("Incorrect medium location: ", location2, " expected: ", imageFile)
+
+  err = session.UnlockMachine()
+  if err != nil {
+    t.Fatal(err)
   }
 
   media, err := machine.Unregister(CleanupMode_DetachAllReturnHardDisksOnly)

@@ -73,6 +73,18 @@ HRESULT GoVboxMachineAttachDevice(IMachine* cmachine, char* cname, PRInt32
 
   return result;
 }
+HRESULT GoVboxMachineUnmountMedium(IMachine* cmachine, char* cname, PRInt32
+    cport, PRInt32 cdevice, PRBool cforce) {
+  BSTR wname;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
+  if (FAILED(result))
+    return result;
+
+  result = IMachine_UnmountMedium(cmachine, wname, cport, cdevice, cforce);
+  g_pVBoxFuncs->pfnUtf16Free(wname);
+
+  return result;
+}
 HRESULT GoVboxMachineGetMedium(IMachine* cmachine, char* cname, PRInt32
     cport, PRInt32 cdevice, IMedium** cmedium) {
   BSTR wname;

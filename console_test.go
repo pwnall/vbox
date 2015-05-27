@@ -18,13 +18,6 @@ func TestConsole_PowerDown(t *testing.T) {
   }
   defer machine.Release()
 
-  controller, err := machine.AddStorageController(
-      "Controller: IDE", StorageBus_Ide)
-  if err != nil {
-    t.Fatal(err)
-  }
-  defer controller.Release()
-
   if err := machine.Register(); err != nil {
     t.Fatal(err)
   }

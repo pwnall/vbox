@@ -135,7 +135,6 @@ func TestOpenMedium_Medium_Close(t *testing.T) {
     t.Fatal(err)
   }
   defer medium.Release()
-  defer medium.Close()
 
   location, err := medium.GetLocation()
   if err != nil {
