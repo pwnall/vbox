@@ -65,12 +65,14 @@ func TestMachine_SaveSettings(t *testing.T) {
     t.Fatal(err)
   }
   defer func() {
-    if progress, err := machine.DeleteConfig([]Medium{}); err != nil {
+    progress, err := machine.DeleteConfig([]Medium{});
+    if  err != nil {
       t.Error(err)
-    } else {
-      if err = progress.WaitForCompletion(-1); err != nil {
-        t.Error(err)
-      }
+      return
+    }
+    defer progress.Release()
+    if err = progress.WaitForCompletion(-1); err != nil {
+      t.Error(err)
     }
   }()
 
@@ -152,6 +154,7 @@ func TestMachine_Register_Unregister(t *testing.T) {
   if err != nil {
     t.Fatal(err)
   }
+  defer progress.Release()
 
   if err = progress.WaitForCompletion(10000); err != nil {
     t.Fatal(err)
@@ -163,12 +166,6 @@ func TestMachine_Register_Unregister(t *testing.T) {
 }
 
 func TestMachine_AttachDevice_GetMedium(t *testing.T) {
-  session := Session{}
-  if err := session.Init(); err != nil {
-    t.Fatal(err)
-  }
-  defer session.Release()
-
   cwd, err := os.Getwd()
   if err != nil {
     t.Fatal(err)
@@ -186,6 +183,7 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
     t.Fatal(err)
   }
   defer func() {
+    // TODO: Figure out how to make this not crash.
     if err := medium.Close(); err != nil {
       t.Error(err)
     }
@@ -211,6 +209,12 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   if err = machine.Register(); err != nil {
     t.Fatal(err)
   }
+
+  session := Session{}
+  if err := session.Init(); err != nil {
+    t.Fatal(err)
+  }
+  defer session.Release()
 
   if err = session.LockMachine(machine, LockType_Write); err != nil {
     t.Fatal(err)
@@ -258,6 +262,7 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   if err != nil {
     t.Fatal(err)
   }
+  defer progress.Release()
   if err = progress.WaitForCompletion(-1); err != nil {
     t.Error(err)
   }

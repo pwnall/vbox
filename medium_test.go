@@ -86,6 +86,8 @@ func TestMedium_CreateBaseStorage_DeleteStorage(t *testing.T) {
     t.Error("Progress has a non-zero error code:", code)
   }
 
+  progress.Release()
+
   state, err := medium.GetState()
   if err != nil {
     t.Error(err)
@@ -107,6 +109,7 @@ func TestMedium_CreateBaseStorage_DeleteStorage(t *testing.T) {
   if err = progress.WaitForCompletion(10000); err != nil {
     t.Fatal(err)
   }
+  progress.Release()
 
   state, err = medium.GetState()
   if err != nil {

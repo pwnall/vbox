@@ -26,12 +26,14 @@ func TestConsole_PowerDown(t *testing.T) {
     if err != nil {
       t.Error(err)
     }
-    if progress, err := machine.DeleteConfig(media); err != nil {
+    progress, err := machine.DeleteConfig(media)
+    if err != nil {
       t.Error(err)
-    } else {
-      if err = progress.WaitForCompletion(-1); err != nil {
-        t.Error(err)
-      }
+      return
+    }
+    defer progress.Release()
+    if err = progress.WaitForCompletion(-1); err != nil {
+      t.Error(err)
     }
   }()
 
@@ -77,6 +79,7 @@ func TestConsole_PowerDown(t *testing.T) {
   } else if code != 0 {
     t.Error("VM launch failed with error code: ", code)
   }
+  progress.Release()
 
   console, err := session.GetConsole()
   if err != nil {
@@ -117,4 +120,5 @@ func TestConsole_PowerDown(t *testing.T) {
   } else if code != 0 {
     t.Error("VM power down failed with error code: ", code)
   }
+  progress.Release()
 }
