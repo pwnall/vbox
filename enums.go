@@ -18,6 +18,14 @@ const (
   AccessMode_ReadWrite = C.AccessMode_ReadWrite
 )
 
+// Enumeration of BIOSBootMenuMode values
+type BootMenuMode uint
+const (
+  BootMenuMode_Disabled = C.BIOSBootMenuMode_Disabled
+  BootMenuMode_MenuOnly = C.BIOSBootMenuMode_MenuOnly
+  BootMenuMode_MessageAndMenu = C.BIOSBootMenuMode_MessageAndMenu
+)
+
 // Enumeration of CleanupMode values
 type CleanupMode uint
 const (
@@ -83,7 +91,6 @@ const (
 
 // Enumeration of MediumVariant values
 type MediumVariant uint
-
 const (
   // Default image options.
   MediumVariant_Standard MediumVariant = C.MediumVariant_Standard
@@ -93,9 +100,40 @@ const (
   MediumVariant_NoCreateDir MediumVariant = C.MediumVariant_NoCreateDir
 )
 
+// Enumeration of MouseButtonState values
+type MouseButtonState uint
+const (
+  // No button is pressed.
+  MouseButtonState_None = 0
+  MouseButtonState_LeftButton = C.MouseButtonState_LeftButton
+  MouseButtonState_RightButton = C.MouseButtonState_RightButton
+  MouseButtonState_MiddleButton = C.MouseButtonState_MiddleButton
+  MouseButtonState_WheelUp = C.MouseButtonState_WheelUp
+  MouseButtonState_WheelDown = C.MouseButtonState_WheelDown
+  MouseButtonState_XButton1 = C.MouseButtonState_XButton1
+  MouseButtonState_XButton2 = C.MouseButtonState_XButton2
+)
+
+// Enumeration of PointingHIDType values
+type PointingHidType uint
+const (
+  // No mouse
+  PointingHidType_None = C.PointingHIDType_None
+  // PS/2 mouse
+  PointingHidType_Ps2Mouse = C.PointingHIDType_PS2Mouse
+  // USB mouse (relative pointer)
+  PointingHidType_UsbMouse = C.PointingHIDType_USBMouse
+  // USB tablet (absolute pointer)
+  PointingHidType_UsbTablet = C.PointingHIDType_USBTablet
+  // Combo PS2/2 or USB mouse, depending on guest (negative perf implications)
+  PointingHidType_ComboMouse = C.PointingHIDType_ComboMouse
+  // USB multi-touch device
+  // This also adds USB tablet and mouse devices.
+  PointingHidType_UsbMultiTouch = C.PointingHIDType_USBMultiTouch
+)
+
 // Enumeration of StorageBus values
 type StorageBus uint
-
 const (
   // Null value that is never used by the API
   StorageBus_Null = C.StorageBus_Null
@@ -108,7 +146,6 @@ const (
 
 // Enumeration of SessionState values
 type SessionState uint
-
 const (
   // Null value that is never used by the API
   SessionState_Null = C.SessionState_Null
@@ -124,7 +161,6 @@ const (
 
 // Enumeration of SessionType values
 type SessionType uint
-
 const (
   // Null value that is never used by the API
   SessionType_Null = C.SessionType_Null
@@ -138,7 +174,6 @@ const (
 
 // Enumeration of StorageControllerType values
 type StorageControllerType uint
-
 const (
   // Null value that is never used by the API
   StorageControllerType_Null = C.StorageControllerType_Null
@@ -158,4 +193,15 @@ const (
   StorageControllerType_I82078 = C.StorageControllerType_I82078
   // LsiLogic SCSI controller that uses SAS
   StorageControllerType_LsiLogicSas = C.StorageControllerType_LsiLogicSas
+)
+
+// Enumeration of UsbControllerType values
+type UsbControllerType uint
+const (
+  // Null value that is never used by the API
+  UsbControllerType_Null = C.USBControllerType_Null
+  // USB 1.1 controller available in the free VirtualBox edition
+  UsbControllerType_Ohci = C.USBControllerType_OHCI
+  // USB 2.0 controller that requires the extension pack
+  UsbControllerType_Ehci = C.USBControllerType_EHCI
 )

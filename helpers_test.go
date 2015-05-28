@@ -16,7 +16,7 @@ import (
 
 // WithDvdInVm runs the given func with a launched VM with an attached DVD.
 // If isoName is the empty string, no DVD is inserted into the VM's DVD drive.
-func WithDvdInVm(t *testing.T, isoName string,
+func WithDvdInVm(t *testing.T, isoName string, disableBootPrompt bool,
     testCase func(Machine, Session, Console)) {
   medium := Medium{}
 
@@ -59,6 +59,36 @@ func WithDvdInVm(t *testing.T, isoName string,
   }
   defer machine.Release()
 
+  // NOTE: Using the USB 1.1 controller so tests can run on the open-sourced
+  //       VirtualBox (no extension packs).
+  controller, err := machine.AddUsbController("GoUSB", UsbControllerType_Ohci)
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer controller.Release()
+
+  if err := machine.SetPointingHidType(PointingHidType_UsbTablet); err != nil {
+    t.Error(err)
+  }
+
+  if disableBootPrompt {
+    settings, err := machine.GetBiosSettings()
+    if err != nil {
+      t.Fatal(err)
+    }
+    defer settings.Release()
+
+    if err := settings.SetLogoFadeIn(false); err != nil {
+      t.Error(err)
+    }
+    if err := settings.SetLogoFadeOut(false); err != nil {
+      t.Error(err)
+    }
+    if err := settings.SetBootMenuMode(BootMenuMode_Disabled); err != nil {
+      t.Error(err)
+    }
+  }
+
   if err := machine.Register(); err != nil {
     t.Fatal(err)
   }
@@ -80,7 +110,7 @@ func WithDvdInVm(t *testing.T, isoName string,
 
   AddDvdToMachine(t, machine, medium, session)
 
-  progress, err := machine.Launch(session, "gui", "");
+  progress, err := machine.Launch(session, "headless", "");
   if err != nil {
     t.Fatal(err)
   }
@@ -122,7 +152,10 @@ func WithDvdInVm(t *testing.T, isoName string,
     progress, err := console.PowerDown()
     if err != nil {
       t.Error(err)
+      return
     }
+    defer progress.Release()
+
     if err = progress.WaitForCompletion(50000); err != nil {
       t.Error(err)
     }
@@ -139,8 +172,6 @@ func WithDvdInVm(t *testing.T, isoName string,
     } else if code != 0 {
       t.Error("VM power down failed with error code: ", code)
     }
-
-    progress.Release()
   }()
 
   testCase(machine, session, console)

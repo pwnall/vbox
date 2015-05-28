@@ -15,7 +15,8 @@ func TestDisplay(t *testing.T) {
     t.Fatal(err)
   }
 
-  WithDvdInVm(t, "", func (machine Machine, session Session, console Console) {
+  WithDvdInVm(t, "", false /* disableBootMenu */,
+      func (machine Machine, session Session, console Console) {
     display, err := console.GetDisplay()
     if err != nil {
       t.Fatal(err)
@@ -32,6 +33,7 @@ func TestDisplay(t *testing.T) {
       if resolution.BitsPerPixel != 0 {
         break
       }
+      t.Logf("%#v", resolution)
       time.Sleep(50 * time.Millisecond)
     }
 

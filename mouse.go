@@ -21,7 +21,7 @@ type Mouse struct {
 }
 
 // GetAbsoluteSupported checks if the guest handles absolute mouse positioning.
-// If it returns false, PutMouseEventAbsolute() is a no-op.
+// If it returns false, PutEventAbsolute() is a no-op.
 // It returns a number and any error encountered.
 func (mouse* Mouse) GetAbsoluteSupported() (bool, error) {
   var csupported C.PRBool
@@ -35,7 +35,7 @@ func (mouse* Mouse) GetAbsoluteSupported() (bool, error) {
 }
 
 // GetRelativeSupported checks if the guest handles relative mouse positioning.
-// If it returns false, PutMouseEventRelative() is a no-op.
+// If it returns false, PutEvent() is a no-op.
 // It returns a number and any error encountered.
 func (mouse* Mouse) GetRelativeSupported() (bool, error) {
   var csupported C.PRBool
@@ -48,13 +48,13 @@ func (mouse* Mouse) GetRelativeSupported() (bool, error) {
   return csupported != 0, nil
 }
 
-// PutMouseEvent posts a mouse event to the guest OS event queue.
+// PutEvent posts a mouse event to the guest OS event queue.
 // dz represents vertical mouse wheel moves (rotations), with positive numbers
 // for clockwise rotations. dw represents horizontal mouse wheel moves, with
 // positive numbers for movements to the left.
 // It returns any error encountered.
-func (mouse* Mouse) PutMouseEvent(dx int, dy int, dz int, dw int,
-    buttonState int) error {
+func (mouse* Mouse) PutEvent(dx int, dy int, dz int, dw int,
+    buttonState MouseButtonState) error {
   result := C.GoVboxPutMouseEvent(mouse.cmouse, C.PRInt32(dx), C.PRInt32(dy),
       C.PRInt32(dz), C.PRInt32(dw), C.PRInt32(buttonState))
   if C.GoVboxFAILED(result) != 0 {
@@ -63,13 +63,13 @@ func (mouse* Mouse) PutMouseEvent(dx int, dy int, dz int, dw int,
   return nil
 }
 
-// PutMouseEventAbsolute posts a mouse event to the guest OS event queue.
+// PutEventAbsolute posts a mouse event to the guest OS event queue.
 // dz represents vertical mouse wheel moves (rotations), with positive numbers
 // for clockwise rotations. dw represents horizontal mouse wheel moves, with
 // positive numbers for movements to the left.
 // It returns any error encountered.
-func (mouse* Mouse) PutMouseEventAbsolute(x int, y int, dz int, dw int,
-    buttonState int) error {
+func (mouse* Mouse) PutEventAbsolute(x int, y int, dz int, dw int,
+    buttonState MouseButtonState) error {
   result := C.GoVboxPutMouseEventAbsolute(mouse.cmouse, C.PRInt32(x),
       C.PRInt32(y), C.PRInt32(dz), C.PRInt32(dw), C.PRInt32(buttonState))
   if C.GoVboxFAILED(result) != 0 {

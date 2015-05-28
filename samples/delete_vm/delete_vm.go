@@ -15,29 +15,9 @@ func main() {
     os.Exit(1)
   }
 
-  vms, err := vbox.GetMachines()
+  vm, err := vbox.FindMachine("vbox-sample-vm")
   if err != nil {
     fmt.Printf("%v\n", err)
-    os.Exit(1)
-  }
-
-  foundVm := false
-  vm := vbox.Machine{}
-  for _, ivm := range vms {
-    name, err := ivm.GetName()
-    if err != nil {
-      fmt.Printf("%v\n", err)
-    }
-    if name == "vbox-sample-vm" {
-      foundVm = true
-      vm = ivm
-    } else {
-      ivm.Release()
-    }
-  }
-
-  if foundVm == false {
-    fmt.Printf("Could not find vbox-sample-vm on the VM list\n")
     os.Exit(1)
   }
   defer vm.Release()

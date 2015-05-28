@@ -50,7 +50,7 @@ func (controller* StorageController) GetBus() (StorageBus, error) {
   return StorageBus(cbus), nil
 }
 
-// GetControllerType returns the controller's type.
+// GetType returns the controller's type.
 // It returns a number and any error encountered.
 func (controller* StorageController) GetType() (StorageControllerType, error) {
   var ctype C.PRUint32
@@ -63,7 +63,7 @@ func (controller* StorageController) GetType() (StorageControllerType, error) {
   return StorageControllerType(ctype), nil
 }
 
-// GetControllerType returns the controller's type.
+// SetType changes the controller's type.
 // It returns a number and any error encountered.
 func (controller* StorageController) SetType(
     controllerType StorageControllerType) error {
@@ -75,7 +75,6 @@ func (controller* StorageController) SetType(
   }
   return nil
 }
-
 
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.

@@ -5,7 +5,8 @@ import (
 )
 
 func TestConsole_GetMachine_PowerDown(t *testing.T) {
-  WithDvdInVm(t, "", func (machine Machine, session Session, console Console) {
+  WithDvdInVm(t, "", false /* disableBootMenu */,
+      func (machine Machine, session Session, console Console) {
     machine2, err := console.GetMachine()
     if err != nil {
       t.Error(err)

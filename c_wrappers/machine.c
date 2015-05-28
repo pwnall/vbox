@@ -37,6 +37,12 @@ HRESULT GoVboxGetMachineSettingsFilePath(IMachine* cmachine, char** cpath) {
   g_pVBoxFuncs->pfnComUnallocString(wpath);
   return result;
 }
+HRESULT GoVboxGetMachinePointingHIDType(IMachine* cmachine, PRUint32* ctype) {
+  return IMachine_GetPointingHIDType(cmachine, ctype);
+}
+HRESULT GoVboxSetMachinePointingHIDType(IMachine* cmachine, PRUint32 ctype) {
+  return IMachine_SetPointingHIDType(cmachine, ctype);
+}
 HRESULT GoVboxGetMachineSettingsModified(IMachine* cmachine,
     PRBool* cmodified) {
   return IMachine_GetSettingsModified(cmachine, cmodified);

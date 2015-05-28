@@ -92,6 +92,32 @@ func (machine *Machine) SaveSettings() error {
   return nil
 }
 
+// GetPointingHidType returns the machine's emulated mouse type.
+// It returns a number and any error encountered.
+func (machine* Machine) GetPointingHidType() (PointingHidType, error) {
+  var ctype C.PRUint32
+
+  result := C.GoVboxGetMachinePointingHIDType(machine.cmachine, &ctype)
+  if C.GoVboxFAILED(result) != 0 {
+    return 0, errors.New(
+        fmt.Sprintf("Failed to get IMachine pointing HID type: %x", result))
+  }
+  return PointingHidType(ctype), nil
+}
+
+// SetPointingHidType changes the machine's emulated mouse type.
+// It returns a number and any error encountered.
+func (machine* Machine) SetPointingHidType(
+    pointingHidType PointingHidType) error {
+  result := C.GoVboxSetMachinePointingHIDType(machine.cmachine,
+      C.PRUint32(pointingHidType))
+  if C.GoVboxFAILED(result) != 0 {
+    return errors.New(
+        fmt.Sprintf("Failed to set IMachine pointing HID type: %x", result))
+  }
+  return nil
+}
+
 // Register adds this to VirtualBox's list of registered machines.
 // Once a VM is registered, it becomes immutable. Its configuration can only be
 // changed by creating a Session, LockMachine-ing the machine to the session,

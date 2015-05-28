@@ -25,7 +25,7 @@ type Console struct {
 func (console *Console) GetDisplay() (Display, error) {
   var display Display
   result := C.GoVboxGetConsoleDisplay(console.cconsole, &display.cdisplay)
-  if C.GoVboxFAILED(result) != 0 {
+  if C.GoVboxFAILED(result) != 0 || display.cdisplay == nil {
     return display, errors.New(
         fmt.Sprintf("Failed to get IConsole display: %x", result))
   }
@@ -37,7 +37,7 @@ func (console *Console) GetDisplay() (Display, error) {
 func (console *Console) GetKeyboard() (Keyboard, error) {
   var keyboard Keyboard
   result := C.GoVboxGetConsoleKeyboard(console.cconsole, &keyboard.ckeyboard)
-  if C.GoVboxFAILED(result) != 0 {
+  if C.GoVboxFAILED(result) != 0 || keyboard.ckeyboard == nil {
     return keyboard, errors.New(
         fmt.Sprintf("Failed to get IConsole keyboard: %x", result))
   }
@@ -49,7 +49,7 @@ func (console *Console) GetKeyboard() (Keyboard, error) {
 func (console *Console) GetMouse() (Mouse, error) {
   var mouse Mouse
   result := C.GoVboxGetConsoleMouse(console.cconsole, &mouse.cmouse)
-  if C.GoVboxFAILED(result) != 0 {
+  if C.GoVboxFAILED(result) != 0 || mouse.cmouse == nil {
     return mouse, errors.New(
         fmt.Sprintf("Failed to get IConsole mouse: %x", result))
   }

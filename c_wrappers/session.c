@@ -33,5 +33,3 @@ HRESULT GoVboxLockMachine(IMachine* cmachine, ISession* csession,
     PRUint32 clock) {
   return IMachine_LockMachine(cmachine, csession, clock);
 }
-
-

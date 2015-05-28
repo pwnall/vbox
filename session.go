@@ -62,7 +62,7 @@ func (session *Session) UnlockMachine() error {
 func (session *Session) GetConsole() (Console, error) {
   var console Console
   result := C.GoVboxGetSessionConsole(session.csession, &console.cconsole)
-  if C.GoVboxFAILED(result) != 0 {
+  if C.GoVboxFAILED(result) != 0 || console.cconsole == nil {
     return console, errors.New(
         fmt.Sprintf("Failed to get ISession console: %x", result))
   }
@@ -74,7 +74,7 @@ func (session *Session) GetConsole() (Console, error) {
 func (session *Session) GetMachine() (Machine, error) {
   var machine Machine
   result := C.GoVboxGetSessionMachine(session.csession, &machine.cmachine)
-  if C.GoVboxFAILED(result) != 0 {
+  if C.GoVboxFAILED(result) != 0 || machine.cmachine == nil {
     return machine, errors.New(
         fmt.Sprintf("Failed to get ISession machine: %x", result))
   }

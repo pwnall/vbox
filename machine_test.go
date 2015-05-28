@@ -84,6 +84,33 @@ func TestMachine_SaveSettings(t *testing.T) {
   }
 }
 
+func TestMachine_SetPointingHidType(t *testing.T) {
+  machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer machine.Release()
+
+  // NOTE: Using the USB 1.1 controller so tests can run on the open-sourced
+  //       VirtualBox (no extension packs).
+  controller, err := machine.AddUsbController("GoUSB", UsbControllerType_Ohci)
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer controller.Release()
+
+  if err := machine.SetPointingHidType(PointingHidType_UsbTablet); err != nil {
+    t.Error(err)
+  }
+
+  ptype, err := machine.GetPointingHidType()
+  if err != nil {
+    t.Error(err)
+  } else if ptype != PointingHidType_UsbTablet {
+    t.Error("Got wrong pointing HID type: ", ptype)
+  }
+}
+
 func TestMachine_Register_Unregister(t *testing.T) {
   machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
   if err != nil {
