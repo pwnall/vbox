@@ -14,6 +14,7 @@ func TestGetGuestOsTypes(t *testing.T) {
   }
 
   hasLinux := false
+  hasUbuntu := false
   hasWindows764 := false
   for _, osType := range types {
     id, err := osType.GetId()
@@ -26,6 +27,8 @@ func TestGetGuestOsTypes(t *testing.T) {
       hasLinux = true
     case "Windows7_64":
       hasWindows764 = true
+    case "Ubuntu":
+      hasUbuntu = true
     }
     if err := osType.Release(); err != nil {
       t.Error(err)
@@ -36,6 +39,9 @@ func TestGetGuestOsTypes(t *testing.T) {
 
   if hasLinux == false {
     t.Error("Linux type not found")
+  }
+  if hasUbuntu == false {
+    t.Error("Ubuntu type not found")
   }
   if hasWindows764 == false {
     t.Error("Windows7_64 type not found")

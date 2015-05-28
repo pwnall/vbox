@@ -53,7 +53,7 @@ func WithDvdInVm(t *testing.T, isoName string, disableBootPrompt bool,
   }
   defer session.Release()
 
-  machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+  machine, err := CreateMachine("pwnall_vbox_test", "Ubuntu", "")
   if err != nil {
     t.Fatal(err)
   }
@@ -67,6 +67,10 @@ func WithDvdInVm(t *testing.T, isoName string, disableBootPrompt bool,
   }
   defer controller.Release()
 
+  // NOTE: LXDE wants at least 256MB for live CD, recommends 512MB.
+  if err := machine.SetMemorySize(512); err != nil {
+    t.Error(err)
+  }
   if err := machine.SetPointingHidType(PointingHidType_UsbTablet); err != nil {
     t.Error(err)
   }

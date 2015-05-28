@@ -30,23 +30,25 @@ func TestMain(m *testing.M) {
     os.Exit(1)
   }
 
-  // We use TinyCore 6.2 because it is a relatively small VM that hosts a GUI,
-  // which is necessary to test the Console and related classes.
-  tinyCoreFile := path.Join(testDir, "TinyCore-6.2.iso")
-  if _, err = os.Stat(tinyCoreFile); err != nil {
-    response, err := http.Get("http://distro.ibiblio.org/tinycorelinux/6.x/" +
-        "x86/release/TinyCore-6.2.iso")
+  // We use Lubuntu because it's not huge and has working VirtualBox mouse
+  // support.
+  isoFile := path.Join(testDir, "lubuntu-15.04.iso")
+  if _, err = os.Stat(isoFile); err != nil {
+    fmt.Printf("Lubuntu ISO not found, downloading\n")
+    response, err := http.Get("http://cdimage.ubuntu.com/lubuntu/releases/" +
+        "15.04/release/lubuntu-15.04-desktop-i386.iso")
     if err != nil {
       fmt.Printf("%v\n", err)
       os.Exit(1)
     }
     defer response.Body.Close()
     bodyBytes, err := ioutil.ReadAll(response.Body)
-    err = ioutil.WriteFile(tinyCoreFile, bodyBytes, 0644)
+    err = ioutil.WriteFile(isoFile, bodyBytes, 0644)
     if err != nil {
       fmt.Printf("%v\n", err)
       os.Exit(1)
     }
+    fmt.Printf("Done downloading Lubuntu ISO\n")
   }
 
   result := m.Run()

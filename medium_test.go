@@ -126,7 +126,7 @@ func TestOpenMedium_Medium_Close(t *testing.T) {
   }
   testDir := path.Join(cwd, "test_tmp")
 
-  imageFile := path.Join(testDir, "TinyCore-6.2.iso")
+  imageFile := path.Join(testDir, "lubuntu-15.04.iso")
   imageStat, err := os.Stat(imageFile)
   if err != nil {
     t.Fatal(err)

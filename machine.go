@@ -67,7 +67,6 @@ func (machine *Machine) GetSettingsFilePath() (string, error) {
   return path, nil
 }
 
-
 // GetSettingsModified asks VirtualBox if this machine has unsaved settings.
 // It returns a boolean and any error encountered.
 func (machine *Machine) GetSettingsModified() (bool, error) {
@@ -114,6 +113,54 @@ func (machine* Machine) SetPointingHidType(
   if C.GoVboxFAILED(result) != 0 {
     return errors.New(
         fmt.Sprintf("Failed to set IMachine pointing HID type: %x", result))
+  }
+  return nil
+}
+
+// GetMemorySize returns the machine's emulated mouse type.
+// It returns a number and any error encountered.
+func (machine* Machine) GetMemorySize() (uint, error) {
+  var cram C.PRUint32
+
+  result := C.GoVboxGetMachineMemorySize(machine.cmachine, &cram)
+  if C.GoVboxFAILED(result) != 0 {
+    return 0, errors.New(
+        fmt.Sprintf("Failed to get IMachine memory size: %x", result))
+  }
+  return uint(cram), nil
+}
+
+// SetMemorySize changes the machine's emulated mouse type.
+// It returns a number and any error encountered.
+func (machine* Machine) SetMemorySize(ram uint) error {
+  result := C.GoVboxSetMachineMemorySize(machine.cmachine, C.PRUint32(ram))
+  if C.GoVboxFAILED(result) != 0 {
+    return errors.New(
+        fmt.Sprintf("Failed to set IMachine memory size: %x", result))
+  }
+  return nil
+}
+
+// GetVramSize returns the machine's emulated mouse type.
+// It returns a number and any error encountered.
+func (machine* Machine) GetVramSize() (uint, error) {
+  var cvram C.PRUint32
+
+  result := C.GoVboxGetMachineVRAMSize(machine.cmachine, &cvram)
+  if C.GoVboxFAILED(result) != 0 {
+    return 0, errors.New(
+        fmt.Sprintf("Failed to get IMachine VRAM size: %x", result))
+  }
+  return uint(cvram), nil
+}
+
+// SetVramSize changes the machine's emulated mouse type.
+// It returns a number and any error encountered.
+func (machine* Machine) SetVramSize(vram uint) error {
+  result := C.GoVboxSetMachineVRAMSize(machine.cmachine, C.PRUint32(vram))
+  if C.GoVboxFAILED(result) != 0 {
+    return errors.New(
+        fmt.Sprintf("Failed to set IMachine VRAM size: %x", result))
   }
   return nil
 }

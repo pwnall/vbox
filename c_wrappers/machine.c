@@ -37,6 +37,18 @@ HRESULT GoVboxGetMachineSettingsFilePath(IMachine* cmachine, char** cpath) {
   g_pVBoxFuncs->pfnComUnallocString(wpath);
   return result;
 }
+HRESULT GoVboxGetMachineMemorySize(IMachine* cmachine, PRUint32* cram) {
+  return IMachine_GetMemorySize(cmachine, cram);
+}
+HRESULT GoVboxSetMachineMemorySize(IMachine* cmachine, PRUint32 cram) {
+  return IMachine_SetMemorySize(cmachine, cram);
+}
+HRESULT GoVboxGetMachineVRAMSize(IMachine* cmachine, PRUint32* cvram) {
+  return IMachine_GetVRAMSize(cmachine, cvram);
+}
+HRESULT GoVboxSetMachineVRAMSize(IMachine* cmachine, PRUint32 cvram) {
+  return IMachine_SetVRAMSize(cmachine, cvram);
+}
 HRESULT GoVboxGetMachinePointingHIDType(IMachine* cmachine, PRUint32* ctype) {
   return IMachine_GetPointingHIDType(cmachine, ctype);
 }

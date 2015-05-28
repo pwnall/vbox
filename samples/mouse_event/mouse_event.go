@@ -15,7 +15,7 @@ func main() {
     os.Exit(1)
   }
 
-  machine, err := vbox.FindMachine("vbox-sample-vm")
+  machine, err := vbox.FindMachine("Lubuntu")
   if err != nil {
     fmt.Printf("%v\n", err)
     os.Exit(1)
@@ -67,14 +67,14 @@ func main() {
   }
   fmt.Printf("Absolute mouse support: %v\n", hasAbsolute)
 
-  err = mouse.PutEventAbsolute(200, 200, 0, 0, vbox.MouseButtonState_None)
+  err = mouse.PutEventAbsolute(200, 200, 0, 0, vbox.MouseButtonState_RightButton)
   if err != nil {
     fmt.Printf("%v\n", err)
     os.Exit(1)
   }
 
   // The dummy relative event is necessary to get the cursor to show up.
-  err = mouse.PutEvent(0, 0, 0, 0, vbox.MouseButtonState_None)
+  err = mouse.PutEvent(0, 0, 0, 0, vbox.MouseButtonState_RightButton)
   if err != nil {
     fmt.Printf("%v\n", err)
     os.Exit(1)

@@ -111,6 +111,44 @@ func TestMachine_SetPointingHidType(t *testing.T) {
   }
 }
 
+func TestMachine_SetMemorySize_SetVramSize(t *testing.T) {
+  machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer machine.Release()
+
+  // NOTE: Using the USB 1.1 controller so tests can run on the open-sourced
+  //       VirtualBox (no extension packs).
+  controller, err := machine.AddUsbController("GoUSB", UsbControllerType_Ohci)
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer controller.Release()
+
+  if err := machine.SetMemorySize(512); err != nil {
+    t.Error(err)
+  }
+
+  ram, err := machine.GetMemorySize()
+  if err != nil {
+    t.Error(err)
+  } else if ram != 512 {
+    t.Error("Got wrong memory size: ", ram)
+  }
+
+  if err := machine.SetVramSize(20); err != nil {
+    t.Error(err)
+  }
+
+  vram, err := machine.GetVramSize()
+  if err != nil {
+    t.Error(err)
+  } else if vram != 20 {
+    t.Error("Got wrong VRAM size: ", 20)
+  }
+}
+
 func TestMachine_Register_Unregister(t *testing.T) {
   machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
   if err != nil {
@@ -242,7 +280,7 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
   }
   testDir := path.Join(cwd, "test_tmp")
 
-  imageFile := path.Join(testDir, "TinyCore-6.2.iso")
+  imageFile := path.Join(testDir, "lubuntu-15.04.iso")
   if _, err := os.Stat(imageFile); err != nil {
     t.Fatal(err)
   }
