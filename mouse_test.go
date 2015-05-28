@@ -88,19 +88,19 @@ func TestMouseKeyboard(t *testing.T) {
         t.Error(err)
         break
       }
+      // Dumping the screenshot to the filesystem to ease debugging.
+      ioutil.WriteFile("test_tmp/tinycore_boot_screenshot.bin", imageData,
+          0644)
+      pngData, err := display.TakeScreenShotPNGToArray(0, width, height)
+      if err == nil {
+        ioutil.WriteFile("test_tmp/tinycore_boot_screenshot.png", pngData,
+            0644)
+      }
+
+      time.Sleep(100 * time.Millisecond)
       if bytes.Equal(imageData, bootReadyImageData) {
         break
       }
-
-      // NOTE: Dumping the screenshot to the filesystem to ease debugging.
-      ioutil.WriteFile("test_tmp/tinycore_boot_screenshot.bin", imageData,
-          0644)
-      imageData, err = display.TakeScreenShotPNGToArray(0, width, height)
-      if err == nil {
-        ioutil.WriteFile("test_tmp/tinycore_boot_screenshot.png", imageData,
-            0644)
-      }
-      time.Sleep(100 * time.Millisecond)
     }
 
     // Send Alt+Tab to get the switch menu on the screen.

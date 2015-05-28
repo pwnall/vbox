@@ -110,7 +110,7 @@ func WithDvdInVm(t *testing.T, isoName string, disableBootPrompt bool,
 
   AddDvdToMachine(t, machine, medium, session)
 
-  progress, err := machine.Launch(session, "headless", "");
+  progress, err := machine.Launch(session, "gui", "");
   if err != nil {
     t.Fatal(err)
   }

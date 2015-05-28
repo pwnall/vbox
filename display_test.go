@@ -50,12 +50,19 @@ func TestDisplay(t *testing.T) {
         break
       }
 
+      // NOTE: Dumping the screenshot to the filesystem to ease debugging.
+      ioutil.WriteFile("test_tmp/bios_screenshot.bin", imageData, 0644)
+
+      pngData, err := display.TakeScreenShotPNGToArray(0, resolution.Width,
+          resolution.Height)
+      if err != nil {
+        ioutil.WriteFile("test_tmp/bios_screenshot.png", pngData, 0644)
+      }
+
       if bytes.Equal(imageData, goldImageData) {
         break
       }
-      // NOTE: Dumping the screenshot to the filesystem to ease debugging.
-      ioutil.WriteFile("test_tmp/bios_screenshot.bin", imageData, 0644)
-      time.Sleep(50 * time.Millisecond)
+      time.Sleep(100 * time.Millisecond)
     }
 
     imageData, err := display.TakeScreenShotPNGToArray(0, resolution.Width,

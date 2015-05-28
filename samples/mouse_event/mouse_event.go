@@ -53,13 +53,28 @@ func main() {
   }
   defer mouse.Release()
 
-  ss, err := mouse.GetRelativeSupported()
-  fmt.Printf("Relative support: %v %v\n", ss, err)
+  hasRelative, err := mouse.GetRelativeSupported()
+  if err != nil {
+    fmt.Printf("%v\n", err)
+    os.Exit(1)
+  }
+  fmt.Printf("Relative mouse support: %v\n", hasRelative)
 
-  ss, err = mouse.GetAbsoluteSupported()
-  fmt.Printf("Absolute support: %v %v\n", ss, err)
+  hasAbsolute, err := mouse.GetAbsoluteSupported()
+  if err != nil {
+    fmt.Printf("%v\n", err)
+    os.Exit(1)
+  }
+  fmt.Printf("Absolute mouse support: %v\n", hasAbsolute)
 
   err = mouse.PutEventAbsolute(200, 200, 0, 0, vbox.MouseButtonState_None)
+  if err != nil {
+    fmt.Printf("%v\n", err)
+    os.Exit(1)
+  }
+
+  // The dummy relative event is necessary to get the cursor to show up.
+  err = mouse.PutEvent(0, 0, 0, 0, vbox.MouseButtonState_None)
   if err != nil {
     fmt.Printf("%v\n", err)
     os.Exit(1)
