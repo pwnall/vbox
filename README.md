@@ -1,8 +1,14 @@
 # vbox
 
 This is a VirtualBox API client for Go, heavily inspired by
-[vboxgo](https://github.com/th4t/vboxgo/). It is my first piece of Go code, so
-code style feedback is welcome.
+[vboxgo](https://github.com/th4t/vboxgo/).
+
+The package's API closely mirrors the
+[VirtualBox COM/XPCOM API](https://www.virtualbox.org/sdkref/), so it breaks a
+lot of Go guidelines. Therefore, most users will prefer using a higher-level
+library, or building their own abstractions over this library.
+
+This is the author's first piece of Go code, so feedback is welcome.
 
 
 ## Usage
@@ -11,8 +17,7 @@ The package should build out of a clean checkout. The `samples` directory
 contains reasonable starting code for a new library user.
 
 The package generally follows the VirtualBox XPCOM API, meaning that it is
-rather cumbersome. Most users will prefer using a higher-level library, or
-building their own abstractions over this library.
+rather cumbersome.
 
 
 ## Prerequisites
@@ -32,6 +37,33 @@ location. The following example accomplishes that on 64-bit Fedora.
 ```bash
 export VBOX_APP_HOME=/usr/lib64/virtualbox
 ```
+
+
+## Testing
+
+Go's standard process for running tests should work, provided that VirtualBox
+is installed in a standard path, or that `VBOX_APP_HOME` is set up.
+
+```bash
+go test
+```
+
+The tests will be really slow the first time around, because they have to
+download the [Lubuntu](http://lubuntu.net/) 15.04 x86 ISO. The massive delay
+can be avoided by downloading the ISO manually, possibly from a local copy.
+
+```bash
+wget http://cdimage.ubuntu.com/lubuntu/releases/15.04/release/lubuntu-15.04-desktop-i386.iso
+mkdir -p test_tmp
+mv lubuntu-15.04-desktop-i386.iso test_tmp/lubuntu-15.04.iso
+```
+
+The dependency on a 700MB image was not taken lightly. We previously tried
+using [TinyCore](http://en.wikipedia.org/wiki/Tiny_Core_Linux) and
+[Damn Small Linux](http://www.damnsmalllinux.org/). Unfortunately, both
+distributions have a broken mouse setup, which causes failures in the mouse
+automation tests (`mouse_test.go`). Suggestions for eliminating the dependency
+on Lubuntu are welcome.
 
 
 ## Debugging
