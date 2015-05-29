@@ -101,7 +101,7 @@ func (display *Display) TakeScreenShotToArray(screenId uint,
 // TakeScreenShotPNGToArray takes a screenshot of the VM's display.
 // It returns a byte slice encoding the image as PNG, and any error
 // encountered.
-func (display *Display) TakeScreenShotPNGToArray(screenId uint,
+func (display *Display) TakeScreenShotPngToArray(screenId uint,
     width uint, height uint) ([]byte, error) {
   var cdataPtr *C.PRUint8
   var dataSize C.PRUint32

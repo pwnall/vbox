@@ -87,7 +87,7 @@ func TestMouseKeyboard(t *testing.T) {
       // Dumping the screenshot to the filesystem to ease debugging.
       ioutil.WriteFile("test_tmp/lubuntu_boot_screenshot.bin", imageData,
           0644)
-      pngData, err := display.TakeScreenShotPNGToArray(0, width, height)
+      pngData, err := display.TakeScreenShotPngToArray(0, width, height)
       if err == nil {
         ioutil.WriteFile("test_tmp/lubuntu_boot_screenshot.png", pngData,
             0644)
@@ -167,7 +167,7 @@ func waitForMatchingScreenshot(t *testing.T, display Display,
 
     // NOTE: Dumping the screenshot to the filesystem to ease debugging.
     ioutil.WriteFile(binFileName, imageData, 0644)
-    pngData, err := display.TakeScreenShotPNGToArray(0, width, height)
+    pngData, err := display.TakeScreenShotPngToArray(0, width, height)
     if err == nil {
       ioutil.WriteFile(pngFileName, pngData, 0644)
     }
