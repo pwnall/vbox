@@ -116,6 +116,11 @@ func (settings *BiosSettings) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (settings *BiosSettings) Initialized() bool {
+  return settings.csettings != nil
+}
+
 
 // GetBiosSettings obtains the controls for the VM associated with this machine.
 // The call fails unless the VM associated with this machine has started.

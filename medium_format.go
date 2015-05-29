@@ -52,6 +52,11 @@ func (format *MediumFormat) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (format *MediumFormat) Initialized() bool {
+  return format.cformat != nil
+}
+
 
 // GetMediumFormats returns the guest OS formats supported by VirtualBox.
 // It returns a slice of MediumFormat instances and any error encountered.

@@ -75,6 +75,11 @@ func (props *SystemProperties) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (props *SystemProperties) Initialized() bool {
+  return props.cprops != nil
+}
+
 
 // GetSystemProperties fetches the VirtualBox system properties.
 // It returns the a new SystemProperties instance and any error encountered.

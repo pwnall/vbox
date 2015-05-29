@@ -133,3 +133,8 @@ func (display *Display) Release() error {
   }
   return nil
 }
+
+// Initialized returns true if there is VirtualBox data associated with this.
+func (display *Display) Initialized() bool {
+  return display.cdisplay != nil
+}

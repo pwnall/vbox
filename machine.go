@@ -328,6 +328,11 @@ func (machine *Machine) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (machine *Machine) Initialized() bool {
+  return machine.cmachine != nil
+}
+
 
 // CreateMachine creates a VirtualBox machine.
 // The machine must be registered by calling Register before it shows up in the

@@ -94,3 +94,8 @@ func (console *Console) Release() error {
   }
   return nil
 }
+
+// Initialized returns true if there is VirtualBox data associated with this.
+func (console *Console) Initialized() bool {
+  return console.cconsole != nil
+}

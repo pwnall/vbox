@@ -91,6 +91,11 @@ func (controller *StorageController) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (controller *StorageController) Initialized() bool {
+  return controller.ccontroller != nil
+}
+
 
 // AddStorageController attaches a storage controller to a VirtualBox VM.
 // It returns the created StorageController and any error encountered.

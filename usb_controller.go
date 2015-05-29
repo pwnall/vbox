@@ -82,6 +82,11 @@ func (controller *UsbController) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (controller *UsbController) Initialized() bool {
+  return controller.ccontroller != nil
+}
+
 
 // AddUsbController attaches a storage controller to a VirtualBox VM.
 // It returns the created UsbController and any error encountered.

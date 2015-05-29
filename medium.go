@@ -126,6 +126,10 @@ func (medium *Medium) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (medium *Medium) Initialized() bool {
+  return medium.cmedium != nil
+}
 
 // CreateHardDisk creates a VirtualBox storage medium for a hard disk image.
 // The disk's contents must be created by calling createBaseStorage.

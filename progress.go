@@ -73,3 +73,8 @@ func (progress *Progress) Release() error {
   }
   return nil
 }
+
+// Initialized returns true if there is VirtualBox data associated with this.
+func (progress *Progress) Initialized() bool {
+  return progress.cprogress != nil
+}

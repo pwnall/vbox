@@ -93,3 +93,8 @@ func (mouse *Mouse) Release() error {
   }
   return nil
 }
+
+// Initialized returns true if there is VirtualBox data associated with this.
+func (mouse *Mouse) Initialized() bool {
+  return mouse.cmouse != nil
+}

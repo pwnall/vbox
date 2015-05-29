@@ -118,3 +118,8 @@ func (session *Session) Release() error {
   }
   return nil
 }
+
+// Initialized returns true if there is VirtualBox data associated with this.
+func (session *Session) Initialized() bool {
+  return session.csession != nil
+}

@@ -53,3 +53,8 @@ func (keyboard *Keyboard) Release() error {
   }
   return nil
 }
+
+// Initialized returns true if there is VirtualBox data associated with this.
+func (keyboard *Keyboard) Initialized() bool {
+  return keyboard.ckeyboard != nil
+}

@@ -52,6 +52,11 @@ func (osType *GuestOsType) Release() error {
   return nil
 }
 
+// Initialized returns true if there is VirtualBox data associated with this.
+func (osType *GuestOsType) Initialized() bool {
+  return osType.ctype != nil
+}
+
 
 // GetGuestOsTypes returns the guest OS types supported by VirtualBox.
 // It returns a slice of GuestOsType instances and any error encountered.
