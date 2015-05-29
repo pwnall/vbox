@@ -106,8 +106,8 @@ original SDK.
 ## Copyright and Licensing
 
 The licensing situation of this package is complicated due to issues outside of
-the author's control. Briefly, the package's contents is licensed under a mix
-of the MIT license and the LGPL v2.
+the author's control. Briefly, you can most likely consider the package to be
+MIT-licensed.
 
 All files outside of `third_party/` are (C) Victor Costan 2015, and made
 available under the MIT license, which is contained in the `LICENSE` file.
@@ -116,11 +116,7 @@ The vendored VirtualBox has most files (under `bindings/c/glue`) licensed under
 the MIT license. However, one header file (under `bindings/c/include`) is
 licensed under the LGPL v2.
 
-This package is compiled against the LGPL-licensed header, which causes the
-LGPL's viral infection clause to kick in, and extends the LGPL provisions over
-the entire package.
-
-However, the author wishes that the package could be MIT-licensed. Therefore,
-all the files written by the author are made available under the MIT license.
-This is intended to help an interested party produce a MIT-licensed package,
-given some work for replacing the LGPL-licensed header.
+According to the VirtualBox API developers, the header files do not generate
+code, so including them should not activate LGPL's viral infection clause.
+The details are in the forum posts surrounding
+[this post](https://forums.virtualbox.org/viewtopic.php?f=34&t=65063#p323121).

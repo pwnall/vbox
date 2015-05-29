@@ -61,7 +61,7 @@ func (console *Console) GetMouse() (Mouse, error) {
 func (console *Console) GetMachine() (Machine, error) {
   var machine Machine
   result := C.GoVboxGetConsoleMachine(console.cconsole, &machine.cmachine)
-  if C.GoVboxFAILED(result) != 0 {
+  if C.GoVboxFAILED(result) != 0 || machine.cmachine == nil {
     return machine, errors.New(
         fmt.Sprintf("Failed to get IConsole machine: %x", result))
   }
