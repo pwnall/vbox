@@ -2,6 +2,8 @@ package vbox
 
 import (
   "bytes"
+  "crypto/sha256"
+  "encoding/hex"
   "io/ioutil"
   "image"
   "image/png"
@@ -10,10 +12,8 @@ import (
 )
 
 func TestDisplay(t *testing.T) {
-  goldImageData, err := ioutil.ReadFile("test_gold/bios_screenshot.bin")
-  if err != nil {
-    t.Fatal(err)
-  }
+  goldImageHash :=
+      "c3aa3970c5018b3d08951cb3da34137e0173da02f5283f496edcc142eb7a5616"
 
   WithDvdInVm(t, "", false /* disableBootMenu */,
       func (machine Machine, session Session, console Console) {
@@ -59,7 +59,9 @@ func TestDisplay(t *testing.T) {
         ioutil.WriteFile("test_tmp/bios_screenshot.png", pngData, 0644)
       }
 
-      if bytes.Equal(imageData, goldImageData) {
+      hash := sha256.Sum256(imageData)
+      imageHash := hex.EncodeToString(hash[:])
+      if imageHash == goldImageHash {
         break
       }
       time.Sleep(100 * time.Millisecond)
@@ -91,8 +93,12 @@ func TestDisplay(t *testing.T) {
         rgbaImage, success := pngImage.(*image.RGBA)
         if !success {
           t.Error("Failed to cast image to image.RGBA")
-        } else if !bytes.Equal(rgbaImage.Pix, goldImageData) {
-          t.Error("Incorrect PNG pixel data")
+        } else {
+          hash := sha256.Sum256(rgbaImage.Pix)
+          imageHash := hex.EncodeToString(hash[:])
+          if imageHash != goldImageHash {
+            t.Error("Incorrect PNG pixel data")
+          }
         }
       }
     }

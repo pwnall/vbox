@@ -1,34 +1,15 @@
 package vbox
 
 import (
-  "bytes"
+  "crypto/sha256"
+  "encoding/hex"
   "io/ioutil"
+  "path"
   "testing"
   "time"
 )
 
 func TestMouseKeyboard(t *testing.T) {
-  bootReadyImageData, err := ioutil.ReadFile(
-      "test_gold/lubuntu_boot_screenshot.bin")
-  if err != nil {
-    t.Fatal(err)
-  }
-  mouseMoveImageData, err := ioutil.ReadFile(
-      "test_gold/lubuntu_mousemove_screenshot.bin")
-  if err != nil {
-    t.Fatal(err)
-  }
-  mouseClickImageData, err := ioutil.ReadFile(
-      "test_gold/lubuntu_mouseclick_screenshot.bin")
-  if err != nil {
-    t.Fatal(err)
-  }
-  keyPressImageData, err := ioutil.ReadFile(
-      "test_gold/lubuntu_keypress_screenshot.bin")
-  if err != nil {
-    t.Fatal(err)
-  }
-
   WithDvdInVm(t, "lubuntu-15.04.iso", true /* disableBootMenu */,
       func (machine Machine, session Session, console Console) {
     display, err := console.GetDisplay()
@@ -112,7 +93,10 @@ func TestMouseKeyboard(t *testing.T) {
             0644)
       }
 
-      if bytes.Equal(imageData, bootReadyImageData) {
+      hash := sha256.Sum256(imageData)
+      imageHash := hex.EncodeToString(hash[:])
+      if imageHash ==
+          "c735ff4a6f72d18f0485eb9d9a937f365071ccfaac668a6a9f78a4e4d4029a51" {
         break
       }
       time.Sleep(200 * time.Millisecond)
@@ -131,30 +115,8 @@ func TestMouseKeyboard(t *testing.T) {
     if err != nil {
       t.Fatal(err)
     }
-
-    for {
-      imageData, err := display.TakeScreenShotToArray(0, width, height)
-      if err != nil {
-        t.Error(err)
-        break
-      }
-      // Lubuntu displays the clock at the bottom of the screen, so we trim it.
-      imageData = imageData[0:((len(imageData) * 7) / 8)]
-
-      // NOTE: Dumping the screenshot to the filesystem to ease debugging.
-      ioutil.WriteFile("test_tmp/lubuntu_mousemove_screenshot.bin",
-          imageData, 0644)
-      pngData, err := display.TakeScreenShotPNGToArray(0, width, height)
-      if err == nil {
-        ioutil.WriteFile("test_tmp/lubuntu_mousemove_screenshot.png",
-            pngData, 0644)
-      }
-
-      if bytes.Equal(imageData, mouseMoveImageData) {
-        break
-      }
-      time.Sleep(100 * time.Millisecond)
-    }
+    waitForMatchingScreenshot(t, display, "lubuntu_mousemove_screenshot",
+        "599ddfe84c4723f08b69705494aadf4acf08b17e6a8e0526f2a33359d2f93fe2")
 
     // Move the mouse slightly and click.
     // NOTE: Failing to send the event aborts the test, because otherwise we'd
@@ -169,63 +131,52 @@ func TestMouseKeyboard(t *testing.T) {
     if err != nil {
       t.Fatal(err)
     }
+    waitForMatchingScreenshot(t, display, "lubuntu_mouseclick_screenshot",
+        "d9d3e811dab67a747945eaa234bbf098f9da56de7fa7003199ed0f4ac977f10d")
 
-    for {
-      imageData, err := display.TakeScreenShotToArray(0, width, height)
-      if err != nil {
-        t.Error(err)
-        break
-      }
-      // Lubuntu displays the clock at the bottom of the screen, so we trim it.
-      imageData = imageData[0:((len(imageData) * 7) / 8)]
-
-      // NOTE: Dumping the screenshot to the filesystem to ease debugging.
-      ioutil.WriteFile("test_tmp/lubuntu_mouseclick_screenshot.bin",
-          imageData, 0644)
-      pngData, err := display.TakeScreenShotPNGToArray(0, width, height)
-      if err == nil {
-        ioutil.WriteFile("test_tmp/lubuntu_mouseclick_screenshot.png",
-            pngData, 0644)
-      }
-
-      if bytes.Equal(imageData, mouseClickImageData) {
-        break
-      }
-      time.Sleep(100 * time.Millisecond)
-    }
-
-    // Send Ctrl+A to get stuff highlighted.
-    // NOTE: Failing to send the keys aborts the test, because otherwise we'd
-    //       loop forever waiting for screen changes that never come.
+    // Press Esc to hide the context menu.
     codeCount, err := keyboard.PutScancodes([]int{0x01, 0x91})
     if err != nil {
       t.Fatal(err)
     } else if codeCount != 2 {
       t.Fatal("Failed to send 2 scancodes, only got: ", codeCount)
     }
-
-    for {
-      imageData, err := display.TakeScreenShotToArray(0, width, height)
-      if err != nil {
-        t.Error(err)
-        break
-      }
-      // Lubuntu displays the clock at the bottom of the screen, so we trim it.
-      imageData = imageData[0:((len(imageData) * 7) / 8)]
-
-      // NOTE: Dumping the screenshot to the filesystem to ease debugging.
-      ioutil.WriteFile("test_tmp/lubuntu_keypress_screenshot.bin", imageData,
-          0644)
-      pngData, err := display.TakeScreenShotPNGToArray(0, width, height)
-      if err == nil {
-        ioutil.WriteFile("test_tmp/lubuntu_keypress_screenshot.png",
-            pngData, 0644)
-      }
-
-      if bytes.Equal(imageData, keyPressImageData) {
-        break
-      }
-      time.Sleep(100 * time.Millisecond)
-    }
+    waitForMatchingScreenshot(t, display, "lubuntu_keypress_screenshot",
+        "4ec9578aa9ef74296c18acf53c76e07a6e0b05b5181f9987ad0f877d1a627de3")
   })
+}
+
+func waitForMatchingScreenshot(t *testing.T, display Display,
+    imageName string, goldenHash string) {
+  binFileName := path.Join("test_tmp", imageName + ".bin")
+  pngFileName := path.Join("test_tmp", imageName + ".png")
+
+  resolution := Resolution{}
+  for {
+    if err := display.GetScreenResolution(0, &resolution); err != nil {
+      t.Fatal(err)
+    }
+    width, height := resolution.Width, resolution.Height
+
+    imageData, err := display.TakeScreenShotToArray(0, width, height)
+    if err != nil {
+      t.Fatal(err)
+    }
+    // Lubuntu displays the clock at the bottom of the screen, so we trim it.
+    imageData = imageData[0:((len(imageData) * 7) / 8)]
+
+    // NOTE: Dumping the screenshot to the filesystem to ease debugging.
+    ioutil.WriteFile(binFileName, imageData, 0644)
+    pngData, err := display.TakeScreenShotPNGToArray(0, width, height)
+    if err == nil {
+      ioutil.WriteFile(pngFileName, pngData, 0644)
+    }
+
+    hash := sha256.Sum256(imageData)
+    imageHash := hex.EncodeToString(hash[:])
+    if imageHash == goldenHash {
+      return
+    }
+    time.Sleep(100 * time.Millisecond)
+  }
 }
