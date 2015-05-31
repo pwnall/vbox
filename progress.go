@@ -49,7 +49,7 @@ func (progress* Progress) GetPercent() (int, error) {
 // GetResultCode returns the result code of the tracked operation.
 // It returns a number and any error encountered.
 func (progress* Progress) GetResultCode() (int, error) {
-  var code C.PRUint32
+  var code C.PRInt32
 
   result := C.GoVboxGetProgressResultCode(progress.cprogress, &code)
   if C.GoVboxFAILED(result) != 0 {

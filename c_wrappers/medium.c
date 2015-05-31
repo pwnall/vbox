@@ -65,7 +65,7 @@ HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
 HRESULT GoVboxGetMediumState(IMedium* cmedium, PRUint32* cstate) {
   return IMedium_GetState(cmedium, cstate);
 }
-HRESULT GoVboxGetMediumSize(IMedium* cmedium, PRUint64* csize) {
+HRESULT GoVboxGetMediumSize(IMedium* cmedium, PRInt64* csize) {
   return IMedium_GetSize(cmedium, csize);
 }
 HRESULT GoVboxIMediumRelease(IMedium* cmedium) {

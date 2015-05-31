@@ -53,14 +53,14 @@ func (medium* Medium) GetState() (MediumState, error) {
 // The returned size can be smaller than the logical size for dynamically grown
 // images.
 // It returns a byte quantity and any error encountered.
-func (medium* Medium) GetSize() (uint64, error) {
-  var csize C.PRUint64
+func (medium* Medium) GetSize() (int64, error) {
+  var csize C.PRInt64
 
   result := C.GoVboxGetMediumSize(medium.cmedium, &csize)
   if C.GoVboxFAILED(result) != 0 {
     return 0, errors.New(fmt.Sprintf("Failed to get IMedium size: %x", result))
   }
-  return uint64(csize), nil
+  return int64(csize), nil
 }
 
 // CreateBaseStorage starts building a hard disk image.

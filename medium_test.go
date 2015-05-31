@@ -153,7 +153,7 @@ func TestOpenMedium_Medium_Close(t *testing.T) {
     t.Error("Wrong medium state: ", state)
   }
 
-  imageSize := uint64(imageStat.Size())
+  imageSize := imageStat.Size()
   size, err := medium.GetSize()
   if err != nil {
     t.Error(err)
