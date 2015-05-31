@@ -1,3 +1,6 @@
+// Package vbox is a thin wrapper over VirtualBox's COM/XPCOM API. The exposed
+// API follows the COM/XPCOM conventions, and will not feel natural to Go
+// programmers. Most users should look into a higher-level library.
 package vbox
 
 /*
