@@ -1,6 +1,6 @@
 # vbox
 
-[![GoDoc](https://godoc.org/github.com/pwnall/scancodes?status.svg)](https://godoc.org/github.com/pwnall/scancodes)
+[![GoDoc](https://godoc.org/github.com/pwnall/vbox?status.svg)](https://godoc.org/github.com/pwnall/vbox)
 
 This is a VirtualBox API client for Go, heavily inspired by
 [vboxgo](https://github.com/th4t/vboxgo/).
