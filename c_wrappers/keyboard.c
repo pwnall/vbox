@@ -15,6 +15,7 @@ HRESULT GoVboxKeyboardPutScancodes(IKeyboard* ckeyboard,
   HRESULT result = IKeyboard_PutScancodes(ckeyboard,
       ComSafeArrayAsInParam(pSafeArray), ccodesStored);
   g_pVBoxFuncs->pfnSafeArrayDestroy(pSafeArray);
+  return result;
 }
 HRESULT GoVboxIKeyboardRelease(IKeyboard* ckeyboard) {
   return IKeyboard_Release(ckeyboard);
