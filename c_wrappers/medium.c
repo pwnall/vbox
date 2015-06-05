@@ -42,9 +42,16 @@ HRESULT GoVboxOpenMedium(IVirtualBox* cbox, char* clocation,
 }
 
 HRESULT GoVboxMediumCreateBaseStorage(IMedium* cmedium, PRInt64 size,
-    PRUint32 variantSize, PRUint32* cvariant, IProgress** cprogress) {
-  return IMedium_CreateBaseStorage(cmedium, size, variantSize, cvariant,
-      cprogress);
+    PRUint32 variantCount, PRUint32* cvariant, IProgress** cprogress) {
+
+  SAFEARRAY *pSafeArray = g_pVBoxFuncs->pfnSafeArrayCreateVector(
+      VT_UI4, 0, variantCount);
+  g_pVBoxFuncs->pfnSafeArrayCopyInParamHelper(pSafeArray, cvariant,
+      sizeof(PRUint32) * variantCount);
+  HRESULT result = IMedium_CreateBaseStorage(cmedium, size,
+      ComSafeArrayAsInParam(pSafeArray), cprogress);
+  g_pVBoxFuncs->pfnSafeArrayDestroy(pSafeArray);
+  return result;
 }
 HRESULT GoVboxMediumDeleteStorage(IMedium* cmedium, IProgress** cprogress) {
   return IMedium_DeleteStorage(cmedium, cprogress);

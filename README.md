@@ -90,19 +90,13 @@ export VBOXSVC_RELEASE_LOG_DEST=stdout
 
 ## Vendored VirtualBox SDK
 
-The package contains a patched version of VirtualBox's SDK, under
+The package contains a subset of the VirtualBox SDK, under
 `third_party/VirtualBoxSDK`. The original version was obtained by unzipping the
 SDK package on the
 [VirtualBox downloads page](https://www.virtualbox.org/wiki/Downloads).
 
 The vendored version removes all the files that are not related to the C
 bindings, which was necessary to keep the repository small.
-
-The patches are minimal changes that work around a
-[code generation bug](https://www.virtualbox.org/ticket/14149). The bug
-description contains an example of a change. All other changes follow the same
-pattern, and can be discovered by trying to build this package with the
-original SDK.
 
 
 ## Copyright and Licensing

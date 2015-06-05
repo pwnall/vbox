@@ -1,6 +1,10 @@
 # OSX.
 .DS_Store
 
+# OSX + OSXFuse.
+._.DS_Store
+._*
+
 # Vim.
 *.sw*
 

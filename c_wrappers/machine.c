@@ -76,7 +76,14 @@ HRESULT GoVboxMachineUnregister(IMachine* cmachine, PRUint32 cleanupMode,
 }
 HRESULT GoVboxMachineDeleteConfig(IMachine* cmachine, PRUint32 mediaCount,
     IMedium** cmedia, IProgress** cprogress) {
-  return IMachine_DeleteConfig(cmachine, mediaCount, cmedia, cprogress);
+  SAFEARRAY *pSafeArray = g_pVBoxFuncs->pfnSafeArrayCreateVector(
+      VT_UNKNOWN, 0, mediaCount);
+  g_pVBoxFuncs->pfnSafeArrayCopyInParamHelper(pSafeArray, cmedia,
+      sizeof(IMedium*) * mediaCount);
+  HRESULT result = IMachine_DeleteConfig(cmachine,
+      ComSafeArrayAsInParam(pSafeArray), cprogress);
+  g_pVBoxFuncs->pfnSafeArrayDestroy(pSafeArray);
+  return result;
 }
 HRESULT GoVboxMachineAttachDevice(IMachine* cmachine, char* cname, PRInt32
     cport, PRInt32 cdevice, PRUint32 ctype, IMedium* cmedium) {
@@ -161,8 +168,11 @@ HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char* cname, char* cosTypeId,
     g_pVBoxFuncs->pfnUtf16Free(wname);
   }
 
-  result = IVirtualBox_CreateMachine(cbox, NULL, wname, 0, NULL, wosTypeId,
-      wflags, cmachine);
+  SAFEARRAY *pSafeArray = g_pVBoxFuncs->pfnSafeArrayCreateVector(
+      VT_BSTR, 0, 0);
+  result = IVirtualBox_CreateMachine(cbox, NULL, wname,
+      ComSafeArrayAsInParam(pSafeArray), wosTypeId, wflags, cmachine);
+  g_pVBoxFuncs->pfnSafeArrayDestroy(pSafeArray);
   g_pVBoxFuncs->pfnUtf16Free(wflags);
   g_pVBoxFuncs->pfnUtf16Free(wosTypeId);
   g_pVBoxFuncs->pfnUtf16Free(wname);
