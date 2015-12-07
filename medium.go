@@ -131,10 +131,11 @@ func (medium *Medium) Initialized() bool {
   return medium.cmedium != nil
 }
 
-// CreateHardDisk creates a VirtualBox storage medium for a hard disk image.
+// CreateMedium creates a VirtualBox storage medium for a hard disk image.
 // The disk's contents must be created by calling createBaseStorage.
 // It returns the created Medium and any error encountered.
-func CreateHardDisk(formatId string, location string) (Medium, error) {
+func CreateMedium(formatId string, location string, accessMode AccessMode,
+    deviceType DeviceType) (Medium, error) {
   var medium Medium
   if err := Init(); err != nil {
     return medium, err
@@ -142,7 +143,8 @@ func CreateHardDisk(formatId string, location string) (Medium, error) {
 
   cformatId := C.CString(formatId)
   clocation := C.CString(location)
-  result := C.GoVboxCreateHardDisk(cbox, cformatId, clocation, &medium.cmedium)
+  result := C.GoVboxCreateMedium(cbox, cformatId, clocation,
+      C.PRUint32(accessMode), C.PRUint32(deviceType), &medium.cmedium)
   C.free(unsafe.Pointer(cformatId))
   C.free(unsafe.Pointer(clocation))
 

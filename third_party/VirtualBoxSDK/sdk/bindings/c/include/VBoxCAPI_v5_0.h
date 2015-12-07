@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (C) 2008-2014 Oracle Corporation
+ * Copyright (C) 2008-2015 Oracle Corporation
  *
  * This file is part of a free software library; you can redistribute
  * it and/or modify it under the terms of the GNU Lesser General
@@ -763,7 +763,7 @@ typedef struct SAFEARRAY
     ULONG c;
 } SAFEARRAY;
 
-#define ComSafeArrayAsInParam(f) ((f)->c), ((f)->pv)
+#define ComSafeArrayAsInParam(f) ((f) ? (f)->c : 0), ((f) ? (f)->pv : NULL)
 #define ComSafeArrayAsOutParam(f) (&((f)->c)), (&((f)->pv))
 #define ComSafeArrayAsOutTypeParam(f,t) (&((f)->c)), (t**)(&((f)->pv))
 #define ComSafeArrayAsOutIfaceParam(f,t) (&((f)->c)), (t**)(&((f)->pv))
@@ -1168,6 +1168,7 @@ interface nsIEventQueue
 #define VBOX_E_XML_ERROR 0x80BB000A
 #define VBOX_E_INVALID_SESSION_STATE 0x80BB000B
 #define VBOX_E_OBJECT_IN_USE 0x80BB000C
+#define VBOX_E_PASSWORD_INCORRECT 0x80BB000D
 
 
 interface IVirtualBoxErrorInfo;
@@ -1190,6 +1191,11 @@ interface IHost;
 interface ISystemProperties;
 interface IGuestOSType;
 interface IAdditionsFacility;
+interface IDnDBase;
+interface IDnDSource;
+interface IGuestDnDSource;
+interface IDnDTarget;
+interface IGuestDnDTarget;
 interface IGuestSession;
 interface IProcess;
 interface IGuestProcess;
@@ -1207,7 +1213,9 @@ interface IMedium;
 interface IMediumFormat;
 interface IToken;
 interface IKeyboard;
+interface IMousePointerShape;
 interface IMouse;
+interface IDisplaySourceBitmap;
 interface IFramebuffer;
 interface IFramebufferOverlay;
 interface IDisplay;
@@ -1245,12 +1253,14 @@ interface IMachineEvent;
 interface IMachineStateChangedEvent;
 interface IMachineDataChangedEvent;
 interface IMediumRegisteredEvent;
+interface IMediumConfigChangedEvent;
 interface IMachineRegisteredEvent;
 interface ISessionStateChangedEvent;
 interface IGuestPropertyChangedEvent;
 interface ISnapshotEvent;
 interface ISnapshotTakenEvent;
 interface ISnapshotDeletedEvent;
+interface ISnapshotRestoredEvent;
 interface ISnapshotChangedEvent;
 interface IMousePointerShapeChangedEvent;
 interface IMouseCapabilityChangedEvent;
@@ -1263,7 +1273,7 @@ interface IParallelPortChangedEvent;
 interface IStorageControllerChangedEvent;
 interface IMediumChangedEvent;
 interface IClipboardModeChangedEvent;
-interface IDragAndDropModeChangedEvent;
+interface IDnDModeChangedEvent;
 interface ICPUChangedEvent;
 interface ICPUExecutionCapChangedEvent;
 interface IGuestKeyboardEvent;
@@ -1333,6 +1343,11 @@ typedef interface IHost IHost;
 typedef interface ISystemProperties ISystemProperties;
 typedef interface IGuestOSType IGuestOSType;
 typedef interface IAdditionsFacility IAdditionsFacility;
+typedef interface IDnDBase IDnDBase;
+typedef interface IDnDSource IDnDSource;
+typedef interface IGuestDnDSource IGuestDnDSource;
+typedef interface IDnDTarget IDnDTarget;
+typedef interface IGuestDnDTarget IGuestDnDTarget;
 typedef interface IGuestSession IGuestSession;
 typedef interface IProcess IProcess;
 typedef interface IGuestProcess IGuestProcess;
@@ -1350,7 +1365,9 @@ typedef interface IMedium IMedium;
 typedef interface IMediumFormat IMediumFormat;
 typedef interface IToken IToken;
 typedef interface IKeyboard IKeyboard;
+typedef interface IMousePointerShape IMousePointerShape;
 typedef interface IMouse IMouse;
+typedef interface IDisplaySourceBitmap IDisplaySourceBitmap;
 typedef interface IFramebuffer IFramebuffer;
 typedef interface IFramebufferOverlay IFramebufferOverlay;
 typedef interface IDisplay IDisplay;
@@ -1388,12 +1405,14 @@ typedef interface IMachineEvent IMachineEvent;
 typedef interface IMachineStateChangedEvent IMachineStateChangedEvent;
 typedef interface IMachineDataChangedEvent IMachineDataChangedEvent;
 typedef interface IMediumRegisteredEvent IMediumRegisteredEvent;
+typedef interface IMediumConfigChangedEvent IMediumConfigChangedEvent;
 typedef interface IMachineRegisteredEvent IMachineRegisteredEvent;
 typedef interface ISessionStateChangedEvent ISessionStateChangedEvent;
 typedef interface IGuestPropertyChangedEvent IGuestPropertyChangedEvent;
 typedef interface ISnapshotEvent ISnapshotEvent;
 typedef interface ISnapshotTakenEvent ISnapshotTakenEvent;
 typedef interface ISnapshotDeletedEvent ISnapshotDeletedEvent;
+typedef interface ISnapshotRestoredEvent ISnapshotRestoredEvent;
 typedef interface ISnapshotChangedEvent ISnapshotChangedEvent;
 typedef interface IMousePointerShapeChangedEvent IMousePointerShapeChangedEvent;
 typedef interface IMouseCapabilityChangedEvent IMouseCapabilityChangedEvent;
@@ -1406,7 +1425,7 @@ typedef interface IParallelPortChangedEvent IParallelPortChangedEvent;
 typedef interface IStorageControllerChangedEvent IStorageControllerChangedEvent;
 typedef interface IMediumChangedEvent IMediumChangedEvent;
 typedef interface IClipboardModeChangedEvent IClipboardModeChangedEvent;
-typedef interface IDragAndDropModeChangedEvent IDragAndDropModeChangedEvent;
+typedef interface IDnDModeChangedEvent IDnDModeChangedEvent;
 typedef interface ICPUChangedEvent ICPUChangedEvent;
 typedef interface ICPUExecutionCapChangedEvent ICPUExecutionCapChangedEvent;
 typedef interface IGuestKeyboardEvent IGuestKeyboardEvent;
@@ -1481,6 +1500,7 @@ typedef enum SettingsVersion
     SettingsVersion_v1_12 = 14,
     SettingsVersion_v1_13 = 15,
     SettingsVersion_v1_14 = 16,
+    SettingsVersion_v1_15 = 17,
     SettingsVersion_Future = 99999
 } SettingsVersion;
 /* End of enum SettingsVersion declaration */
@@ -1503,10 +1523,10 @@ typedef enum AccessMode
 
 
 /* Start of enum MachineState declaration */
-#define MACHINESTATE_IID_STR "ec6c6a9e-113d-4ff4-b44f-0b69f21c97fe"
+#define MACHINESTATE_IID_STR "87f085c3-ca67-4e45-9225-6057f32e9e8e"
 #define MACHINESTATE_IID { \
-    0xec6c6a9e, 0x113d, 0x4ff4, \
-    { 0xb4, 0x4f, 0x0b, 0x69, 0xf2, 0x1c, 0x97, 0xfe } \
+    0x87f085c3, 0xca67, 0x4e45, \
+    { 0x92, 0x25, 0x60, 0x57, 0xf3, 0x2e, 0x9e, 0x8e } \
 }
 typedef enum MachineState
 {
@@ -1529,13 +1549,15 @@ typedef enum MachineState
     MachineState_FaultTolerantSyncing = 16,
     MachineState_DeletingSnapshotOnline = 17,
     MachineState_DeletingSnapshotPaused = 18,
-    MachineState_RestoringSnapshot = 19,
-    MachineState_DeletingSnapshot = 20,
-    MachineState_SettingUp = 21,
+    MachineState_OnlineSnapshotting = 19,
+    MachineState_RestoringSnapshot = 20,
+    MachineState_DeletingSnapshot = 21,
+    MachineState_SettingUp = 22,
+    MachineState_Snapshotting = 23,
     MachineState_FirstOnline = 5,
-    MachineState_LastOnline = 18,
+    MachineState_LastOnline = 19,
     MachineState_FirstTransient = 8,
-    MachineState_LastTransient = 21
+    MachineState_LastTransient = 23
 } MachineState;
 /* End of enum MachineState declaration */
 #define MachineState_T PRUint32
@@ -1560,18 +1582,17 @@ typedef enum SessionState
 
 
 /* Start of enum CPUPropertyType declaration */
-#define CPUPROPERTYTYPE_IID_STR "52bc41f4-a279-45da-88ab-3a1d86fb73eb"
+#define CPUPROPERTYTYPE_IID_STR "ed4094c1-d00e-483a-93e9-7163549ebd6e"
 #define CPUPROPERTYTYPE_IID { \
-    0x52bc41f4, 0xa279, 0x45da, \
-    { 0x88, 0xab, 0x3a, 0x1d, 0x86, 0xfb, 0x73, 0xeb } \
+    0xed4094c1, 0xd00e, 0x483a, \
+    { 0x93, 0xe9, 0x71, 0x63, 0x54, 0x9e, 0xbd, 0x6e } \
 }
 typedef enum CPUPropertyType
 {
     CPUPropertyType_Null = 0,
     CPUPropertyType_PAE = 1,
-    CPUPropertyType_Synthetic = 2,
-    CPUPropertyType_LongMode = 3,
-    CPUPropertyType_TripleFaultReset = 4
+    CPUPropertyType_LongMode = 2,
+    CPUPropertyType_TripleFaultReset = 3
 } CPUPropertyType;
 /* End of enum CPUPropertyType declaration */
 #define CPUPropertyType_T PRUint32
@@ -1597,6 +1618,25 @@ typedef enum HWVirtExPropertyType
 #define HWVirtExPropertyType_T PRUint32
 
 
+/* Start of enum ParavirtProvider declaration */
+#define PARAVIRTPROVIDER_IID_STR "696453ec-3742-4a05-bead-658ccbf2c944"
+#define PARAVIRTPROVIDER_IID { \
+    0x696453ec, 0x3742, 0x4a05, \
+    { 0xbe, 0xad, 0x65, 0x8c, 0xcb, 0xf2, 0xc9, 0x44 } \
+}
+typedef enum ParavirtProvider
+{
+    ParavirtProvider_None = 0,
+    ParavirtProvider_Default = 1,
+    ParavirtProvider_Legacy = 2,
+    ParavirtProvider_Minimal = 3,
+    ParavirtProvider_HyperV = 4,
+    ParavirtProvider_KVM = 5
+} ParavirtProvider;
+/* End of enum ParavirtProvider declaration */
+#define ParavirtProvider_T PRUint32
+
+
 /* Start of enum FaultToleranceState declaration */
 #define FAULTTOLERANCESTATE_IID_STR "5124f7ec-6b67-493c-9dee-ee45a44114e1"
 #define FAULTTOLERANCESTATE_IID { \
@@ -1614,15 +1654,16 @@ typedef enum FaultToleranceState
 
 
 /* Start of enum LockType declaration */
-#define LOCKTYPE_IID_STR "168a6a8e-12fd-4878-a1f9-38a750a56089"
+#define LOCKTYPE_IID_STR "678aaf14-2815-4c3e-b20a-e86ed0216498"
 #define LOCKTYPE_IID { \
-    0x168a6a8e, 0x12fd, 0x4878, \
-    { 0xa1, 0xf9, 0x38, 0xa7, 0x50, 0xa5, 0x60, 0x89 } \
+    0x678aaf14, 0x2815, 0x4c3e, \
+    { 0xb2, 0x0a, 0xe8, 0x6e, 0xd0, 0x21, 0x64, 0x98 } \
 }
 typedef enum LockType
 {
-    LockType_Write = 2,
+    LockType_Null = 0,
     LockType_Shared = 1,
+    LockType_Write = 2,
     LockType_VM = 3
 } LockType;
 /* End of enum LockType declaration */
@@ -1647,10 +1688,10 @@ typedef enum SessionType
 
 
 /* Start of enum DeviceType declaration */
-#define DEVICETYPE_IID_STR "6d9420f7-0b56-4636-99f9-7346f1b01e57"
+#define DEVICETYPE_IID_STR "cb977be1-d1fb-41f8-ad7e-951736c6cb3e"
 #define DEVICETYPE_IID { \
-    0x6d9420f7, 0x0b56, 0x4636, \
-    { 0x99, 0xf9, 0x73, 0x46, 0xf1, 0xb0, 0x1e, 0x57 } \
+    0xcb977be1, 0xd1fb, 0x41f8, \
+    { 0xad, 0x7e, 0x95, 0x17, 0x36, 0xc6, 0xcb, 0x3e } \
 }
 typedef enum DeviceType
 {
@@ -1660,7 +1701,8 @@ typedef enum DeviceType
     DeviceType_HardDisk = 3,
     DeviceType_Network = 4,
     DeviceType_USB = 5,
-    DeviceType_SharedFolder = 6
+    DeviceType_SharedFolder = 6,
+    DeviceType_Graphics3D = 7
 } DeviceType;
 /* End of enum DeviceType declaration */
 #define DeviceType_T PRUint32
@@ -1700,21 +1742,21 @@ typedef enum ClipboardMode
 #define ClipboardMode_T PRUint32
 
 
-/* Start of enum DragAndDropMode declaration */
-#define DRAGANDDROPMODE_IID_STR "b618ea0e-b6fb-4f8d-97f7-5e237e49b547"
-#define DRAGANDDROPMODE_IID { \
-    0xb618ea0e, 0xb6fb, 0x4f8d, \
-    { 0x97, 0xf7, 0x5e, 0x23, 0x7e, 0x49, 0xb5, 0x47 } \
+/* Start of enum DnDMode declaration */
+#define DNDMODE_IID_STR "07af8800-f936-4b33-9172-cd400e83c148"
+#define DNDMODE_IID { \
+    0x07af8800, 0xf936, 0x4b33, \
+    { 0x91, 0x72, 0xcd, 0x40, 0x0e, 0x83, 0xc1, 0x48 } \
 }
-typedef enum DragAndDropMode
+typedef enum DnDMode
 {
-    DragAndDropMode_Disabled = 0,
-    DragAndDropMode_HostToGuest = 1,
-    DragAndDropMode_GuestToHost = 2,
-    DragAndDropMode_Bidirectional = 3
-} DragAndDropMode;
-/* End of enum DragAndDropMode declaration */
-#define DragAndDropMode_T PRUint32
+    DnDMode_Disabled = 0,
+    DnDMode_HostToGuest = 1,
+    DnDMode_GuestToHost = 2,
+    DnDMode_Bidirectional = 3
+} DnDMode;
+/* End of enum DnDMode declaration */
+#define DnDMode_T PRUint32
 
 
 /* Start of enum Scope declaration */
@@ -1820,6 +1862,26 @@ typedef enum KeyboardHIDType
 #define KeyboardHIDType_T PRUint32
 
 
+/* Start of enum BitmapFormat declaration */
+#define BITMAPFORMAT_IID_STR "afb2bf39-8b1e-4f9f-8948-d1b887f83eb0"
+#define BITMAPFORMAT_IID { \
+    0xafb2bf39, 0x8b1e, 0x4f9f, \
+    { 0x89, 0x48, 0xd1, 0xb8, 0x87, 0xf8, 0x3e, 0xb0 } \
+}
+typedef enum BitmapFormat
+{
+    BitmapFormat_Opaque = 0,
+    BitmapFormat_BGR = 0x20524742,
+    BitmapFormat_BGR0 = 0x30524742,
+    BitmapFormat_BGRA = 0x41524742,
+    BitmapFormat_RGBA = 0x41424752,
+    BitmapFormat_PNG = 0x20474E50,
+    BitmapFormat_JPEG = 0x4745504A
+} BitmapFormat;
+/* End of enum BitmapFormat declaration */
+#define BitmapFormat_T PRUint32
+
+
 /* Start of enum DhcpOpt declaration */
 #define DHCPOPT_IID_STR "40d99bd3-3ece-44d2-a07e-1085fe9c4f0b"
 #define DHCPOPT_IID { \
@@ -1896,6 +1958,21 @@ typedef enum DhcpOpt
 #define DhcpOpt_T PRUint32
 
 
+/* Start of enum DhcpOptEncoding declaration */
+#define DHCPOPTENCODING_IID_STR "88ea6d70-8648-4871-ba30-1f49c61cfaa2"
+#define DHCPOPTENCODING_IID { \
+    0x88ea6d70, 0x8648, 0x4871, \
+    { 0xba, 0x30, 0x1f, 0x49, 0xc6, 0x1c, 0xfa, 0xa2 } \
+}
+typedef enum DhcpOptEncoding
+{
+    DhcpOptEncoding_Legacy = 0,
+    DhcpOptEncoding_Hex = 1
+} DhcpOptEncoding;
+/* End of enum DhcpOptEncoding declaration */
+#define DhcpOptEncoding_T PRUint32
+
+
 /* Start of enum VFSType declaration */
 #define VFSTYPE_IID_STR "813999ba-b949-48a8-9230-aadc6285e2f2"
 #define VFSTYPE_IID { \
@@ -1913,28 +1990,6 @@ typedef enum VFSType
 #define VFSType_T PRUint32
 
 
-/* Start of enum VFSFileType declaration */
-#define VFSFILETYPE_IID_STR "714333cd-44e2-415f-a245-d378fa9b1242"
-#define VFSFILETYPE_IID { \
-    0x714333cd, 0x44e2, 0x415f, \
-    { 0xa2, 0x45, 0xd3, 0x78, 0xfa, 0x9b, 0x12, 0x42 } \
-}
-typedef enum VFSFileType
-{
-    VFSFileType_Unknown = 1,
-    VFSFileType_Fifo = 2,
-    VFSFileType_DevChar = 3,
-    VFSFileType_Directory = 4,
-    VFSFileType_DevBlock = 5,
-    VFSFileType_File = 6,
-    VFSFileType_SymLink = 7,
-    VFSFileType_Socket = 8,
-    VFSFileType_WhiteOut = 9
-} VFSFileType;
-/* End of enum VFSFileType declaration */
-#define VFSFileType_T PRUint32
-
-
 /* Start of enum ImportOptions declaration */
 #define IMPORTOPTIONS_IID_STR "0a981523-3b20-4004-8ee3-dfd322202ace"
 #define IMPORTOPTIONS_IID { \
@@ -1944,7 +1999,8 @@ typedef enum VFSFileType
 typedef enum ImportOptions
 {
     ImportOptions_KeepAllMACs = 1,
-    ImportOptions_KeepNATMACs = 2
+    ImportOptions_KeepNATMACs = 2,
+    ImportOptions_ImportToVDI = 3
 } ImportOptions;
 /* End of enum ImportOptions declaration */
 #define ImportOptions_T PRUint32
@@ -2335,19 +2391,20 @@ typedef enum GuestUserState
 #define GuestUserState_T PRUint32
 
 
-/* Start of enum FileSeekType declaration */
-#define FILESEEKTYPE_IID_STR "1b73f4f3-3515-4073-a506-76878d9e2541"
-#define FILESEEKTYPE_IID { \
-    0x1b73f4f3, 0x3515, 0x4073, \
-    { 0xa5, 0x06, 0x76, 0x87, 0x8d, 0x9e, 0x25, 0x41 } \
+/* Start of enum FileSeekOrigin declaration */
+#define FILESEEKORIGIN_IID_STR "ad32f789-4279-4530-979c-f16892e1c263"
+#define FILESEEKORIGIN_IID { \
+    0xad32f789, 0x4279, 0x4530, \
+    { 0x97, 0x9c, 0xf1, 0x68, 0x92, 0xe1, 0xc2, 0x63 } \
 }
-typedef enum FileSeekType
+typedef enum FileSeekOrigin
 {
-    FileSeekType_Set = 0,
-    FileSeekType_Current = 1
-} FileSeekType;
-/* End of enum FileSeekType declaration */
-#define FileSeekType_T PRUint32
+    FileSeekOrigin_Begin = 0,
+    FileSeekOrigin_Current = 1,
+    FileSeekOrigin_End = 2
+} FileSeekOrigin;
+/* End of enum FileSeekOrigin declaration */
+#define FileSeekOrigin_T PRUint32
 
 
 /* Start of enum ProcessInputFlag declaration */
@@ -2422,21 +2479,38 @@ typedef enum ProcessWaitResult
 #define ProcessWaitResult_T PRUint32
 
 
-/* Start of enum CopyFileFlag declaration */
-#define COPYFILEFLAG_IID_STR "23f79fdf-738a-493d-b80b-42d607c9b916"
-#define COPYFILEFLAG_IID { \
-    0x23f79fdf, 0x738a, 0x493d, \
-    { 0xb8, 0x0b, 0x42, 0xd6, 0x07, 0xc9, 0xb9, 0x16 } \
+/* Start of enum FileCopyFlag declaration */
+#define FILECOPYFLAG_IID_STR "791909d7-4c64-2fa4-4303-adb10658d347"
+#define FILECOPYFLAG_IID { \
+    0x791909d7, 0x4c64, 0x2fa4, \
+    { 0x43, 0x03, 0xad, 0xb1, 0x06, 0x58, 0xd3, 0x47 } \
 }
-typedef enum CopyFileFlag
+typedef enum FileCopyFlag
 {
-    CopyFileFlag_None = 0,
-    CopyFileFlag_Recursive = 1,
-    CopyFileFlag_Update = 2,
-    CopyFileFlag_FollowLinks = 4
-} CopyFileFlag;
-/* End of enum CopyFileFlag declaration */
-#define CopyFileFlag_T PRUint32
+    FileCopyFlag_None = 0,
+    FileCopyFlag_NoReplace = 1,
+    FileCopyFlag_FollowLinks = 2,
+    FileCopyFlag_Update = 4
+} FileCopyFlag;
+/* End of enum FileCopyFlag declaration */
+#define FileCopyFlag_T PRUint32
+
+
+/* Start of enum FsObjMoveFlags declaration */
+#define FSOBJMOVEFLAGS_IID_STR "98fdd11f-4063-ac60-5737-e49092aab95f"
+#define FSOBJMOVEFLAGS_IID { \
+    0x98fdd11f, 0x4063, 0xac60, \
+    { 0x57, 0x37, 0xe4, 0x90, 0x92, 0xaa, 0xb9, 0x5f } \
+}
+typedef enum FsObjMoveFlags
+{
+    FsObjMoveFlags_None = 0,
+    FsObjMoveFlags_Replace = 1,
+    FsObjMoveFlags_FollowLinks = 2,
+    FsObjMoveFlags_AllowDirectoryMoves = 4
+} FsObjMoveFlags;
+/* End of enum FsObjMoveFlags declaration */
+#define FsObjMoveFlags_T PRUint32
 
 
 /* Start of enum DirectoryCreateFlag declaration */
@@ -2452,6 +2526,21 @@ typedef enum DirectoryCreateFlag
 } DirectoryCreateFlag;
 /* End of enum DirectoryCreateFlag declaration */
 #define DirectoryCreateFlag_T PRUint32
+
+
+/* Start of enum DirectoryCopyFlags declaration */
+#define DIRECTORYCOPYFLAGS_IID_STR "cc500f0c-4a54-88c9-56b3-7e9310416da7"
+#define DIRECTORYCOPYFLAGS_IID { \
+    0xcc500f0c, 0x4a54, 0x88c9, \
+    { 0x56, 0xb3, 0x7e, 0x93, 0x10, 0x41, 0x6d, 0xa7 } \
+}
+typedef enum DirectoryCopyFlags
+{
+    DirectoryCopyFlags_None = 0,
+    DirectoryCopyFlags_CopyIntoExisting = 1
+} DirectoryCopyFlags;
+/* End of enum DirectoryCopyFlags declaration */
+#define DirectoryCopyFlags_T PRUint32
 
 
 /* Start of enum DirectoryRemoveRecFlag declaration */
@@ -2470,28 +2559,26 @@ typedef enum DirectoryRemoveRecFlag
 #define DirectoryRemoveRecFlag_T PRUint32
 
 
-/* Start of enum PathRenameFlag declaration */
-#define PATHRENAMEFLAG_IID_STR "f3baa09f-c758-453d-b91c-c7787d76351d"
-#define PATHRENAMEFLAG_IID { \
-    0xf3baa09f, 0xc758, 0x453d, \
-    { 0xb9, 0x1c, 0xc7, 0x78, 0x7d, 0x76, 0x35, 0x1d } \
+/* Start of enum FsObjRenameFlag declaration */
+#define FSOBJRENAMEFLAG_IID_STR "59bbf3a1-4e23-d7cf-05d5-ccae32080ed2"
+#define FSOBJRENAMEFLAG_IID { \
+    0x59bbf3a1, 0x4e23, 0xd7cf, \
+    { 0x05, 0xd5, 0xcc, 0xae, 0x32, 0x08, 0x0e, 0xd2 } \
 }
-typedef enum PathRenameFlag
+typedef enum FsObjRenameFlag
 {
-    PathRenameFlag_None = 0,
-    PathRenameFlag_NoReplace = 1,
-    PathRenameFlag_Replace = 2,
-    PathRenameFlag_NoSymlinks = 4
-} PathRenameFlag;
-/* End of enum PathRenameFlag declaration */
-#define PathRenameFlag_T PRUint32
+    FsObjRenameFlag_NoReplace = 0,
+    FsObjRenameFlag_Replace = 1
+} FsObjRenameFlag;
+/* End of enum FsObjRenameFlag declaration */
+#define FsObjRenameFlag_T PRUint32
 
 
 /* Start of enum ProcessCreateFlag declaration */
-#define PROCESSCREATEFLAG_IID_STR "35192799-bfde-405d-9bea-c735ab9998e4"
+#define PROCESSCREATEFLAG_IID_STR "be8c8dbd-4a76-e9ac-20df-468e86edf383"
 #define PROCESSCREATEFLAG_IID { \
-    0x35192799, 0xbfde, 0x405d, \
-    { 0x9b, 0xea, 0xc7, 0x35, 0xab, 0x99, 0x98, 0xe4 } \
+    0xbe8c8dbd, 0x4a76, 0xe9ac, \
+    { 0x20, 0xdf, 0x46, 0x8e, 0x86, 0xed, 0xf3, 0x83 } \
 }
 typedef enum ProcessCreateFlag
 {
@@ -2598,6 +2685,93 @@ typedef enum ProcessInputStatus
 #define ProcessInputStatus_T PRUint32
 
 
+/* Start of enum PathStyle declaration */
+#define PATHSTYLE_IID_STR "97303a5b-42e8-0a55-d16f-d2a92c295261"
+#define PATHSTYLE_IID { \
+    0x97303a5b, 0x42e8, 0x0a55, \
+    { 0xd1, 0x6f, 0xd2, 0xa9, 0x2c, 0x29, 0x52, 0x61 } \
+}
+typedef enum PathStyle
+{
+    PathStyle_DOS = 1,
+    PathStyle_UNIX = 2,
+    PathStyle_Unknown = 8
+} PathStyle;
+/* End of enum PathStyle declaration */
+#define PathStyle_T PRUint32
+
+
+/* Start of enum FileAccessMode declaration */
+#define FILEACCESSMODE_IID_STR "231a578f-47fb-ea30-3b3e-8489558227f0"
+#define FILEACCESSMODE_IID { \
+    0x231a578f, 0x47fb, 0xea30, \
+    { 0x3b, 0x3e, 0x84, 0x89, 0x55, 0x82, 0x27, 0xf0 } \
+}
+typedef enum FileAccessMode
+{
+    FileAccessMode_ReadOnly = 1,
+    FileAccessMode_WriteOnly = 2,
+    FileAccessMode_ReadWrite = 3,
+    FileAccessMode_AppendOnly = 4,
+    FileAccessMode_AppendRead = 5
+} FileAccessMode;
+/* End of enum FileAccessMode declaration */
+#define FileAccessMode_T PRUint32
+
+
+/* Start of enum FileOpenAction declaration */
+#define FILEOPENACTION_IID_STR "12bc97e2-4fc6-a8b4-4f84-0cbf4ab970d2"
+#define FILEOPENACTION_IID { \
+    0x12bc97e2, 0x4fc6, 0xa8b4, \
+    { 0x4f, 0x84, 0x0c, 0xbf, 0x4a, 0xb9, 0x70, 0xd2 } \
+}
+typedef enum FileOpenAction
+{
+    FileOpenAction_OpenExisting = 1,
+    FileOpenAction_OpenOrCreate = 2,
+    FileOpenAction_CreateNew = 3,
+    FileOpenAction_CreateOrReplace = 4,
+    FileOpenAction_OpenExistingTruncated = 5,
+    FileOpenAction_AppendOrCreate = 99
+} FileOpenAction;
+/* End of enum FileOpenAction declaration */
+#define FileOpenAction_T PRUint32
+
+
+/* Start of enum FileSharingMode declaration */
+#define FILESHARINGMODE_IID_STR "f87dfe58-425b-c5ba-7d6d-22adeea25de1"
+#define FILESHARINGMODE_IID { \
+    0xf87dfe58, 0x425b, 0xc5ba, \
+    { 0x7d, 0x6d, 0x22, 0xad, 0xee, 0xa2, 0x5d, 0xe1 } \
+}
+typedef enum FileSharingMode
+{
+    FileSharingMode_Read = 1,
+    FileSharingMode_Write = 2,
+    FileSharingMode_ReadWrite = 3,
+    FileSharingMode_Delete = 4,
+    FileSharingMode_ReadDelete = 5,
+    FileSharingMode_WriteDelete = 6,
+    FileSharingMode_All = 7
+} FileSharingMode;
+/* End of enum FileSharingMode declaration */
+#define FileSharingMode_T PRUint32
+
+
+/* Start of enum FileOpenExFlags declaration */
+#define FILEOPENEXFLAGS_IID_STR "9d62017b-ddd3-4e5a-a08e-14d1c23bbac1"
+#define FILEOPENEXFLAGS_IID { \
+    0x9d62017b, 0xddd3, 0x4e5a, \
+    { 0xa0, 0x8e, 0x14, 0xd1, 0xc2, 0x3b, 0xba, 0xc1 } \
+}
+typedef enum FileOpenExFlags
+{
+    FileOpenExFlags_None = 0
+} FileOpenExFlags;
+/* End of enum FileOpenExFlags declaration */
+#define FileOpenExFlags_T PRUint32
+
+
 /* Start of enum FileStatus declaration */
 #define FILESTATUS_IID_STR "8c86468b-b97b-4080-8914-e29f5b0abd2c"
 #define FILESTATUS_IID { \
@@ -2619,42 +2793,42 @@ typedef enum FileStatus
 
 
 /* Start of enum FsObjType declaration */
-#define FSOBJTYPE_IID_STR "a1ed437c-b3c3-4ca2-b19c-4239d658d5e8"
+#define FSOBJTYPE_IID_STR "34a0d1aa-491e-e209-e150-84964d6cee5f"
 #define FSOBJTYPE_IID { \
-    0xa1ed437c, 0xb3c3, 0x4ca2, \
-    { 0xb1, 0x9c, 0x42, 0x39, 0xd6, 0x58, 0xd5, 0xe8 } \
+    0x34a0d1aa, 0x491e, 0xe209, \
+    { 0xe1, 0x50, 0x84, 0x96, 0x4d, 0x6c, 0xee, 0x5f } \
 }
 typedef enum FsObjType
 {
-    FsObjType_Undefined = 0,
-    FsObjType_FIFO = 1,
-    FsObjType_DevChar = 10,
-    FsObjType_DevBlock = 11,
-    FsObjType_Directory = 50,
-    FsObjType_File = 80,
-    FsObjType_Symlink = 100,
-    FsObjType_Socket = 200,
-    FsObjType_Whiteout = 400
+    FsObjType_Unknown = 1,
+    FsObjType_Fifo = 2,
+    FsObjType_DevChar = 3,
+    FsObjType_Directory = 4,
+    FsObjType_DevBlock = 5,
+    FsObjType_File = 6,
+    FsObjType_Symlink = 7,
+    FsObjType_Socket = 8,
+    FsObjType_WhiteOut = 9
 } FsObjType;
 /* End of enum FsObjType declaration */
 #define FsObjType_T PRUint32
 
 
-/* Start of enum DragAndDropAction declaration */
-#define DRAGANDDROPACTION_IID_STR "47f3b162-c107-4fcd-bfa7-54b8135c441e"
-#define DRAGANDDROPACTION_IID { \
-    0x47f3b162, 0xc107, 0x4fcd, \
-    { 0xbf, 0xa7, 0x54, 0xb8, 0x13, 0x5c, 0x44, 0x1e } \
+/* Start of enum DnDAction declaration */
+#define DNDACTION_IID_STR "17609e74-778e-4d0e-8827-35f5230f287b"
+#define DNDACTION_IID { \
+    0x17609e74, 0x778e, 0x4d0e, \
+    { 0x88, 0x27, 0x35, 0xf5, 0x23, 0x0f, 0x28, 0x7b } \
 }
-typedef enum DragAndDropAction
+typedef enum DnDAction
 {
-    DragAndDropAction_Ignore = 0,
-    DragAndDropAction_Copy = 1,
-    DragAndDropAction_Move = 2,
-    DragAndDropAction_Link = 3
-} DragAndDropAction;
-/* End of enum DragAndDropAction declaration */
-#define DragAndDropAction_T PRUint32
+    DnDAction_Ignore = 0,
+    DnDAction_Copy = 1,
+    DnDAction_Move = 2,
+    DnDAction_Link = 3
+} DnDAction;
+/* End of enum DnDAction declaration */
+#define DnDAction_T PRUint32
 
 
 /* Start of enum DirectoryOpenFlag declaration */
@@ -2712,10 +2886,10 @@ typedef enum MediumType
 
 
 /* Start of enum MediumVariant declaration */
-#define MEDIUMVARIANT_IID_STR "80685b6b-e42f-497d-8271-e77bf3c61ada"
+#define MEDIUMVARIANT_IID_STR "0282e97f-4ef3-4411-a8e0-47c384803cb6"
 #define MEDIUMVARIANT_IID { \
-    0x80685b6b, 0xe42f, 0x497d, \
-    { 0x82, 0x71, 0xe7, 0x7b, 0xf3, 0xc6, 0x1a, 0xda } \
+    0x0282e97f, 0x4ef3, 0x4411, \
+    { 0xa8, 0xe0, 0x47, 0xc3, 0x84, 0x80, 0x3c, 0xb6 } \
 }
 typedef enum MediumVariant
 {
@@ -2724,6 +2898,7 @@ typedef enum MediumVariant
     MediumVariant_VmdkRawDisk = 0x02,
     MediumVariant_VmdkStreamOptimized = 0x04,
     MediumVariant_VmdkESX = 0x08,
+    MediumVariant_VdiZeroExpand = 0x100,
     MediumVariant_Fixed = 0x10000,
     MediumVariant_Diff = 0x20000,
     MediumVariant_NoCreateDir = 0x40000000
@@ -2790,6 +2965,22 @@ typedef enum MediumFormatCapabilities
 #define MediumFormatCapabilities_T PRUint32
 
 
+/* Start of enum KeyboardLED declaration */
+#define KEYBOARDLED_IID_STR "ef29ea38-409b-49c7-a817-c858d426dfba"
+#define KEYBOARDLED_IID { \
+    0xef29ea38, 0x409b, 0x49c7, \
+    { 0xa8, 0x17, 0xc8, 0x58, 0xd4, 0x26, 0xdf, 0xba } \
+}
+typedef enum KeyboardLED
+{
+    KeyboardLED_NumLock = 0x01,
+    KeyboardLED_CapsLock = 0x02,
+    KeyboardLED_ScrollLock = 0x04
+} KeyboardLED;
+/* End of enum KeyboardLED declaration */
+#define KeyboardLED_T PRUint32
+
+
 /* Start of enum MouseButtonState declaration */
 #define MOUSEBUTTONSTATE_IID_STR "9ee094b8-b28a-4d56-a166-973cb588d7f8"
 #define MOUSEBUTTONSTATE_IID { \
@@ -2828,19 +3019,35 @@ typedef enum TouchContactState
 #define TouchContactState_T PRUint32
 
 
-/* Start of enum FramebufferPixelFormat declaration */
-#define FRAMEBUFFERPIXELFORMAT_IID_STR "7acfd5ed-29e3-45e3-8136-73c9224f3d2d"
-#define FRAMEBUFFERPIXELFORMAT_IID { \
-    0x7acfd5ed, 0x29e3, 0x45e3, \
-    { 0x81, 0x36, 0x73, 0xc9, 0x22, 0x4f, 0x3d, 0x2d } \
+/* Start of enum FramebufferCapabilities declaration */
+#define FRAMEBUFFERCAPABILITIES_IID_STR "cc395839-30fa-4ca5-ae65-e6360e3edd7a"
+#define FRAMEBUFFERCAPABILITIES_IID { \
+    0xcc395839, 0x30fa, 0x4ca5, \
+    { 0xae, 0x65, 0xe6, 0x36, 0x0e, 0x3e, 0xdd, 0x7a } \
 }
-typedef enum FramebufferPixelFormat
+typedef enum FramebufferCapabilities
 {
-    FramebufferPixelFormat_Opaque = 0,
-    FramebufferPixelFormat_FOURCC_RGB = 0x32424752
-} FramebufferPixelFormat;
-/* End of enum FramebufferPixelFormat declaration */
-#define FramebufferPixelFormat_T PRUint32
+    FramebufferCapabilities_UpdateImage = 0x01,
+    FramebufferCapabilities_VHWA = 0x02,
+    FramebufferCapabilities_VisibleRegion = 0x04
+} FramebufferCapabilities;
+/* End of enum FramebufferCapabilities declaration */
+#define FramebufferCapabilities_T PRUint32
+
+
+/* Start of enum GuestMonitorStatus declaration */
+#define GUESTMONITORSTATUS_IID_STR "a0001cb1-97c9-496d-82bc-616c19a9e212"
+#define GUESTMONITORSTATUS_IID { \
+    0xa0001cb1, 0x97c9, 0x496d, \
+    { 0x82, 0xbc, 0x61, 0x6c, 0x19, 0xa9, 0xe2, 0x12 } \
+}
+typedef enum GuestMonitorStatus
+{
+    GuestMonitorStatus_Disabled = 0,
+    GuestMonitorStatus_Enabled = 1
+} GuestMonitorStatus;
+/* End of enum GuestMonitorStatus declaration */
+#define GuestMonitorStatus_T PRUint32
 
 
 /* Start of enum NetworkAttachmentType declaration */
@@ -2900,17 +3107,18 @@ typedef enum NetworkAdapterPromiscModePolicy
 
 
 /* Start of enum PortMode declaration */
-#define PORTMODE_IID_STR "533b5fe3-0185-4197-86a7-17e37dd39d76"
+#define PORTMODE_IID_STR "7485fcfd-d603-470a-87af-26d33beb7de9"
 #define PORTMODE_IID { \
-    0x533b5fe3, 0x0185, 0x4197, \
-    { 0x86, 0xa7, 0x17, 0xe3, 0x7d, 0xd3, 0x9d, 0x76 } \
+    0x7485fcfd, 0xd603, 0x470a, \
+    { 0x87, 0xaf, 0x26, 0xd3, 0x3b, 0xeb, 0x7d, 0xe9 } \
 }
 typedef enum PortMode
 {
     PortMode_Disconnected = 0,
     PortMode_HostPipe = 1,
     PortMode_HostDevice = 2,
-    PortMode_RawFile = 3
+    PortMode_RawFile = 3,
+    PortMode_TCP = 4
 } PortMode;
 /* End of enum PortMode declaration */
 #define PortMode_T PRUint32
@@ -2927,10 +3135,30 @@ typedef enum USBControllerType
     USBControllerType_Null = 0,
     USBControllerType_OHCI = 1,
     USBControllerType_EHCI = 2,
-    USBControllerType_Last = 3
+    USBControllerType_XHCI = 3,
+    USBControllerType_Last = 4
 } USBControllerType;
 /* End of enum USBControllerType declaration */
 #define USBControllerType_T PRUint32
+
+
+/* Start of enum USBConnectionSpeed declaration */
+#define USBCONNECTIONSPEED_IID_STR "d2915840-ea26-4fb4-b72a-21eaf6b888ff"
+#define USBCONNECTIONSPEED_IID { \
+    0xd2915840, 0xea26, 0x4fb4, \
+    { 0xb7, 0x2a, 0x21, 0xea, 0xf6, 0xb8, 0x88, 0xff } \
+}
+typedef enum USBConnectionSpeed
+{
+    USBConnectionSpeed_Null = 0,
+    USBConnectionSpeed_Low = 1,
+    USBConnectionSpeed_Full = 2,
+    USBConnectionSpeed_High = 3,
+    USBConnectionSpeed_Super = 4,
+    USBConnectionSpeed_SuperPlus = 5
+} USBConnectionSpeed;
+/* End of enum USBConnectionSpeed declaration */
+#define USBConnectionSpeed_T PRUint32
 
 
 /* Start of enum USBDeviceState declaration */
@@ -3006,6 +3234,24 @@ typedef enum AudioControllerType
 #define AudioControllerType_T PRUint32
 
 
+/* Start of enum AudioCodecType declaration */
+#define AUDIOCODECTYPE_IID_STR "7b406301-f520-420c-9805-8ce11c086370"
+#define AUDIOCODECTYPE_IID { \
+    0x7b406301, 0xf520, 0x420c, \
+    { 0x98, 0x05, 0x8c, 0xe1, 0x1c, 0x08, 0x63, 0x70 } \
+}
+typedef enum AudioCodecType
+{
+    AudioCodecType_Null = 0,
+    AudioCodecType_SB16 = 1,
+    AudioCodecType_STAC9700 = 2,
+    AudioCodecType_AD1980 = 3,
+    AudioCodecType_STAC9221 = 4
+} AudioCodecType;
+/* End of enum AudioCodecType declaration */
+#define AudioCodecType_T PRUint32
+
+
 /* Start of enum AuthType declaration */
 #define AUTHTYPE_IID_STR "7eef6ef6-98c2-4dc2-ab35-10d2b292028d"
 #define AUTHTYPE_IID { \
@@ -3033,17 +3279,18 @@ typedef enum Reason
     Reason_Unspecified = 0,
     Reason_HostSuspend = 1,
     Reason_HostResume = 2,
-    Reason_HostBatteryLow = 3
+    Reason_HostBatteryLow = 3,
+    Reason_Snapshot = 4
 } Reason;
 /* End of enum Reason declaration */
 #define Reason_T PRUint32
 
 
 /* Start of enum StorageBus declaration */
-#define STORAGEBUS_IID_STR "eee67ab3-668d-4ef5-91e0-7025fe4a0d7a"
+#define STORAGEBUS_IID_STR "2dab9df1-9683-48fd-8c11-caada236fcb0"
 #define STORAGEBUS_IID { \
-    0xeee67ab3, 0x668d, 0x4ef5, \
-    { 0x91, 0xe0, 0x70, 0x25, 0xfe, 0x4a, 0x0d, 0x7a } \
+    0x2dab9df1, 0x9683, 0x48fd, \
+    { 0x8c, 0x11, 0xca, 0xad, 0xa2, 0x36, 0xfc, 0xb0 } \
 }
 typedef enum StorageBus
 {
@@ -3052,17 +3299,18 @@ typedef enum StorageBus
     StorageBus_SATA = 2,
     StorageBus_SCSI = 3,
     StorageBus_Floppy = 4,
-    StorageBus_SAS = 5
+    StorageBus_SAS = 5,
+    StorageBus_USB = 6
 } StorageBus;
 /* End of enum StorageBus declaration */
 #define StorageBus_T PRUint32
 
 
 /* Start of enum StorageControllerType declaration */
-#define STORAGECONTROLLERTYPE_IID_STR "8a412b8a-f43e-4456-bd37-b474f0879a58"
+#define STORAGECONTROLLERTYPE_IID_STR "02e190af-b546-4109-b036-6deaa4ef6e69"
 #define STORAGECONTROLLERTYPE_IID { \
-    0x8a412b8a, 0xf43e, 0x4456, \
-    { 0xbd, 0x37, 0xb4, 0x74, 0xf0, 0x87, 0x9a, 0x58 } \
+    0x02e190af, 0xb546, 0x4109, \
+    { 0xb0, 0x36, 0x6d, 0xea, 0xa4, 0xef, 0x6e, 0x69 } \
 }
 typedef enum StorageControllerType
 {
@@ -3074,7 +3322,8 @@ typedef enum StorageControllerType
     StorageControllerType_PIIX4 = 5,
     StorageControllerType_ICH6 = 6,
     StorageControllerType_I82078 = 7,
-    StorageControllerType_LsiLogicSas = 8
+    StorageControllerType_LsiLogicSas = 8,
+    StorageControllerType_USB = 9
 } StorageControllerType;
 /* End of enum StorageControllerType declaration */
 #define StorageControllerType_T PRUint32
@@ -3144,10 +3393,10 @@ typedef enum BandwidthGroupType
 
 
 /* Start of enum VBoxEventType declaration */
-#define VBOXEVENTTYPE_IID_STR "5248e377-e578-47d7-b07b-84b1db6db8a8"
+#define VBOXEVENTTYPE_IID_STR "b2ddb312-2f9e-4e69-98df-7235e43b2149"
 #define VBOXEVENTTYPE_IID { \
-    0x5248e377, 0xe578, 0x47d7, \
-    { 0xb0, 0x7b, 0x84, 0xb1, 0xdb, 0x6d, 0xb8, 0xa8 } \
+    0xb2ddb312, 0x2f9e, 0x4e69, \
+    { 0x98, 0xdf, 0x72, 0x35, 0xe4, 0x3b, 0x21, 0x49 } \
 }
 typedef enum VBoxEventType
 {
@@ -3199,7 +3448,7 @@ typedef enum VBoxEventType
     VBoxEventType_OnGuestMonitorChanged = 70,
     VBoxEventType_OnStorageDeviceChanged = 71,
     VBoxEventType_OnClipboardModeChanged = 72,
-    VBoxEventType_OnDragAndDropModeChanged = 73,
+    VBoxEventType_OnDnDModeChanged = 73,
     VBoxEventType_OnNATNetworkChanged = 74,
     VBoxEventType_OnNATNetworkStartStop = 75,
     VBoxEventType_OnNATNetworkAlter = 76,
@@ -3221,7 +3470,9 @@ typedef enum VBoxEventType
     VBoxEventType_OnGuestUserStateChanged = 92,
     VBoxEventType_OnGuestMultiTouch = 93,
     VBoxEventType_OnHostNameResolutionConfigurationChange = 94,
-    VBoxEventType_Last = 95
+    VBoxEventType_OnSnapshotRestored = 95,
+    VBoxEventType_OnMediumConfigChanged = 96,
+    VBoxEventType_Last = 97
 } VBoxEventType;
 /* End of enum VBoxEventType declaration */
 #define VBoxEventType_T PRUint32
@@ -3361,10 +3612,10 @@ interface IVirtualBoxErrorInfo
 
 
 /* Start of struct INATNetwork declaration */
-#define INATNETWORK_IID_STR "a63c75da-4c99-4e9d-8351-eb73651c18cc"
+#define INATNETWORK_IID_STR "4bbc405d-f268-4483-9a52-f43ffdbf67f8"
 #define INATNETWORK_IID { \
-    0xa63c75da, 0x4c99, 0x4e9d, \
-    { 0x83, 0x51, 0xeb, 0x73, 0x65, 0x1c, 0x18, 0xcc } \
+    0x4bbc405d, 0xf268, 0x4483, \
+    { 0x9a, 0x52, 0xf4, 0x3f, 0xfd, 0xbf, 0x67, 0xf8 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_INATNetwork);
@@ -3407,6 +3658,22 @@ struct INATNetwork_vtbl
 
     nsresult (*GetPortForwardRules6)(INATNetwork *pThis, PRUint32 *portForwardRules6Size, PRUnichar * **portForwardRules6);
 
+    nsresult (*GetInternalAndReservedAttribute1INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
     nsresult (*AddLocalMapping)(
         INATNetwork *pThis,
         PRUnichar * hostid,
@@ -3436,6 +3703,10 @@ struct INATNetwork_vtbl
     );
 
     nsresult (*Stop)(INATNetwork *pThis );
+
+    nsresult (*InternalAndReservedMethod1INATNetwork)(INATNetwork *pThis);
+
+    nsresult (*InternalAndReservedMethod2INATNetwork)(INATNetwork *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -3478,6 +3749,22 @@ struct INATNetworkVtbl
 
     nsresult (*GetPortForwardRules6)(INATNetwork *pThis, PRUint32 *portForwardRules6Size, PRUnichar * **portForwardRules6);
 
+    nsresult (*GetInternalAndReservedAttribute1INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8INATNetwork)(INATNetwork *pThis, PRUint32 *reserved);
+
     nsresult (*AddLocalMapping)(
         INATNetwork *pThis,
         PRUnichar * hostid,
@@ -3507,6 +3794,10 @@ struct INATNetworkVtbl
     );
 
     nsresult (*Stop)(INATNetwork *pThis );
+
+    nsresult (*InternalAndReservedMethod1INATNetwork)(INATNetwork *pThis);
+
+    nsresult (*InternalAndReservedMethod2INATNetwork)(INATNetwork *pThis);
 
 };
 #define INATNetwork_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -3573,10 +3864,10 @@ interface INATNetwork
 
 
 /* Start of struct IDHCPServer declaration */
-#define IDHCPSERVER_IID_STR "ff0774c5-1f62-4bc3-919c-7fc942bf1d25"
+#define IDHCPSERVER_IID_STR "00c8f974-92c5-44a1-8f3f-702469fdd04b"
 #define IDHCPSERVER_IID { \
-    0xff0774c5, 0x1f62, 0x4bc3, \
-    { 0x91, 0x9c, 0x7f, 0xc9, 0x42, 0xbf, 0x1d, 0x25 } \
+    0x00c8f974, 0x92c5, 0x44a1, \
+    { 0x8f, 0x3f, 0x70, 0x24, 0x69, 0xfd, 0xd0, 0x4b } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IDHCPServer);
@@ -3604,6 +3895,18 @@ struct IDHCPServer_vtbl
 
     nsresult (*GetVmConfigs)(IDHCPServer *pThis, PRUint32 *vmConfigsSize, PRUnichar * **vmConfigs);
 
+    nsresult (*GetInternalAndReservedAttribute1IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
     nsresult (*AddGlobalOption)(
         IDHCPServer *pThis,
         PRUint32 option,
@@ -3655,6 +3958,10 @@ struct IDHCPServer_vtbl
     );
 
     nsresult (*Stop)(IDHCPServer *pThis );
+
+    nsresult (*InternalAndReservedMethod1IDHCPServer)(IDHCPServer *pThis);
+
+    nsresult (*InternalAndReservedMethod2IDHCPServer)(IDHCPServer *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -3682,6 +3989,18 @@ struct IDHCPServerVtbl
 
     nsresult (*GetVmConfigs)(IDHCPServer *pThis, PRUint32 *vmConfigsSize, PRUnichar * **vmConfigs);
 
+    nsresult (*GetInternalAndReservedAttribute1IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IDHCPServer)(IDHCPServer *pThis, PRUint32 *reserved);
+
     nsresult (*AddGlobalOption)(
         IDHCPServer *pThis,
         PRUint32 option,
@@ -3733,6 +4052,10 @@ struct IDHCPServerVtbl
     );
 
     nsresult (*Stop)(IDHCPServer *pThis );
+
+    nsresult (*InternalAndReservedMethod1IDHCPServer)(IDHCPServer *pThis);
+
+    nsresult (*InternalAndReservedMethod2IDHCPServer)(IDHCPServer *pThis);
 
 };
 #define IDHCPServer_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -3780,10 +4103,10 @@ interface IDHCPServer
 
 
 /* Start of struct IVirtualBox declaration */
-#define IVIRTUALBOX_IID_STR "fafa4e17-1ee2-4905-a10e-fe7c18bf5554"
+#define IVIRTUALBOX_IID_STR "0169423f-46b4-cde9-91af-1e9d5b6cd945"
 #define IVIRTUALBOX_IID { \
-    0xfafa4e17, 0x1ee2, 0x4905, \
-    { 0xa1, 0x0e, 0xfe, 0x7c, 0x18, 0xbf, 0x55, 0x54 } \
+    0x0169423f, 0x46b4, 0xcde9, \
+    { 0x91, 0xaf, 0x1e, 0x9d, 0x5b, 0x6c, 0xd9, 0x45 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IVirtualBox);
@@ -3802,6 +4125,8 @@ struct IVirtualBox_vtbl
 
     nsresult (*GetAPIVersion)(IVirtualBox *pThis, PRUnichar * *APIVersion);
 
+    nsresult (*GetAPIRevision)(IVirtualBox *pThis, PRInt64 *APIRevision);
+
     nsresult (*GetHomeFolder)(IVirtualBox *pThis, PRUnichar * *homeFolder);
 
     nsresult (*GetSettingsFilePath)(IVirtualBox *pThis, PRUnichar * *settingsFilePath);
@@ -3839,6 +4164,30 @@ struct IVirtualBox_vtbl
     nsresult (*GetInternalNetworks)(IVirtualBox *pThis, PRUint32 *internalNetworksSize, PRUnichar * **internalNetworks);
 
     nsresult (*GetGenericNetworkDrivers)(IVirtualBox *pThis, PRUint32 *genericNetworkDriversSize, PRUnichar * **genericNetworkDrivers);
+
+    nsresult (*GetInternalAndReservedAttribute1IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
 
     nsresult (*ComposeMachineFilename)(
         IVirtualBox *pThis,
@@ -3898,10 +4247,12 @@ struct IVirtualBox_vtbl
         IAppliance * * appliance
     );
 
-    nsresult (*CreateHardDisk)(
+    nsresult (*CreateMedium)(
         IVirtualBox *pThis,
         PRUnichar * format,
         PRUnichar * location,
+        PRUint32 accessMode,
+        PRUint32 aDeviceTypeType,
         IMedium * * medium
     );
 
@@ -3998,6 +4349,22 @@ struct IVirtualBox_vtbl
         PRUnichar * * file,
         PRBool * result
     );
+
+    nsresult (*InternalAndReservedMethod1IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod2IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod3IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod4IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod5IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod6IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod7IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod8IVirtualBox)(IVirtualBox *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -4016,6 +4383,8 @@ struct IVirtualBoxVtbl
 
     nsresult (*GetAPIVersion)(IVirtualBox *pThis, PRUnichar * *APIVersion);
 
+    nsresult (*GetAPIRevision)(IVirtualBox *pThis, PRInt64 *APIRevision);
+
     nsresult (*GetHomeFolder)(IVirtualBox *pThis, PRUnichar * *homeFolder);
 
     nsresult (*GetSettingsFilePath)(IVirtualBox *pThis, PRUnichar * *settingsFilePath);
@@ -4053,6 +4422,30 @@ struct IVirtualBoxVtbl
     nsresult (*GetInternalNetworks)(IVirtualBox *pThis, PRUint32 *internalNetworksSize, PRUnichar * **internalNetworks);
 
     nsresult (*GetGenericNetworkDrivers)(IVirtualBox *pThis, PRUint32 *genericNetworkDriversSize, PRUnichar * **genericNetworkDrivers);
+
+    nsresult (*GetInternalAndReservedAttribute1IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IVirtualBox)(IVirtualBox *pThis, PRUint32 *reserved);
 
     nsresult (*ComposeMachineFilename)(
         IVirtualBox *pThis,
@@ -4112,10 +4505,12 @@ struct IVirtualBoxVtbl
         IAppliance * * appliance
     );
 
-    nsresult (*CreateHardDisk)(
+    nsresult (*CreateMedium)(
         IVirtualBox *pThis,
         PRUnichar * format,
         PRUnichar * location,
+        PRUint32 accessMode,
+        PRUint32 aDeviceTypeType,
         IMedium * * medium
     );
 
@@ -4213,6 +4608,22 @@ struct IVirtualBoxVtbl
         PRBool * result
     );
 
+    nsresult (*InternalAndReservedMethod1IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod2IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod3IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod4IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod5IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod6IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod7IVirtualBox)(IVirtualBox *pThis);
+
+    nsresult (*InternalAndReservedMethod8IVirtualBox)(IVirtualBox *pThis);
+
 };
 #define IVirtualBox_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IVirtualBox_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -4227,6 +4638,8 @@ struct IVirtualBoxVtbl
 #define IVirtualBox_GetPackageType(p, aPackageType) ((p)->lpVtbl->GetPackageType(p, aPackageType))
 #define IVirtualBox_get_APIVersion(p, aAPIVersion) ((p)->lpVtbl->GetAPIVersion(p, aAPIVersion))
 #define IVirtualBox_GetAPIVersion(p, aAPIVersion) ((p)->lpVtbl->GetAPIVersion(p, aAPIVersion))
+#define IVirtualBox_get_APIRevision(p, aAPIRevision) ((p)->lpVtbl->GetAPIRevision(p, aAPIRevision))
+#define IVirtualBox_GetAPIRevision(p, aAPIRevision) ((p)->lpVtbl->GetAPIRevision(p, aAPIRevision))
 #define IVirtualBox_get_HomeFolder(p, aHomeFolder) ((p)->lpVtbl->GetHomeFolder(p, aHomeFolder))
 #define IVirtualBox_GetHomeFolder(p, aHomeFolder) ((p)->lpVtbl->GetHomeFolder(p, aHomeFolder))
 #define IVirtualBox_get_SettingsFilePath(p, aSettingsFilePath) ((p)->lpVtbl->GetSettingsFilePath(p, aSettingsFilePath))
@@ -4273,7 +4686,7 @@ struct IVirtualBoxVtbl
 #define IVirtualBox_GetMachinesByGroups(p, aGroups, aMachines) ((p)->lpVtbl->GetMachinesByGroups(p, aGroups, aMachines))
 #define IVirtualBox_GetMachineStates(p, aMachines, aStates) ((p)->lpVtbl->GetMachineStates(p, aMachines, aStates))
 #define IVirtualBox_CreateAppliance(p, aAppliance) ((p)->lpVtbl->CreateAppliance(p, aAppliance))
-#define IVirtualBox_CreateHardDisk(p, aFormat, aLocation, aMedium) ((p)->lpVtbl->CreateHardDisk(p, aFormat, aLocation, aMedium))
+#define IVirtualBox_CreateMedium(p, aFormat, aLocation, aAccessMode, aADeviceTypeType, aMedium) ((p)->lpVtbl->CreateMedium(p, aFormat, aLocation, aAccessMode, aADeviceTypeType, aMedium))
 #define IVirtualBox_OpenMedium(p, aLocation, aDeviceType, aAccessMode, aForceNewUuid, aMedium) ((p)->lpVtbl->OpenMedium(p, aLocation, aDeviceType, aAccessMode, aForceNewUuid, aMedium))
 #define IVirtualBox_GetGuestOSType(p, aId, aType) ((p)->lpVtbl->GetGuestOSType(p, aId, aType))
 #define IVirtualBox_CreateSharedFolder(p, aName, aHostPath, aWritable, aAutomount) ((p)->lpVtbl->CreateSharedFolder(p, aName, aHostPath, aWritable, aAutomount))
@@ -4444,10 +4857,10 @@ interface IVFSExplorer
 
 
 /* Start of struct IAppliance declaration */
-#define IAPPLIANCE_IID_STR "3059cf9e-25c7-4f0b-9fa5-3c42e441670b"
+#define IAPPLIANCE_IID_STR "8398f026-4add-4474-5bc3-2f9f2140b23e"
 #define IAPPLIANCE_IID { \
-    0x3059cf9e, 0x25c7, 0x4f0b, \
-    { 0x9f, 0xa5, 0x3c, 0x42, 0xe4, 0x41, 0x67, 0x0b } \
+    0x8398f026, 0x4add, 0x4474, \
+    { 0x5b, 0xc3, 0x2f, 0x9f, 0x21, 0x40, 0xb2, 0x3e } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IAppliance);
@@ -4464,6 +4877,22 @@ struct IAppliance_vtbl
 
     nsresult (*GetMachines)(IAppliance *pThis, PRUint32 *machinesSize, PRUnichar * **machines);
 
+    nsresult (*GetInternalAndReservedAttribute1IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
     nsresult (*Read)(
         IAppliance *pThis,
         PRUnichar * file,
@@ -4499,6 +4928,43 @@ struct IAppliance_vtbl
         PRUint32 *warningsSize,
         PRUnichar *** warnings
     );
+
+    nsresult (*GetPasswordIds)(
+        IAppliance *pThis,
+        PRUint32 *identifiersSize,
+        PRUnichar *** identifiers
+    );
+
+    nsresult (*GetMediumIdsForPasswordId)(
+        IAppliance *pThis,
+        PRUnichar * passwordId,
+        PRUint32 *identifiersSize,
+        PRUnichar *** identifiers
+    );
+
+    nsresult (*AddPasswords)(
+        IAppliance *pThis,
+        PRUint32 identifiersSize,
+        PRUnichar ** identifiers,
+        PRUint32 passwordsSize,
+        PRUnichar ** passwords
+    );
+
+    nsresult (*InternalAndReservedMethod1IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod2IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod3IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod4IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod5IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod6IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod7IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod8IAppliance)(IAppliance *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -4515,6 +4981,22 @@ struct IApplianceVtbl
 
     nsresult (*GetMachines)(IAppliance *pThis, PRUint32 *machinesSize, PRUnichar * **machines);
 
+    nsresult (*GetInternalAndReservedAttribute1IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IAppliance)(IAppliance *pThis, PRUint32 *reserved);
+
     nsresult (*Read)(
         IAppliance *pThis,
         PRUnichar * file,
@@ -4550,6 +5032,43 @@ struct IApplianceVtbl
         PRUint32 *warningsSize,
         PRUnichar *** warnings
     );
+
+    nsresult (*GetPasswordIds)(
+        IAppliance *pThis,
+        PRUint32 *identifiersSize,
+        PRUnichar *** identifiers
+    );
+
+    nsresult (*GetMediumIdsForPasswordId)(
+        IAppliance *pThis,
+        PRUnichar * passwordId,
+        PRUint32 *identifiersSize,
+        PRUnichar *** identifiers
+    );
+
+    nsresult (*AddPasswords)(
+        IAppliance *pThis,
+        PRUint32 identifiersSize,
+        PRUnichar ** identifiers,
+        PRUint32 passwordsSize,
+        PRUnichar ** passwords
+    );
+
+    nsresult (*InternalAndReservedMethod1IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod2IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod3IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod4IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod5IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod6IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod7IAppliance)(IAppliance *pThis);
+
+    nsresult (*InternalAndReservedMethod8IAppliance)(IAppliance *pThis);
 
 };
 #define IAppliance_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -4569,6 +5088,9 @@ struct IApplianceVtbl
 #define IAppliance_CreateVFSExplorer(p, aURI, aExplorer) ((p)->lpVtbl->CreateVFSExplorer(p, aURI, aExplorer))
 #define IAppliance_Write(p, aFormat, aOptions, aPath, aProgress) ((p)->lpVtbl->Write(p, aFormat, aOptions, aPath, aProgress))
 #define IAppliance_GetWarnings(p, aWarnings) ((p)->lpVtbl->GetWarnings(p, aWarnings))
+#define IAppliance_GetPasswordIds(p, aIdentifiers) ((p)->lpVtbl->GetPasswordIds(p, aIdentifiers))
+#define IAppliance_GetMediumIdsForPasswordId(p, aPasswordId, aIdentifiers) ((p)->lpVtbl->GetMediumIdsForPasswordId(p, aPasswordId, aIdentifiers))
+#define IAppliance_AddPasswords(p, aIdentifiers, aPasswords) ((p)->lpVtbl->AddPasswords(p, aIdentifiers, aPasswords))
 #endif /* VBOX_WITH_GLUE */
 
 interface IAppliance
@@ -4583,10 +5105,10 @@ interface IAppliance
 
 
 /* Start of struct IVirtualSystemDescription declaration */
-#define IVIRTUALSYSTEMDESCRIPTION_IID_STR "d7525e6c-531a-4c51-8e04-41235083a3d8"
+#define IVIRTUALSYSTEMDESCRIPTION_IID_STR "316c99a2-405d-41af-8508-46889144d067"
 #define IVIRTUALSYSTEMDESCRIPTION_IID { \
-    0xd7525e6c, 0x531a, 0x4c51, \
-    { 0x8e, 0x04, 0x41, 0x23, 0x50, 0x83, 0xa3, 0xd8 } \
+    0x316c99a2, 0x405d, 0x41af, \
+    { 0x85, 0x08, 0x46, 0x88, 0x91, 0x44, 0xd0, 0x67 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IVirtualSystemDescription);
@@ -4597,6 +5119,14 @@ struct IVirtualSystemDescription_vtbl
 
     nsresult (*GetCount)(IVirtualSystemDescription *pThis, PRUint32 *count);
 
+    nsresult (*GetInternalAndReservedAttribute1IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
     nsresult (*GetDescription)(
         IVirtualSystemDescription *pThis,
         PRUint32 *typesSize,
@@ -4650,6 +5180,14 @@ struct IVirtualSystemDescription_vtbl
         PRUnichar * VBoxValue,
         PRUnichar * extraConfigValue
     );
+
+    nsresult (*InternalAndReservedMethod1IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
+
+    nsresult (*InternalAndReservedMethod2IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
+
+    nsresult (*InternalAndReservedMethod3IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
+
+    nsresult (*InternalAndReservedMethod4IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -4660,6 +5198,14 @@ struct IVirtualSystemDescriptionVtbl
     nsrefcnt (*Release)(IVirtualSystemDescription *pThis);
     nsresult (*GetCount)(IVirtualSystemDescription *pThis, PRUint32 *count);
 
+    nsresult (*GetInternalAndReservedAttribute1IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVirtualSystemDescription)(IVirtualSystemDescription *pThis, PRUint32 *reserved);
+
     nsresult (*GetDescription)(
         IVirtualSystemDescription *pThis,
         PRUint32 *typesSize,
@@ -4713,6 +5259,14 @@ struct IVirtualSystemDescriptionVtbl
         PRUnichar * VBoxValue,
         PRUnichar * extraConfigValue
     );
+
+    nsresult (*InternalAndReservedMethod1IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
+
+    nsresult (*InternalAndReservedMethod2IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
+
+    nsresult (*InternalAndReservedMethod3IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
+
+    nsresult (*InternalAndReservedMethod4IVirtualSystemDescription)(IVirtualSystemDescription *pThis);
 
 };
 #define IVirtualSystemDescription_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -4739,10 +5293,10 @@ interface IVirtualSystemDescription
 
 
 /* Start of struct IBIOSSettings declaration */
-#define IBIOSSETTINGS_IID_STR "38b54279-dc35-4f5e-a431-835b867c6b5e"
+#define IBIOSSETTINGS_IID_STR "c5b5afe3-4a6f-05eb-c9b6-4dbf98538b67"
 #define IBIOSSETTINGS_IID { \
-    0x38b54279, 0xdc35, 0x4f5e, \
-    { 0xa4, 0x31, 0x83, 0x5b, 0x86, 0x7c, 0x6b, 0x5e } \
+    0xc5b5afe3, 0x4a6f, 0x05eb, \
+    { 0xc9, 0xb6, 0x4d, 0xbf, 0x98, 0x53, 0x8b, 0x67 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IBIOSSettings);
@@ -4780,6 +5334,24 @@ struct IBIOSSettings_vtbl
 
     nsresult (*GetNonVolatileStorageFile)(IBIOSSettings *pThis, PRUnichar * *nonVolatileStorageFile);
 
+    nsresult (*GetInternalAndReservedAttribute1IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*InternalAndReservedMethod1IBIOSSettings)(IBIOSSettings *pThis);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IBIOSSettingsVtbl
@@ -4815,6 +5387,24 @@ struct IBIOSSettingsVtbl
     nsresult (*SetPXEDebugEnabled)(IBIOSSettings *pThis, PRBool PXEDebugEnabled);
 
     nsresult (*GetNonVolatileStorageFile)(IBIOSSettings *pThis, PRUnichar * *nonVolatileStorageFile);
+
+    nsresult (*GetInternalAndReservedAttribute1IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IBIOSSettings)(IBIOSSettings *pThis, PRUint32 *reserved);
+
+    nsresult (*InternalAndReservedMethod1IBIOSSettings)(IBIOSSettings *pThis);
 
 };
 #define IBIOSSettings_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -5022,10 +5612,10 @@ interface IPCIDeviceAttachment
 
 
 /* Start of struct IMachine declaration */
-#define IMACHINE_IID_STR "480cf695-2d8d-4256-9c7c-cce4184fa048"
+#define IMACHINE_IID_STR "f30138d4-e5ea-4b3a-8858-a059de4c93fd"
 #define IMACHINE_IID { \
-    0x480cf695, 0x2d8d, 0x4256, \
-    { 0x9c, 0x7c, 0xcc, 0xe4, 0x18, 0x4f, 0xa0, 0x48 } \
+    0xf30138d4, 0xe5ea, 0x4b3a, \
+    { 0x88, 0x58, 0xa0, 0x59, 0xde, 0x4c, 0x93, 0xfd } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IMachine);
@@ -5072,6 +5662,9 @@ struct IMachine_vtbl
     nsresult (*GetCPUExecutionCap)(IMachine *pThis, PRUint32 *CPUExecutionCap);
     nsresult (*SetCPUExecutionCap)(IMachine *pThis, PRUint32 CPUExecutionCap);
 
+    nsresult (*GetCPUIDPortabilityLevel)(IMachine *pThis, PRUint32 *CPUIDPortabilityLevel);
+    nsresult (*SetCPUIDPortabilityLevel)(IMachine *pThis, PRUint32 CPUIDPortabilityLevel);
+
     nsresult (*GetMemorySize)(IMachine *pThis, PRUint32 *memorySize);
     nsresult (*SetMemorySize)(IMachine *pThis, PRUint32 memorySize);
 
@@ -5117,6 +5710,15 @@ struct IMachine_vtbl
     nsresult (*GetVideoCaptureFPS)(IMachine *pThis, PRUint32 *videoCaptureFPS);
     nsresult (*SetVideoCaptureFPS)(IMachine *pThis, PRUint32 videoCaptureFPS);
 
+    nsresult (*GetVideoCaptureMaxTime)(IMachine *pThis, PRUint32 *videoCaptureMaxTime);
+    nsresult (*SetVideoCaptureMaxTime)(IMachine *pThis, PRUint32 videoCaptureMaxTime);
+
+    nsresult (*GetVideoCaptureMaxFileSize)(IMachine *pThis, PRUint32 *videoCaptureMaxFileSize);
+    nsresult (*SetVideoCaptureMaxFileSize)(IMachine *pThis, PRUint32 videoCaptureMaxFileSize);
+
+    nsresult (*GetVideoCaptureOptions)(IMachine *pThis, PRUnichar * *videoCaptureOptions);
+    nsresult (*SetVideoCaptureOptions)(IMachine *pThis, PRUnichar * videoCaptureOptions);
+
     nsresult (*GetBIOSSettings)(IMachine *pThis, IBIOSSettings * *BIOSSettings);
 
     nsresult (*GetFirmwareType)(IMachine *pThis, PRUint32 *firmwareType);
@@ -5158,7 +5760,7 @@ struct IMachine_vtbl
 
     nsresult (*GetSessionState)(IMachine *pThis, PRUint32 *sessionState);
 
-    nsresult (*GetSessionType)(IMachine *pThis, PRUnichar * *sessionType);
+    nsresult (*GetSessionName)(IMachine *pThis, PRUnichar * *sessionName);
 
     nsresult (*GetSessionPID)(IMachine *pThis, PRUint32 *sessionPID);
 
@@ -5181,11 +5783,8 @@ struct IMachine_vtbl
     nsresult (*GetClipboardMode)(IMachine *pThis, PRUint32 *clipboardMode);
     nsresult (*SetClipboardMode)(IMachine *pThis, PRUint32 clipboardMode);
 
-    nsresult (*GetDragAndDropMode)(IMachine *pThis, PRUint32 *dragAndDropMode);
-    nsresult (*SetDragAndDropMode)(IMachine *pThis, PRUint32 dragAndDropMode);
-
-    nsresult (*GetGuestPropertyNotificationPatterns)(IMachine *pThis, PRUnichar * *guestPropertyNotificationPatterns);
-    nsresult (*SetGuestPropertyNotificationPatterns)(IMachine *pThis, PRUnichar * guestPropertyNotificationPatterns);
+    nsresult (*GetDnDMode)(IMachine *pThis, PRUint32 *dnDMode);
+    nsresult (*SetDnDMode)(IMachine *pThis, PRUint32 dnDMode);
 
     nsresult (*GetTeleporterEnabled)(IMachine *pThis, PRBool *teleporterEnabled);
     nsresult (*SetTeleporterEnabled)(IMachine *pThis, PRBool teleporterEnabled);
@@ -5198,6 +5797,9 @@ struct IMachine_vtbl
 
     nsresult (*GetTeleporterPassword)(IMachine *pThis, PRUnichar * *teleporterPassword);
     nsresult (*SetTeleporterPassword)(IMachine *pThis, PRUnichar * teleporterPassword);
+
+    nsresult (*GetParavirtProvider)(IMachine *pThis, PRUint32 *paravirtProvider);
+    nsresult (*SetParavirtProvider)(IMachine *pThis, PRUint32 paravirtProvider);
 
     nsresult (*GetFaultToleranceState)(IMachine *pThis, PRUint32 *faultToleranceState);
     nsresult (*SetFaultToleranceState)(IMachine *pThis, PRUint32 faultToleranceState);
@@ -5250,6 +5852,41 @@ struct IMachine_vtbl
 
     nsresult (*GetUSBProxyAvailable)(IMachine *pThis, PRBool *USBProxyAvailable);
 
+    nsresult (*GetVMProcessPriority)(IMachine *pThis, PRUnichar * *VMProcessPriority);
+    nsresult (*SetVMProcessPriority)(IMachine *pThis, PRUnichar * VMProcessPriority);
+
+    nsresult (*GetInternalAndReservedAttribute1IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IMachine)(IMachine *pThis, PRUint32 *reserved);
+
     nsresult (*LockMachine)(
         IMachine *pThis,
         ISession * session,
@@ -5259,7 +5896,7 @@ struct IMachine_vtbl
     nsresult (*LaunchVMProcess)(
         IMachine *pThis,
         ISession * session,
-        PRUnichar * type,
+        PRUnichar * name,
         PRUnichar * environment,
         IProgress * * progress
     );
@@ -5428,6 +6065,7 @@ struct IMachine_vtbl
 
     nsresult (*GetStorageControllerByInstance)(
         IMachine *pThis,
+        PRUint32 connectionType,
         PRUint32 instance,
         IStorageController * * storageController
     );
@@ -5667,44 +6305,29 @@ struct IMachine_vtbl
         PRBool * enabled
     );
 
-    nsresult (*QuerySavedThumbnailSize)(
-        IMachine *pThis,
-        PRUint32 screenId,
-        PRUint32 * size,
-        PRUint32 * width,
-        PRUint32 * height
-    );
-
     nsresult (*ReadSavedThumbnailToArray)(
         IMachine *pThis,
         PRUint32 screenId,
-        PRBool BGR,
+        PRUint32 bitmapFormat,
         PRUint32 * width,
         PRUint32 * height,
         PRUint32 *dataSize,
         PRUint8** data
     );
 
-    nsresult (*ReadSavedThumbnailPNGToArray)(
+    nsresult (*QuerySavedScreenshotInfo)(
         IMachine *pThis,
         PRUint32 screenId,
         PRUint32 * width,
         PRUint32 * height,
-        PRUint32 *dataSize,
-        PRUint8** data
+        PRUint32 *bitmapFormatsSize,
+        PRUint32** bitmapFormats
     );
 
-    nsresult (*QuerySavedScreenshotPNGSize)(
+    nsresult (*ReadSavedScreenshotToArray)(
         IMachine *pThis,
         PRUint32 screenId,
-        PRUint32 * size,
-        PRUint32 * width,
-        PRUint32 * height
-    );
-
-    nsresult (*ReadSavedScreenshotPNGToArray)(
-        IMachine *pThis,
-        PRUint32 screenId,
+        PRUint32 bitmapFormat,
         PRUint32 * width,
         PRUint32 * height,
         PRUint32 *dataSize,
@@ -5725,6 +6348,11 @@ struct IMachine_vtbl
         IMachine *pThis,
         PRUint32 cpu,
         PRBool * attached
+    );
+
+    nsresult (*GetEffectiveParavirtProvider)(
+        IMachine *pThis,
+        PRUint32 * paravirtProvider
     );
 
     nsresult (*QueryLogFilename)(
@@ -5750,6 +6378,76 @@ struct IMachine_vtbl
         PRUint32* options,
         IProgress * * progress
     );
+
+    nsresult (*SaveState)(
+        IMachine *pThis,
+        IProgress * * progress
+    );
+
+    nsresult (*AdoptSavedState)(
+        IMachine *pThis,
+        PRUnichar * savedStateFile
+    );
+
+    nsresult (*DiscardSavedState)(
+        IMachine *pThis,
+        PRBool fRemoveFile
+    );
+
+    nsresult (*TakeSnapshot)(
+        IMachine *pThis,
+        PRUnichar * name,
+        PRUnichar * description,
+        PRBool pause,
+        PRUnichar * * id,
+        IProgress * * progress
+    );
+
+    nsresult (*DeleteSnapshot)(
+        IMachine *pThis,
+        PRUnichar * id,
+        IProgress * * progress
+    );
+
+    nsresult (*DeleteSnapshotAndAllChildren)(
+        IMachine *pThis,
+        PRUnichar * id,
+        IProgress * * progress
+    );
+
+    nsresult (*DeleteSnapshotRange)(
+        IMachine *pThis,
+        PRUnichar * startId,
+        PRUnichar * endId,
+        IProgress * * progress
+    );
+
+    nsresult (*RestoreSnapshot)(
+        IMachine *pThis,
+        ISnapshot * snapshot,
+        IProgress * * progress
+    );
+
+    nsresult (*ApplyDefaults)(
+        IMachine *pThis,
+        PRUnichar * flags
+    );
+
+    nsresult (*InternalAndReservedMethod1IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod2IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod3IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod4IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod5IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod6IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod7IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod8IMachine)(IMachine *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -5796,6 +6494,9 @@ struct IMachineVtbl
     nsresult (*GetCPUExecutionCap)(IMachine *pThis, PRUint32 *CPUExecutionCap);
     nsresult (*SetCPUExecutionCap)(IMachine *pThis, PRUint32 CPUExecutionCap);
 
+    nsresult (*GetCPUIDPortabilityLevel)(IMachine *pThis, PRUint32 *CPUIDPortabilityLevel);
+    nsresult (*SetCPUIDPortabilityLevel)(IMachine *pThis, PRUint32 CPUIDPortabilityLevel);
+
     nsresult (*GetMemorySize)(IMachine *pThis, PRUint32 *memorySize);
     nsresult (*SetMemorySize)(IMachine *pThis, PRUint32 memorySize);
 
@@ -5841,6 +6542,15 @@ struct IMachineVtbl
     nsresult (*GetVideoCaptureFPS)(IMachine *pThis, PRUint32 *videoCaptureFPS);
     nsresult (*SetVideoCaptureFPS)(IMachine *pThis, PRUint32 videoCaptureFPS);
 
+    nsresult (*GetVideoCaptureMaxTime)(IMachine *pThis, PRUint32 *videoCaptureMaxTime);
+    nsresult (*SetVideoCaptureMaxTime)(IMachine *pThis, PRUint32 videoCaptureMaxTime);
+
+    nsresult (*GetVideoCaptureMaxFileSize)(IMachine *pThis, PRUint32 *videoCaptureMaxFileSize);
+    nsresult (*SetVideoCaptureMaxFileSize)(IMachine *pThis, PRUint32 videoCaptureMaxFileSize);
+
+    nsresult (*GetVideoCaptureOptions)(IMachine *pThis, PRUnichar * *videoCaptureOptions);
+    nsresult (*SetVideoCaptureOptions)(IMachine *pThis, PRUnichar * videoCaptureOptions);
+
     nsresult (*GetBIOSSettings)(IMachine *pThis, IBIOSSettings * *BIOSSettings);
 
     nsresult (*GetFirmwareType)(IMachine *pThis, PRUint32 *firmwareType);
@@ -5882,7 +6592,7 @@ struct IMachineVtbl
 
     nsresult (*GetSessionState)(IMachine *pThis, PRUint32 *sessionState);
 
-    nsresult (*GetSessionType)(IMachine *pThis, PRUnichar * *sessionType);
+    nsresult (*GetSessionName)(IMachine *pThis, PRUnichar * *sessionName);
 
     nsresult (*GetSessionPID)(IMachine *pThis, PRUint32 *sessionPID);
 
@@ -5905,11 +6615,8 @@ struct IMachineVtbl
     nsresult (*GetClipboardMode)(IMachine *pThis, PRUint32 *clipboardMode);
     nsresult (*SetClipboardMode)(IMachine *pThis, PRUint32 clipboardMode);
 
-    nsresult (*GetDragAndDropMode)(IMachine *pThis, PRUint32 *dragAndDropMode);
-    nsresult (*SetDragAndDropMode)(IMachine *pThis, PRUint32 dragAndDropMode);
-
-    nsresult (*GetGuestPropertyNotificationPatterns)(IMachine *pThis, PRUnichar * *guestPropertyNotificationPatterns);
-    nsresult (*SetGuestPropertyNotificationPatterns)(IMachine *pThis, PRUnichar * guestPropertyNotificationPatterns);
+    nsresult (*GetDnDMode)(IMachine *pThis, PRUint32 *dnDMode);
+    nsresult (*SetDnDMode)(IMachine *pThis, PRUint32 dnDMode);
 
     nsresult (*GetTeleporterEnabled)(IMachine *pThis, PRBool *teleporterEnabled);
     nsresult (*SetTeleporterEnabled)(IMachine *pThis, PRBool teleporterEnabled);
@@ -5922,6 +6629,9 @@ struct IMachineVtbl
 
     nsresult (*GetTeleporterPassword)(IMachine *pThis, PRUnichar * *teleporterPassword);
     nsresult (*SetTeleporterPassword)(IMachine *pThis, PRUnichar * teleporterPassword);
+
+    nsresult (*GetParavirtProvider)(IMachine *pThis, PRUint32 *paravirtProvider);
+    nsresult (*SetParavirtProvider)(IMachine *pThis, PRUint32 paravirtProvider);
 
     nsresult (*GetFaultToleranceState)(IMachine *pThis, PRUint32 *faultToleranceState);
     nsresult (*SetFaultToleranceState)(IMachine *pThis, PRUint32 faultToleranceState);
@@ -5974,6 +6684,41 @@ struct IMachineVtbl
 
     nsresult (*GetUSBProxyAvailable)(IMachine *pThis, PRBool *USBProxyAvailable);
 
+    nsresult (*GetVMProcessPriority)(IMachine *pThis, PRUnichar * *VMProcessPriority);
+    nsresult (*SetVMProcessPriority)(IMachine *pThis, PRUnichar * VMProcessPriority);
+
+    nsresult (*GetInternalAndReservedAttribute1IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IMachine)(IMachine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IMachine)(IMachine *pThis, PRUint32 *reserved);
+
     nsresult (*LockMachine)(
         IMachine *pThis,
         ISession * session,
@@ -5983,7 +6728,7 @@ struct IMachineVtbl
     nsresult (*LaunchVMProcess)(
         IMachine *pThis,
         ISession * session,
-        PRUnichar * type,
+        PRUnichar * name,
         PRUnichar * environment,
         IProgress * * progress
     );
@@ -6152,6 +6897,7 @@ struct IMachineVtbl
 
     nsresult (*GetStorageControllerByInstance)(
         IMachine *pThis,
+        PRUint32 connectionType,
         PRUint32 instance,
         IStorageController * * storageController
     );
@@ -6391,44 +7137,29 @@ struct IMachineVtbl
         PRBool * enabled
     );
 
-    nsresult (*QuerySavedThumbnailSize)(
-        IMachine *pThis,
-        PRUint32 screenId,
-        PRUint32 * size,
-        PRUint32 * width,
-        PRUint32 * height
-    );
-
     nsresult (*ReadSavedThumbnailToArray)(
         IMachine *pThis,
         PRUint32 screenId,
-        PRBool BGR,
+        PRUint32 bitmapFormat,
         PRUint32 * width,
         PRUint32 * height,
         PRUint32 *dataSize,
         PRUint8** data
     );
 
-    nsresult (*ReadSavedThumbnailPNGToArray)(
+    nsresult (*QuerySavedScreenshotInfo)(
         IMachine *pThis,
         PRUint32 screenId,
         PRUint32 * width,
         PRUint32 * height,
-        PRUint32 *dataSize,
-        PRUint8** data
+        PRUint32 *bitmapFormatsSize,
+        PRUint32** bitmapFormats
     );
 
-    nsresult (*QuerySavedScreenshotPNGSize)(
+    nsresult (*ReadSavedScreenshotToArray)(
         IMachine *pThis,
         PRUint32 screenId,
-        PRUint32 * size,
-        PRUint32 * width,
-        PRUint32 * height
-    );
-
-    nsresult (*ReadSavedScreenshotPNGToArray)(
-        IMachine *pThis,
-        PRUint32 screenId,
+        PRUint32 bitmapFormat,
         PRUint32 * width,
         PRUint32 * height,
         PRUint32 *dataSize,
@@ -6449,6 +7180,11 @@ struct IMachineVtbl
         IMachine *pThis,
         PRUint32 cpu,
         PRBool * attached
+    );
+
+    nsresult (*GetEffectiveParavirtProvider)(
+        IMachine *pThis,
+        PRUint32 * paravirtProvider
     );
 
     nsresult (*QueryLogFilename)(
@@ -6474,6 +7210,76 @@ struct IMachineVtbl
         PRUint32* options,
         IProgress * * progress
     );
+
+    nsresult (*SaveState)(
+        IMachine *pThis,
+        IProgress * * progress
+    );
+
+    nsresult (*AdoptSavedState)(
+        IMachine *pThis,
+        PRUnichar * savedStateFile
+    );
+
+    nsresult (*DiscardSavedState)(
+        IMachine *pThis,
+        PRBool fRemoveFile
+    );
+
+    nsresult (*TakeSnapshot)(
+        IMachine *pThis,
+        PRUnichar * name,
+        PRUnichar * description,
+        PRBool pause,
+        PRUnichar * * id,
+        IProgress * * progress
+    );
+
+    nsresult (*DeleteSnapshot)(
+        IMachine *pThis,
+        PRUnichar * id,
+        IProgress * * progress
+    );
+
+    nsresult (*DeleteSnapshotAndAllChildren)(
+        IMachine *pThis,
+        PRUnichar * id,
+        IProgress * * progress
+    );
+
+    nsresult (*DeleteSnapshotRange)(
+        IMachine *pThis,
+        PRUnichar * startId,
+        PRUnichar * endId,
+        IProgress * * progress
+    );
+
+    nsresult (*RestoreSnapshot)(
+        IMachine *pThis,
+        ISnapshot * snapshot,
+        IProgress * * progress
+    );
+
+    nsresult (*ApplyDefaults)(
+        IMachine *pThis,
+        PRUnichar * flags
+    );
+
+    nsresult (*InternalAndReservedMethod1IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod2IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod3IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod4IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod5IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod6IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod7IMachine)(IMachine *pThis);
+
+    nsresult (*InternalAndReservedMethod8IMachine)(IMachine *pThis);
 
 };
 #define IMachine_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -6527,6 +7333,10 @@ struct IMachineVtbl
 #define IMachine_GetCPUExecutionCap(p, aCPUExecutionCap) ((p)->lpVtbl->GetCPUExecutionCap(p, aCPUExecutionCap))
 #define IMachine_put_CPUExecutionCap(p, aCPUExecutionCap) ((p)->lpVtbl->SetCPUExecutionCap(p, aCPUExecutionCap))
 #define IMachine_SetCPUExecutionCap(p, aCPUExecutionCap) ((p)->lpVtbl->SetCPUExecutionCap(p, aCPUExecutionCap))
+#define IMachine_get_CPUIDPortabilityLevel(p, aCPUIDPortabilityLevel) ((p)->lpVtbl->GetCPUIDPortabilityLevel(p, aCPUIDPortabilityLevel))
+#define IMachine_GetCPUIDPortabilityLevel(p, aCPUIDPortabilityLevel) ((p)->lpVtbl->GetCPUIDPortabilityLevel(p, aCPUIDPortabilityLevel))
+#define IMachine_put_CPUIDPortabilityLevel(p, aCPUIDPortabilityLevel) ((p)->lpVtbl->SetCPUIDPortabilityLevel(p, aCPUIDPortabilityLevel))
+#define IMachine_SetCPUIDPortabilityLevel(p, aCPUIDPortabilityLevel) ((p)->lpVtbl->SetCPUIDPortabilityLevel(p, aCPUIDPortabilityLevel))
 #define IMachine_get_MemorySize(p, aMemorySize) ((p)->lpVtbl->GetMemorySize(p, aMemorySize))
 #define IMachine_GetMemorySize(p, aMemorySize) ((p)->lpVtbl->GetMemorySize(p, aMemorySize))
 #define IMachine_put_MemorySize(p, aMemorySize) ((p)->lpVtbl->SetMemorySize(p, aMemorySize))
@@ -6587,6 +7397,18 @@ struct IMachineVtbl
 #define IMachine_GetVideoCaptureFPS(p, aVideoCaptureFPS) ((p)->lpVtbl->GetVideoCaptureFPS(p, aVideoCaptureFPS))
 #define IMachine_put_VideoCaptureFPS(p, aVideoCaptureFPS) ((p)->lpVtbl->SetVideoCaptureFPS(p, aVideoCaptureFPS))
 #define IMachine_SetVideoCaptureFPS(p, aVideoCaptureFPS) ((p)->lpVtbl->SetVideoCaptureFPS(p, aVideoCaptureFPS))
+#define IMachine_get_VideoCaptureMaxTime(p, aVideoCaptureMaxTime) ((p)->lpVtbl->GetVideoCaptureMaxTime(p, aVideoCaptureMaxTime))
+#define IMachine_GetVideoCaptureMaxTime(p, aVideoCaptureMaxTime) ((p)->lpVtbl->GetVideoCaptureMaxTime(p, aVideoCaptureMaxTime))
+#define IMachine_put_VideoCaptureMaxTime(p, aVideoCaptureMaxTime) ((p)->lpVtbl->SetVideoCaptureMaxTime(p, aVideoCaptureMaxTime))
+#define IMachine_SetVideoCaptureMaxTime(p, aVideoCaptureMaxTime) ((p)->lpVtbl->SetVideoCaptureMaxTime(p, aVideoCaptureMaxTime))
+#define IMachine_get_VideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize) ((p)->lpVtbl->GetVideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize))
+#define IMachine_GetVideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize) ((p)->lpVtbl->GetVideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize))
+#define IMachine_put_VideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize) ((p)->lpVtbl->SetVideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize))
+#define IMachine_SetVideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize) ((p)->lpVtbl->SetVideoCaptureMaxFileSize(p, aVideoCaptureMaxFileSize))
+#define IMachine_get_VideoCaptureOptions(p, aVideoCaptureOptions) ((p)->lpVtbl->GetVideoCaptureOptions(p, aVideoCaptureOptions))
+#define IMachine_GetVideoCaptureOptions(p, aVideoCaptureOptions) ((p)->lpVtbl->GetVideoCaptureOptions(p, aVideoCaptureOptions))
+#define IMachine_put_VideoCaptureOptions(p, aVideoCaptureOptions) ((p)->lpVtbl->SetVideoCaptureOptions(p, aVideoCaptureOptions))
+#define IMachine_SetVideoCaptureOptions(p, aVideoCaptureOptions) ((p)->lpVtbl->SetVideoCaptureOptions(p, aVideoCaptureOptions))
 #define IMachine_get_BIOSSettings(p, aBIOSSettings) ((p)->lpVtbl->GetBIOSSettings(p, aBIOSSettings))
 #define IMachine_GetBIOSSettings(p, aBIOSSettings) ((p)->lpVtbl->GetBIOSSettings(p, aBIOSSettings))
 #define IMachine_get_FirmwareType(p, aFirmwareType) ((p)->lpVtbl->GetFirmwareType(p, aFirmwareType))
@@ -6635,8 +7457,8 @@ struct IMachineVtbl
 #define IMachine_GetSettingsModified(p, aSettingsModified) ((p)->lpVtbl->GetSettingsModified(p, aSettingsModified))
 #define IMachine_get_SessionState(p, aSessionState) ((p)->lpVtbl->GetSessionState(p, aSessionState))
 #define IMachine_GetSessionState(p, aSessionState) ((p)->lpVtbl->GetSessionState(p, aSessionState))
-#define IMachine_get_SessionType(p, aSessionType) ((p)->lpVtbl->GetSessionType(p, aSessionType))
-#define IMachine_GetSessionType(p, aSessionType) ((p)->lpVtbl->GetSessionType(p, aSessionType))
+#define IMachine_get_SessionName(p, aSessionName) ((p)->lpVtbl->GetSessionName(p, aSessionName))
+#define IMachine_GetSessionName(p, aSessionName) ((p)->lpVtbl->GetSessionName(p, aSessionName))
 #define IMachine_get_SessionPID(p, aSessionPID) ((p)->lpVtbl->GetSessionPID(p, aSessionPID))
 #define IMachine_GetSessionPID(p, aSessionPID) ((p)->lpVtbl->GetSessionPID(p, aSessionPID))
 #define IMachine_get_State(p, aState) ((p)->lpVtbl->GetState(p, aState))
@@ -6659,14 +7481,10 @@ struct IMachineVtbl
 #define IMachine_GetClipboardMode(p, aClipboardMode) ((p)->lpVtbl->GetClipboardMode(p, aClipboardMode))
 #define IMachine_put_ClipboardMode(p, aClipboardMode) ((p)->lpVtbl->SetClipboardMode(p, aClipboardMode))
 #define IMachine_SetClipboardMode(p, aClipboardMode) ((p)->lpVtbl->SetClipboardMode(p, aClipboardMode))
-#define IMachine_get_DragAndDropMode(p, aDragAndDropMode) ((p)->lpVtbl->GetDragAndDropMode(p, aDragAndDropMode))
-#define IMachine_GetDragAndDropMode(p, aDragAndDropMode) ((p)->lpVtbl->GetDragAndDropMode(p, aDragAndDropMode))
-#define IMachine_put_DragAndDropMode(p, aDragAndDropMode) ((p)->lpVtbl->SetDragAndDropMode(p, aDragAndDropMode))
-#define IMachine_SetDragAndDropMode(p, aDragAndDropMode) ((p)->lpVtbl->SetDragAndDropMode(p, aDragAndDropMode))
-#define IMachine_get_GuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns) ((p)->lpVtbl->GetGuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns))
-#define IMachine_GetGuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns) ((p)->lpVtbl->GetGuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns))
-#define IMachine_put_GuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns) ((p)->lpVtbl->SetGuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns))
-#define IMachine_SetGuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns) ((p)->lpVtbl->SetGuestPropertyNotificationPatterns(p, aGuestPropertyNotificationPatterns))
+#define IMachine_get_DnDMode(p, aDnDMode) ((p)->lpVtbl->GetDnDMode(p, aDnDMode))
+#define IMachine_GetDnDMode(p, aDnDMode) ((p)->lpVtbl->GetDnDMode(p, aDnDMode))
+#define IMachine_put_DnDMode(p, aDnDMode) ((p)->lpVtbl->SetDnDMode(p, aDnDMode))
+#define IMachine_SetDnDMode(p, aDnDMode) ((p)->lpVtbl->SetDnDMode(p, aDnDMode))
 #define IMachine_get_TeleporterEnabled(p, aTeleporterEnabled) ((p)->lpVtbl->GetTeleporterEnabled(p, aTeleporterEnabled))
 #define IMachine_GetTeleporterEnabled(p, aTeleporterEnabled) ((p)->lpVtbl->GetTeleporterEnabled(p, aTeleporterEnabled))
 #define IMachine_put_TeleporterEnabled(p, aTeleporterEnabled) ((p)->lpVtbl->SetTeleporterEnabled(p, aTeleporterEnabled))
@@ -6683,6 +7501,10 @@ struct IMachineVtbl
 #define IMachine_GetTeleporterPassword(p, aTeleporterPassword) ((p)->lpVtbl->GetTeleporterPassword(p, aTeleporterPassword))
 #define IMachine_put_TeleporterPassword(p, aTeleporterPassword) ((p)->lpVtbl->SetTeleporterPassword(p, aTeleporterPassword))
 #define IMachine_SetTeleporterPassword(p, aTeleporterPassword) ((p)->lpVtbl->SetTeleporterPassword(p, aTeleporterPassword))
+#define IMachine_get_ParavirtProvider(p, aParavirtProvider) ((p)->lpVtbl->GetParavirtProvider(p, aParavirtProvider))
+#define IMachine_GetParavirtProvider(p, aParavirtProvider) ((p)->lpVtbl->GetParavirtProvider(p, aParavirtProvider))
+#define IMachine_put_ParavirtProvider(p, aParavirtProvider) ((p)->lpVtbl->SetParavirtProvider(p, aParavirtProvider))
+#define IMachine_SetParavirtProvider(p, aParavirtProvider) ((p)->lpVtbl->SetParavirtProvider(p, aParavirtProvider))
 #define IMachine_get_FaultToleranceState(p, aFaultToleranceState) ((p)->lpVtbl->GetFaultToleranceState(p, aFaultToleranceState))
 #define IMachine_GetFaultToleranceState(p, aFaultToleranceState) ((p)->lpVtbl->GetFaultToleranceState(p, aFaultToleranceState))
 #define IMachine_put_FaultToleranceState(p, aFaultToleranceState) ((p)->lpVtbl->SetFaultToleranceState(p, aFaultToleranceState))
@@ -6749,8 +7571,12 @@ struct IMachineVtbl
 #define IMachine_SetDefaultFrontend(p, aDefaultFrontend) ((p)->lpVtbl->SetDefaultFrontend(p, aDefaultFrontend))
 #define IMachine_get_USBProxyAvailable(p, aUSBProxyAvailable) ((p)->lpVtbl->GetUSBProxyAvailable(p, aUSBProxyAvailable))
 #define IMachine_GetUSBProxyAvailable(p, aUSBProxyAvailable) ((p)->lpVtbl->GetUSBProxyAvailable(p, aUSBProxyAvailable))
+#define IMachine_get_VMProcessPriority(p, aVMProcessPriority) ((p)->lpVtbl->GetVMProcessPriority(p, aVMProcessPriority))
+#define IMachine_GetVMProcessPriority(p, aVMProcessPriority) ((p)->lpVtbl->GetVMProcessPriority(p, aVMProcessPriority))
+#define IMachine_put_VMProcessPriority(p, aVMProcessPriority) ((p)->lpVtbl->SetVMProcessPriority(p, aVMProcessPriority))
+#define IMachine_SetVMProcessPriority(p, aVMProcessPriority) ((p)->lpVtbl->SetVMProcessPriority(p, aVMProcessPriority))
 #define IMachine_LockMachine(p, aSession, aLockType) ((p)->lpVtbl->LockMachine(p, aSession, aLockType))
-#define IMachine_LaunchVMProcess(p, aSession, aType, aEnvironment, aProgress) ((p)->lpVtbl->LaunchVMProcess(p, aSession, aType, aEnvironment, aProgress))
+#define IMachine_LaunchVMProcess(p, aSession, aName, aEnvironment, aProgress) ((p)->lpVtbl->LaunchVMProcess(p, aSession, aName, aEnvironment, aProgress))
 #define IMachine_SetBootOrder(p, aPosition, aDevice) ((p)->lpVtbl->SetBootOrder(p, aPosition, aDevice))
 #define IMachine_GetBootOrder(p, aPosition, aDevice) ((p)->lpVtbl->GetBootOrder(p, aPosition, aDevice))
 #define IMachine_AttachDevice(p, aName, aControllerPort, aDevice, aType, aMedium) ((p)->lpVtbl->AttachDevice(p, aName, aControllerPort, aDevice, aType, aMedium))
@@ -6773,7 +7599,7 @@ struct IMachineVtbl
 #define IMachine_GetNetworkAdapter(p, aSlot, aAdapter) ((p)->lpVtbl->GetNetworkAdapter(p, aSlot, aAdapter))
 #define IMachine_AddStorageController(p, aName, aConnectionType, aController) ((p)->lpVtbl->AddStorageController(p, aName, aConnectionType, aController))
 #define IMachine_GetStorageControllerByName(p, aName, aStorageController) ((p)->lpVtbl->GetStorageControllerByName(p, aName, aStorageController))
-#define IMachine_GetStorageControllerByInstance(p, aInstance, aStorageController) ((p)->lpVtbl->GetStorageControllerByInstance(p, aInstance, aStorageController))
+#define IMachine_GetStorageControllerByInstance(p, aConnectionType, aInstance, aStorageController) ((p)->lpVtbl->GetStorageControllerByInstance(p, aConnectionType, aInstance, aStorageController))
 #define IMachine_RemoveStorageController(p, aName) ((p)->lpVtbl->RemoveStorageController(p, aName))
 #define IMachine_SetStorageControllerBootable(p, aName, aBootable) ((p)->lpVtbl->SetStorageControllerBootable(p, aName, aBootable))
 #define IMachine_AddUSBController(p, aName, aType, aController) ((p)->lpVtbl->AddUSBController(p, aName, aType, aController))
@@ -6812,17 +7638,25 @@ struct IMachineVtbl
 #define IMachine_DeleteGuestProperty(p, aName) ((p)->lpVtbl->DeleteGuestProperty(p, aName))
 #define IMachine_EnumerateGuestProperties(p, aPatterns, aNames, aValues, aTimestamps, aFlags) ((p)->lpVtbl->EnumerateGuestProperties(p, aPatterns, aNames, aValues, aTimestamps, aFlags))
 #define IMachine_QuerySavedGuestScreenInfo(p, aScreenId, aOriginX, aOriginY, aWidth, aHeight, aEnabled) ((p)->lpVtbl->QuerySavedGuestScreenInfo(p, aScreenId, aOriginX, aOriginY, aWidth, aHeight, aEnabled))
-#define IMachine_QuerySavedThumbnailSize(p, aScreenId, aSize, aWidth, aHeight) ((p)->lpVtbl->QuerySavedThumbnailSize(p, aScreenId, aSize, aWidth, aHeight))
-#define IMachine_ReadSavedThumbnailToArray(p, aScreenId, aBGR, aWidth, aHeight, aData) ((p)->lpVtbl->ReadSavedThumbnailToArray(p, aScreenId, aBGR, aWidth, aHeight, aData))
-#define IMachine_ReadSavedThumbnailPNGToArray(p, aScreenId, aWidth, aHeight, aData) ((p)->lpVtbl->ReadSavedThumbnailPNGToArray(p, aScreenId, aWidth, aHeight, aData))
-#define IMachine_QuerySavedScreenshotPNGSize(p, aScreenId, aSize, aWidth, aHeight) ((p)->lpVtbl->QuerySavedScreenshotPNGSize(p, aScreenId, aSize, aWidth, aHeight))
-#define IMachine_ReadSavedScreenshotPNGToArray(p, aScreenId, aWidth, aHeight, aData) ((p)->lpVtbl->ReadSavedScreenshotPNGToArray(p, aScreenId, aWidth, aHeight, aData))
+#define IMachine_ReadSavedThumbnailToArray(p, aScreenId, aBitmapFormat, aWidth, aHeight, aData) ((p)->lpVtbl->ReadSavedThumbnailToArray(p, aScreenId, aBitmapFormat, aWidth, aHeight, aData))
+#define IMachine_QuerySavedScreenshotInfo(p, aScreenId, aWidth, aHeight, aBitmapFormats) ((p)->lpVtbl->QuerySavedScreenshotInfo(p, aScreenId, aWidth, aHeight, aBitmapFormats))
+#define IMachine_ReadSavedScreenshotToArray(p, aScreenId, aBitmapFormat, aWidth, aHeight, aData) ((p)->lpVtbl->ReadSavedScreenshotToArray(p, aScreenId, aBitmapFormat, aWidth, aHeight, aData))
 #define IMachine_HotPlugCPU(p, aCpu) ((p)->lpVtbl->HotPlugCPU(p, aCpu))
 #define IMachine_HotUnplugCPU(p, aCpu) ((p)->lpVtbl->HotUnplugCPU(p, aCpu))
 #define IMachine_GetCPUStatus(p, aCpu, aAttached) ((p)->lpVtbl->GetCPUStatus(p, aCpu, aAttached))
+#define IMachine_GetEffectiveParavirtProvider(p, aParavirtProvider) ((p)->lpVtbl->GetEffectiveParavirtProvider(p, aParavirtProvider))
 #define IMachine_QueryLogFilename(p, aIdx, aFilename) ((p)->lpVtbl->QueryLogFilename(p, aIdx, aFilename))
 #define IMachine_ReadLog(p, aIdx, aOffset, aSize, aData) ((p)->lpVtbl->ReadLog(p, aIdx, aOffset, aSize, aData))
 #define IMachine_CloneTo(p, aTarget, aMode, aOptions, aProgress) ((p)->lpVtbl->CloneTo(p, aTarget, aMode, aOptions, aProgress))
+#define IMachine_SaveState(p, aProgress) ((p)->lpVtbl->SaveState(p, aProgress))
+#define IMachine_AdoptSavedState(p, aSavedStateFile) ((p)->lpVtbl->AdoptSavedState(p, aSavedStateFile))
+#define IMachine_DiscardSavedState(p, aFRemoveFile) ((p)->lpVtbl->DiscardSavedState(p, aFRemoveFile))
+#define IMachine_TakeSnapshot(p, aName, aDescription, aPause, aId, aProgress) ((p)->lpVtbl->TakeSnapshot(p, aName, aDescription, aPause, aId, aProgress))
+#define IMachine_DeleteSnapshot(p, aId, aProgress) ((p)->lpVtbl->DeleteSnapshot(p, aId, aProgress))
+#define IMachine_DeleteSnapshotAndAllChildren(p, aId, aProgress) ((p)->lpVtbl->DeleteSnapshotAndAllChildren(p, aId, aProgress))
+#define IMachine_DeleteSnapshotRange(p, aStartId, aEndId, aProgress) ((p)->lpVtbl->DeleteSnapshotRange(p, aStartId, aEndId, aProgress))
+#define IMachine_RestoreSnapshot(p, aSnapshot, aProgress) ((p)->lpVtbl->RestoreSnapshot(p, aSnapshot, aProgress))
+#define IMachine_ApplyDefaults(p, aFlags) ((p)->lpVtbl->ApplyDefaults(p, aFlags))
 #endif /* VBOX_WITH_GLUE */
 
 interface IMachine
@@ -6837,10 +7671,10 @@ interface IMachine
 
 
 /* Start of struct IEmulatedUSB declaration */
-#define IEMULATEDUSB_IID_STR "38cc4dfd-8bb2-4d40-aebe-699eead8c2dd"
+#define IEMULATEDUSB_IID_STR "6e253ee8-477a-2497-6759-88b8292a5af0"
 #define IEMULATEDUSB_IID { \
-    0x38cc4dfd, 0x8bb2, 0x4d40, \
-    { 0xae, 0xbe, 0x69, 0x9e, 0xea, 0xd8, 0xc2, 0xdd } \
+    0x6e253ee8, 0x477a, 0x2497, \
+    { 0x67, 0x59, 0x88, 0xb8, 0x29, 0x2a, 0x5a, 0xf0 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IEmulatedUSB);
@@ -6851,6 +7685,14 @@ struct IEmulatedUSB_vtbl
 
     nsresult (*GetWebcams)(IEmulatedUSB *pThis, PRUint32 *webcamsSize, PRUnichar * **webcams);
 
+    nsresult (*GetInternalAndReservedAttribute1IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
     nsresult (*WebcamAttach)(
         IEmulatedUSB *pThis,
         PRUnichar * path,
@@ -6861,6 +7703,14 @@ struct IEmulatedUSB_vtbl
         IEmulatedUSB *pThis,
         PRUnichar * path
     );
+
+    nsresult (*InternalAndReservedMethod1IEmulatedUSB)(IEmulatedUSB *pThis);
+
+    nsresult (*InternalAndReservedMethod2IEmulatedUSB)(IEmulatedUSB *pThis);
+
+    nsresult (*InternalAndReservedMethod3IEmulatedUSB)(IEmulatedUSB *pThis);
+
+    nsresult (*InternalAndReservedMethod4IEmulatedUSB)(IEmulatedUSB *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -6871,6 +7721,14 @@ struct IEmulatedUSBVtbl
     nsrefcnt (*Release)(IEmulatedUSB *pThis);
     nsresult (*GetWebcams)(IEmulatedUSB *pThis, PRUint32 *webcamsSize, PRUnichar * **webcams);
 
+    nsresult (*GetInternalAndReservedAttribute1IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IEmulatedUSB)(IEmulatedUSB *pThis, PRUint32 *reserved);
+
     nsresult (*WebcamAttach)(
         IEmulatedUSB *pThis,
         PRUnichar * path,
@@ -6881,6 +7739,14 @@ struct IEmulatedUSBVtbl
         IEmulatedUSB *pThis,
         PRUnichar * path
     );
+
+    nsresult (*InternalAndReservedMethod1IEmulatedUSB)(IEmulatedUSB *pThis);
+
+    nsresult (*InternalAndReservedMethod2IEmulatedUSB)(IEmulatedUSB *pThis);
+
+    nsresult (*InternalAndReservedMethod3IEmulatedUSB)(IEmulatedUSB *pThis);
+
+    nsresult (*InternalAndReservedMethod4IEmulatedUSB)(IEmulatedUSB *pThis);
 
 };
 #define IEmulatedUSB_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -6904,10 +7770,10 @@ interface IEmulatedUSB
 
 
 /* Start of struct IVRDEServerInfo declaration */
-#define IVRDESERVERINFO_IID_STR "714434a1-58c3-4aab-9049-7652c5df113b"
+#define IVRDESERVERINFO_IID_STR "c39ef4d6-7532-45e8-96da-eb5986ae76e4"
 #define IVRDESERVERINFO_IID { \
-    0x714434a1, 0x58c3, 0x4aab, \
-    { 0x90, 0x49, 0x76, 0x52, 0xc5, 0xdf, 0x11, 0x3b } \
+    0xc39ef4d6, 0x7532, 0x45e8, \
+    { 0x96, 0xda, 0xeb, 0x59, 0x86, 0xae, 0x76, 0xe4 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IVRDEServerInfo);
@@ -6946,6 +7812,22 @@ struct IVRDEServerInfo_vtbl
 
     nsresult (*GetEncryptionStyle)(IVRDEServerInfo *pThis, PRUint32 *encryptionStyle);
 
+    nsresult (*GetInternalAndReservedAttribute1IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IVRDEServerInfoVtbl
@@ -6982,6 +7864,22 @@ struct IVRDEServerInfoVtbl
     nsresult (*GetClientVersion)(IVRDEServerInfo *pThis, PRUint32 *clientVersion);
 
     nsresult (*GetEncryptionStyle)(IVRDEServerInfo *pThis, PRUint32 *encryptionStyle);
+
+    nsresult (*GetInternalAndReservedAttribute1IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IVRDEServerInfo)(IVRDEServerInfo *pThis, PRUint32 *reserved);
 
 };
 #define IVRDEServerInfo_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -7031,10 +7929,10 @@ interface IVRDEServerInfo
 
 
 /* Start of struct IConsole declaration */
-#define ICONSOLE_IID_STR "8ab7c520-2442-4b66-8d74-4ff1e195d2b6"
+#define ICONSOLE_IID_STR "872da645-4a9b-1727-bee2-5585105b9eed"
 #define ICONSOLE_IID { \
-    0x8ab7c520, 0x2442, 0x4b66, \
-    { 0x8d, 0x74, 0x4f, 0xf1, 0xe1, 0x95, 0xd2, 0xb6 } \
+    0x872da645, 0x4a9b, 0x1727, \
+    { 0xbe, 0xe2, 0x55, 0x85, 0x10, 0x5b, 0x9e, 0xed } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IConsole);
@@ -7074,6 +7972,22 @@ struct IConsole_vtbl
 
     nsresult (*GetEmulatedUSB)(IConsole *pThis, IEmulatedUSB * *emulatedUSB);
 
+    nsresult (*GetInternalAndReservedAttribute1IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IConsole)(IConsole *pThis, PRUint32 *reserved);
+
     nsresult (*PowerUp)(
         IConsole *pThis,
         IProgress * * progress
@@ -7109,30 +8023,18 @@ struct IConsole_vtbl
         PRBool * entered
     );
 
-    nsresult (*SaveState)(
-        IConsole *pThis,
-        IProgress * * progress
-    );
-
-    nsresult (*AdoptSavedState)(
-        IConsole *pThis,
-        PRUnichar * savedStateFile
-    );
-
-    nsresult (*DiscardSavedState)(
-        IConsole *pThis,
-        PRBool fRemoveFile
-    );
-
     nsresult (*GetDeviceActivity)(
         IConsole *pThis,
-        PRUint32 type,
-        PRUint32 * activity
+        PRUint32 typeSize,
+        PRUint32* type,
+        PRUint32 *activitySize,
+        PRUint32** activity
     );
 
     nsresult (*AttachUSBDevice)(
         IConsole *pThis,
-        PRUnichar * id
+        PRUnichar * id,
+        PRUnichar * captureFilename
     );
 
     nsresult (*DetachUSBDevice)(
@@ -7166,38 +8068,6 @@ struct IConsole_vtbl
         PRUnichar * name
     );
 
-    nsresult (*TakeSnapshot)(
-        IConsole *pThis,
-        PRUnichar * name,
-        PRUnichar * description,
-        IProgress * * progress
-    );
-
-    nsresult (*DeleteSnapshot)(
-        IConsole *pThis,
-        PRUnichar * id,
-        IProgress * * progress
-    );
-
-    nsresult (*DeleteSnapshotAndAllChildren)(
-        IConsole *pThis,
-        PRUnichar * id,
-        IProgress * * progress
-    );
-
-    nsresult (*DeleteSnapshotRange)(
-        IConsole *pThis,
-        PRUnichar * startId,
-        PRUnichar * endId,
-        IProgress * * progress
-    );
-
-    nsresult (*RestoreSnapshot)(
-        IConsole *pThis,
-        ISnapshot * snapshot,
-        IProgress * * progress
-    );
-
     nsresult (*Teleport)(
         IConsole *pThis,
         PRUnichar * hostname,
@@ -7206,6 +8076,45 @@ struct IConsole_vtbl
         PRUint32 maxDowntime,
         IProgress * * progress
     );
+
+    nsresult (*AddDiskEncryptionPassword)(
+        IConsole *pThis,
+        PRUnichar * id,
+        PRUnichar * password,
+        PRBool clearOnSuspend
+    );
+
+    nsresult (*AddDiskEncryptionPasswords)(
+        IConsole *pThis,
+        PRUint32 idsSize,
+        PRUnichar ** ids,
+        PRUint32 passwordsSize,
+        PRUnichar ** passwords,
+        PRBool clearOnSuspend
+    );
+
+    nsresult (*RemoveDiskEncryptionPassword)(
+        IConsole *pThis,
+        PRUnichar * id
+    );
+
+    nsresult (*ClearAllDiskEncryptionPasswords)(IConsole *pThis );
+
+    nsresult (*InternalAndReservedMethod1IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod2IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod3IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod4IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod5IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod6IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod7IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod8IConsole)(IConsole *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -7245,6 +8154,22 @@ struct IConsoleVtbl
 
     nsresult (*GetEmulatedUSB)(IConsole *pThis, IEmulatedUSB * *emulatedUSB);
 
+    nsresult (*GetInternalAndReservedAttribute1IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IConsole)(IConsole *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IConsole)(IConsole *pThis, PRUint32 *reserved);
+
     nsresult (*PowerUp)(
         IConsole *pThis,
         IProgress * * progress
@@ -7280,30 +8205,18 @@ struct IConsoleVtbl
         PRBool * entered
     );
 
-    nsresult (*SaveState)(
-        IConsole *pThis,
-        IProgress * * progress
-    );
-
-    nsresult (*AdoptSavedState)(
-        IConsole *pThis,
-        PRUnichar * savedStateFile
-    );
-
-    nsresult (*DiscardSavedState)(
-        IConsole *pThis,
-        PRBool fRemoveFile
-    );
-
     nsresult (*GetDeviceActivity)(
         IConsole *pThis,
-        PRUint32 type,
-        PRUint32 * activity
+        PRUint32 typeSize,
+        PRUint32* type,
+        PRUint32 *activitySize,
+        PRUint32** activity
     );
 
     nsresult (*AttachUSBDevice)(
         IConsole *pThis,
-        PRUnichar * id
+        PRUnichar * id,
+        PRUnichar * captureFilename
     );
 
     nsresult (*DetachUSBDevice)(
@@ -7337,38 +8250,6 @@ struct IConsoleVtbl
         PRUnichar * name
     );
 
-    nsresult (*TakeSnapshot)(
-        IConsole *pThis,
-        PRUnichar * name,
-        PRUnichar * description,
-        IProgress * * progress
-    );
-
-    nsresult (*DeleteSnapshot)(
-        IConsole *pThis,
-        PRUnichar * id,
-        IProgress * * progress
-    );
-
-    nsresult (*DeleteSnapshotAndAllChildren)(
-        IConsole *pThis,
-        PRUnichar * id,
-        IProgress * * progress
-    );
-
-    nsresult (*DeleteSnapshotRange)(
-        IConsole *pThis,
-        PRUnichar * startId,
-        PRUnichar * endId,
-        IProgress * * progress
-    );
-
-    nsresult (*RestoreSnapshot)(
-        IConsole *pThis,
-        ISnapshot * snapshot,
-        IProgress * * progress
-    );
-
     nsresult (*Teleport)(
         IConsole *pThis,
         PRUnichar * hostname,
@@ -7377,6 +8258,45 @@ struct IConsoleVtbl
         PRUint32 maxDowntime,
         IProgress * * progress
     );
+
+    nsresult (*AddDiskEncryptionPassword)(
+        IConsole *pThis,
+        PRUnichar * id,
+        PRUnichar * password,
+        PRBool clearOnSuspend
+    );
+
+    nsresult (*AddDiskEncryptionPasswords)(
+        IConsole *pThis,
+        PRUint32 idsSize,
+        PRUnichar ** ids,
+        PRUint32 passwordsSize,
+        PRUnichar ** passwords,
+        PRBool clearOnSuspend
+    );
+
+    nsresult (*RemoveDiskEncryptionPassword)(
+        IConsole *pThis,
+        PRUnichar * id
+    );
+
+    nsresult (*ClearAllDiskEncryptionPasswords)(IConsole *pThis );
+
+    nsresult (*InternalAndReservedMethod1IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod2IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod3IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod4IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod5IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod6IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod7IConsole)(IConsole *pThis);
+
+    nsresult (*InternalAndReservedMethod8IConsole)(IConsole *pThis);
 
 };
 #define IConsole_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -7424,22 +8344,18 @@ struct IConsoleVtbl
 #define IConsole_SleepButton(p) ((p)->lpVtbl->SleepButton(p))
 #define IConsole_GetPowerButtonHandled(p, aHandled) ((p)->lpVtbl->GetPowerButtonHandled(p, aHandled))
 #define IConsole_GetGuestEnteredACPIMode(p, aEntered) ((p)->lpVtbl->GetGuestEnteredACPIMode(p, aEntered))
-#define IConsole_SaveState(p, aProgress) ((p)->lpVtbl->SaveState(p, aProgress))
-#define IConsole_AdoptSavedState(p, aSavedStateFile) ((p)->lpVtbl->AdoptSavedState(p, aSavedStateFile))
-#define IConsole_DiscardSavedState(p, aFRemoveFile) ((p)->lpVtbl->DiscardSavedState(p, aFRemoveFile))
 #define IConsole_GetDeviceActivity(p, aType, aActivity) ((p)->lpVtbl->GetDeviceActivity(p, aType, aActivity))
-#define IConsole_AttachUSBDevice(p, aId) ((p)->lpVtbl->AttachUSBDevice(p, aId))
+#define IConsole_AttachUSBDevice(p, aId, aCaptureFilename) ((p)->lpVtbl->AttachUSBDevice(p, aId, aCaptureFilename))
 #define IConsole_DetachUSBDevice(p, aId, aDevice) ((p)->lpVtbl->DetachUSBDevice(p, aId, aDevice))
 #define IConsole_FindUSBDeviceByAddress(p, aName, aDevice) ((p)->lpVtbl->FindUSBDeviceByAddress(p, aName, aDevice))
 #define IConsole_FindUSBDeviceById(p, aId, aDevice) ((p)->lpVtbl->FindUSBDeviceById(p, aId, aDevice))
 #define IConsole_CreateSharedFolder(p, aName, aHostPath, aWritable, aAutomount) ((p)->lpVtbl->CreateSharedFolder(p, aName, aHostPath, aWritable, aAutomount))
 #define IConsole_RemoveSharedFolder(p, aName) ((p)->lpVtbl->RemoveSharedFolder(p, aName))
-#define IConsole_TakeSnapshot(p, aName, aDescription, aProgress) ((p)->lpVtbl->TakeSnapshot(p, aName, aDescription, aProgress))
-#define IConsole_DeleteSnapshot(p, aId, aProgress) ((p)->lpVtbl->DeleteSnapshot(p, aId, aProgress))
-#define IConsole_DeleteSnapshotAndAllChildren(p, aId, aProgress) ((p)->lpVtbl->DeleteSnapshotAndAllChildren(p, aId, aProgress))
-#define IConsole_DeleteSnapshotRange(p, aStartId, aEndId, aProgress) ((p)->lpVtbl->DeleteSnapshotRange(p, aStartId, aEndId, aProgress))
-#define IConsole_RestoreSnapshot(p, aSnapshot, aProgress) ((p)->lpVtbl->RestoreSnapshot(p, aSnapshot, aProgress))
 #define IConsole_Teleport(p, aHostname, aTcpport, aPassword, aMaxDowntime, aProgress) ((p)->lpVtbl->Teleport(p, aHostname, aTcpport, aPassword, aMaxDowntime, aProgress))
+#define IConsole_AddDiskEncryptionPassword(p, aId, aPassword, aClearOnSuspend) ((p)->lpVtbl->AddDiskEncryptionPassword(p, aId, aPassword, aClearOnSuspend))
+#define IConsole_AddDiskEncryptionPasswords(p, aIds, aPasswords, aClearOnSuspend) ((p)->lpVtbl->AddDiskEncryptionPasswords(p, aIds, aPasswords, aClearOnSuspend))
+#define IConsole_RemoveDiskEncryptionPassword(p, aId) ((p)->lpVtbl->RemoveDiskEncryptionPassword(p, aId))
+#define IConsole_ClearAllDiskEncryptionPasswords(p) ((p)->lpVtbl->ClearAllDiskEncryptionPasswords(p))
 #endif /* VBOX_WITH_GLUE */
 
 interface IConsole
@@ -7454,10 +8370,10 @@ interface IConsole
 
 
 /* Start of struct IHostNetworkInterface declaration */
-#define IHOSTNETWORKINTERFACE_IID_STR "f6e556f9-d598-409b-898c-8ba99d9b05ae"
+#define IHOSTNETWORKINTERFACE_IID_STR "455f8c45-44a0-a470-ba20-27890b96dba9"
 #define IHOSTNETWORKINTERFACE_IID { \
-    0xf6e556f9, 0xd598, 0x409b, \
-    { 0x89, 0x8c, 0x8b, 0xa9, 0x9d, 0x9b, 0x05, 0xae } \
+    0x455f8c45, 0x44a0, 0xa470, \
+    { 0xba, 0x20, 0x27, 0x89, 0x0b, 0x96, 0xdb, 0xa9 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IHostNetworkInterface);
@@ -7494,6 +8410,14 @@ struct IHostNetworkInterface_vtbl
 
     nsresult (*GetInterfaceType)(IHostNetworkInterface *pThis, PRUint32 *interfaceType);
 
+    nsresult (*GetInternalAndReservedAttribute1IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
     nsresult (*EnableStaticIPConfig)(
         IHostNetworkInterface *pThis,
         PRUnichar * IPAddress,
@@ -7509,6 +8433,10 @@ struct IHostNetworkInterface_vtbl
     nsresult (*EnableDynamicIPConfig)(IHostNetworkInterface *pThis );
 
     nsresult (*DHCPRediscover)(IHostNetworkInterface *pThis );
+
+    nsresult (*InternalAndReservedMethod1IHostNetworkInterface)(IHostNetworkInterface *pThis);
+
+    nsresult (*InternalAndReservedMethod2IHostNetworkInterface)(IHostNetworkInterface *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -7545,6 +8473,14 @@ struct IHostNetworkInterfaceVtbl
 
     nsresult (*GetInterfaceType)(IHostNetworkInterface *pThis, PRUint32 *interfaceType);
 
+    nsresult (*GetInternalAndReservedAttribute1IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostNetworkInterface)(IHostNetworkInterface *pThis, PRUint32 *reserved);
+
     nsresult (*EnableStaticIPConfig)(
         IHostNetworkInterface *pThis,
         PRUnichar * IPAddress,
@@ -7560,6 +8496,10 @@ struct IHostNetworkInterfaceVtbl
     nsresult (*EnableDynamicIPConfig)(IHostNetworkInterface *pThis );
 
     nsresult (*DHCPRediscover)(IHostNetworkInterface *pThis );
+
+    nsresult (*InternalAndReservedMethod1IHostNetworkInterface)(IHostNetworkInterface *pThis);
+
+    nsresult (*InternalAndReservedMethod2IHostNetworkInterface)(IHostNetworkInterface *pThis);
 
 };
 #define IHostNetworkInterface_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -7611,10 +8551,10 @@ interface IHostNetworkInterface
 
 
 /* Start of struct IHostVideoInputDevice declaration */
-#define IHOSTVIDEOINPUTDEVICE_IID_STR "a1ceae44-d65e-4156-9359-d390f93ee9a0"
+#define IHOSTVIDEOINPUTDEVICE_IID_STR "e8c25d4d-ac97-4c16-b3e2-81bd8a57cc27"
 #define IHOSTVIDEOINPUTDEVICE_IID { \
-    0xa1ceae44, 0xd65e, 0x4156, \
-    { 0x93, 0x59, 0xd3, 0x90, 0xf9, 0x3e, 0xe9, 0xa0 } \
+    0xe8c25d4d, 0xac97, 0x4c16, \
+    { 0xb3, 0xe2, 0x81, 0xbd, 0x8a, 0x57, 0xcc, 0x27 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IHostVideoInputDevice);
@@ -7629,6 +8569,14 @@ struct IHostVideoInputDevice_vtbl
 
     nsresult (*GetAlias)(IHostVideoInputDevice *pThis, PRUnichar * *alias);
 
+    nsresult (*GetInternalAndReservedAttribute1IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IHostVideoInputDeviceVtbl
@@ -7641,6 +8589,14 @@ struct IHostVideoInputDeviceVtbl
     nsresult (*GetPath)(IHostVideoInputDevice *pThis, PRUnichar * *path);
 
     nsresult (*GetAlias)(IHostVideoInputDevice *pThis, PRUnichar * *alias);
+
+    nsresult (*GetInternalAndReservedAttribute1IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostVideoInputDevice)(IHostVideoInputDevice *pThis, PRUint32 *reserved);
 
 };
 #define IHostVideoInputDevice_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -7666,10 +8622,10 @@ interface IHostVideoInputDevice
 
 
 /* Start of struct IHost declaration */
-#define IHOST_IID_STR "93269330-48ca-4096-b4a2-1189df336267"
+#define IHOST_IID_STR "afca788c-4477-787d-60b2-3fa70e56fbbc"
 #define IHOST_IID { \
-    0x93269330, 0x48ca, 0x4096, \
-    { 0xb4, 0xa2, 0x11, 0x89, 0xdf, 0x33, 0x62, 0x67 } \
+    0xafca788c, 0x4477, 0x787d, \
+    { 0x60, 0xb2, 0x3f, 0xa7, 0x0e, 0x56, 0xfb, 0xbc } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IHost);
@@ -7716,6 +8672,30 @@ struct IHost_vtbl
 
     nsresult (*GetVideoInputDevices)(IHost *pThis, PRUint32 *videoInputDevicesSize, IHostVideoInputDevice * **videoInputDevices);
 
+    nsresult (*GetInternalAndReservedAttribute1IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IHost)(IHost *pThis, PRUint32 *reserved);
+
     nsresult (*GetProcessorSpeed)(
         IHost *pThis,
         PRUint32 cpuId,
@@ -7821,6 +8801,10 @@ struct IHost_vtbl
         IHost *pThis,
         PRUnichar * * address
     );
+
+    nsresult (*InternalAndReservedMethod1IHost)(IHost *pThis);
+
+    nsresult (*InternalAndReservedMethod2IHost)(IHost *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -7867,6 +8851,30 @@ struct IHostVtbl
 
     nsresult (*GetVideoInputDevices)(IHost *pThis, PRUint32 *videoInputDevicesSize, IHostVideoInputDevice * **videoInputDevices);
 
+    nsresult (*GetInternalAndReservedAttribute1IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IHost)(IHost *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IHost)(IHost *pThis, PRUint32 *reserved);
+
     nsresult (*GetProcessorSpeed)(
         IHost *pThis,
         PRUint32 cpuId,
@@ -7972,6 +8980,10 @@ struct IHostVtbl
         IHost *pThis,
         PRUnichar * * address
     );
+
+    nsresult (*InternalAndReservedMethod1IHost)(IHost *pThis);
+
+    nsresult (*InternalAndReservedMethod2IHost)(IHost *pThis);
 
 };
 #define IHost_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -8046,10 +9058,10 @@ interface IHost
 
 
 /* Start of struct ISystemProperties declaration */
-#define ISYSTEMPROPERTIES_IID_STR "1254a96a-ae57-4484-946a-22d86c1f98af"
+#define ISYSTEMPROPERTIES_IID_STR "0eb668d2-495e-5a36-8890-29999b5f030c"
 #define ISYSTEMPROPERTIES_IID { \
-    0x1254a96a, 0xae57, 0x4484, \
-    { 0x94, 0x6a, 0x22, 0xd8, 0x6c, 0x1f, 0x98, 0xaf } \
+    0x0eb668d2, 0x495e, 0x5a36, \
+    { 0x88, 0x90, 0x29, 0x99, 0x9b, 0x5f, 0x03, 0x0c } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_ISystemProperties);
@@ -8080,6 +9092,8 @@ struct ISystemProperties_vtbl
 
     nsresult (*GetMaxBootPosition)(ISystemProperties *pThis, PRUint32 *maxBootPosition);
 
+    nsresult (*GetRawModeSupported)(ISystemProperties *pThis, PRBool *rawModeSupported);
+
     nsresult (*GetExclusiveHwVirt)(ISystemProperties *pThis, PRBool *exclusiveHwVirt);
     nsresult (*SetExclusiveHwVirt)(ISystemProperties *pThis, PRBool exclusiveHwVirt);
 
@@ -8128,6 +9142,40 @@ struct ISystemProperties_vtbl
 
     nsresult (*GetDefaultFrontend)(ISystemProperties *pThis, PRUnichar * *defaultFrontend);
     nsresult (*SetDefaultFrontend)(ISystemProperties *pThis, PRUnichar * defaultFrontend);
+
+    nsresult (*GetScreenShotFormats)(ISystemProperties *pThis, PRUint32 *screenShotFormatsSize, PRUint32 **screenShotFormats);
+
+    nsresult (*GetInternalAndReservedAttribute1ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
 
     nsresult (*GetMaxNetworkAdapters)(
         ISystemProperties *pThis,
@@ -8180,12 +9228,26 @@ struct ISystemProperties_vtbl
         PRBool * enabled
     );
 
+    nsresult (*GetStorageControllerHotplugCapable)(
+        ISystemProperties *pThis,
+        PRUint32 controllerType,
+        PRBool * hotplugCapable
+    );
+
     nsresult (*GetMaxInstancesOfUSBControllerType)(
         ISystemProperties *pThis,
         PRUint32 chipset,
         PRUint32 type,
         PRUint32 * maxInstances
     );
+
+    nsresult (*InternalAndReservedMethod1ISystemProperties)(ISystemProperties *pThis);
+
+    nsresult (*InternalAndReservedMethod2ISystemProperties)(ISystemProperties *pThis);
+
+    nsresult (*InternalAndReservedMethod3ISystemProperties)(ISystemProperties *pThis);
+
+    nsresult (*InternalAndReservedMethod4ISystemProperties)(ISystemProperties *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -8216,6 +9278,8 @@ struct ISystemPropertiesVtbl
 
     nsresult (*GetMaxBootPosition)(ISystemProperties *pThis, PRUint32 *maxBootPosition);
 
+    nsresult (*GetRawModeSupported)(ISystemProperties *pThis, PRBool *rawModeSupported);
+
     nsresult (*GetExclusiveHwVirt)(ISystemProperties *pThis, PRBool *exclusiveHwVirt);
     nsresult (*SetExclusiveHwVirt)(ISystemProperties *pThis, PRBool exclusiveHwVirt);
 
@@ -8264,6 +9328,40 @@ struct ISystemPropertiesVtbl
 
     nsresult (*GetDefaultFrontend)(ISystemProperties *pThis, PRUnichar * *defaultFrontend);
     nsresult (*SetDefaultFrontend)(ISystemProperties *pThis, PRUnichar * defaultFrontend);
+
+    nsresult (*GetScreenShotFormats)(ISystemProperties *pThis, PRUint32 *screenShotFormatsSize, PRUint32 **screenShotFormats);
+
+    nsresult (*GetInternalAndReservedAttribute1ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16ISystemProperties)(ISystemProperties *pThis, PRUint32 *reserved);
 
     nsresult (*GetMaxNetworkAdapters)(
         ISystemProperties *pThis,
@@ -8316,12 +9414,26 @@ struct ISystemPropertiesVtbl
         PRBool * enabled
     );
 
+    nsresult (*GetStorageControllerHotplugCapable)(
+        ISystemProperties *pThis,
+        PRUint32 controllerType,
+        PRBool * hotplugCapable
+    );
+
     nsresult (*GetMaxInstancesOfUSBControllerType)(
         ISystemProperties *pThis,
         PRUint32 chipset,
         PRUint32 type,
         PRUint32 * maxInstances
     );
+
+    nsresult (*InternalAndReservedMethod1ISystemProperties)(ISystemProperties *pThis);
+
+    nsresult (*InternalAndReservedMethod2ISystemProperties)(ISystemProperties *pThis);
+
+    nsresult (*InternalAndReservedMethod3ISystemProperties)(ISystemProperties *pThis);
+
+    nsresult (*InternalAndReservedMethod4ISystemProperties)(ISystemProperties *pThis);
 
 };
 #define ISystemProperties_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -8349,6 +9461,8 @@ struct ISystemPropertiesVtbl
 #define ISystemProperties_GetParallelPortCount(p, aParallelPortCount) ((p)->lpVtbl->GetParallelPortCount(p, aParallelPortCount))
 #define ISystemProperties_get_MaxBootPosition(p, aMaxBootPosition) ((p)->lpVtbl->GetMaxBootPosition(p, aMaxBootPosition))
 #define ISystemProperties_GetMaxBootPosition(p, aMaxBootPosition) ((p)->lpVtbl->GetMaxBootPosition(p, aMaxBootPosition))
+#define ISystemProperties_get_RawModeSupported(p, aRawModeSupported) ((p)->lpVtbl->GetRawModeSupported(p, aRawModeSupported))
+#define ISystemProperties_GetRawModeSupported(p, aRawModeSupported) ((p)->lpVtbl->GetRawModeSupported(p, aRawModeSupported))
 #define ISystemProperties_get_ExclusiveHwVirt(p, aExclusiveHwVirt) ((p)->lpVtbl->GetExclusiveHwVirt(p, aExclusiveHwVirt))
 #define ISystemProperties_GetExclusiveHwVirt(p, aExclusiveHwVirt) ((p)->lpVtbl->GetExclusiveHwVirt(p, aExclusiveHwVirt))
 #define ISystemProperties_put_ExclusiveHwVirt(p, aExclusiveHwVirt) ((p)->lpVtbl->SetExclusiveHwVirt(p, aExclusiveHwVirt))
@@ -8413,6 +9527,8 @@ struct ISystemPropertiesVtbl
 #define ISystemProperties_GetDefaultFrontend(p, aDefaultFrontend) ((p)->lpVtbl->GetDefaultFrontend(p, aDefaultFrontend))
 #define ISystemProperties_put_DefaultFrontend(p, aDefaultFrontend) ((p)->lpVtbl->SetDefaultFrontend(p, aDefaultFrontend))
 #define ISystemProperties_SetDefaultFrontend(p, aDefaultFrontend) ((p)->lpVtbl->SetDefaultFrontend(p, aDefaultFrontend))
+#define ISystemProperties_get_ScreenShotFormats(p, aScreenShotFormats) ((p)->lpVtbl->GetScreenShotFormats(p, aScreenShotFormats))
+#define ISystemProperties_GetScreenShotFormats(p, aScreenShotFormats) ((p)->lpVtbl->GetScreenShotFormats(p, aScreenShotFormats))
 #define ISystemProperties_GetMaxNetworkAdapters(p, aChipset, aMaxNetworkAdapters) ((p)->lpVtbl->GetMaxNetworkAdapters(p, aChipset, aMaxNetworkAdapters))
 #define ISystemProperties_GetMaxNetworkAdaptersOfType(p, aChipset, aType, aMaxNetworkAdapters) ((p)->lpVtbl->GetMaxNetworkAdaptersOfType(p, aChipset, aType, aMaxNetworkAdapters))
 #define ISystemProperties_GetMaxDevicesPerPortForStorageBus(p, aBus, aMaxDevicesPerPort) ((p)->lpVtbl->GetMaxDevicesPerPortForStorageBus(p, aBus, aMaxDevicesPerPort))
@@ -8421,6 +9537,7 @@ struct ISystemPropertiesVtbl
 #define ISystemProperties_GetMaxInstancesOfStorageBus(p, aChipset, aBus, aMaxInstances) ((p)->lpVtbl->GetMaxInstancesOfStorageBus(p, aChipset, aBus, aMaxInstances))
 #define ISystemProperties_GetDeviceTypesForStorageBus(p, aBus, aDeviceTypes) ((p)->lpVtbl->GetDeviceTypesForStorageBus(p, aBus, aDeviceTypes))
 #define ISystemProperties_GetDefaultIoCacheSettingForStorageController(p, aControllerType, aEnabled) ((p)->lpVtbl->GetDefaultIoCacheSettingForStorageController(p, aControllerType, aEnabled))
+#define ISystemProperties_GetStorageControllerHotplugCapable(p, aControllerType, aHotplugCapable) ((p)->lpVtbl->GetStorageControllerHotplugCapable(p, aControllerType, aHotplugCapable))
 #define ISystemProperties_GetMaxInstancesOfUSBControllerType(p, aChipset, aType, aMaxInstances) ((p)->lpVtbl->GetMaxInstancesOfUSBControllerType(p, aChipset, aType, aMaxInstances))
 #endif /* VBOX_WITH_GLUE */
 
@@ -8436,10 +9553,10 @@ interface ISystemProperties
 
 
 /* Start of struct IGuestOSType declaration */
-#define IGUESTOSTYPE_IID_STR "6d968f9a-858b-4c50-bf17-241f069e94c2"
+#define IGUESTOSTYPE_IID_STR "03cd409d-20f5-43f9-8de1-4a129620990b"
 #define IGUESTOSTYPE_IID { \
-    0x6d968f9a, 0x858b, 0x4c50, \
-    { 0xbf, 0x17, 0x24, 0x1f, 0x06, 0x9e, 0x94, 0xc2 } \
+    0x03cd409d, 0x20f5, 0x43f9, \
+    { 0x8d, 0xe1, 0x4a, 0x12, 0x96, 0x20, 0x99, 0x0b } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IGuestOSType);
@@ -8498,9 +9615,45 @@ struct IGuestOSType_vtbl
 
     nsresult (*GetRecommendedAudioController)(IGuestOSType *pThis, PRUint32 *recommendedAudioController);
 
+    nsresult (*GetRecommendedAudioCodec)(IGuestOSType *pThis, PRUint32 *recommendedAudioCodec);
+
     nsresult (*GetRecommendedFloppy)(IGuestOSType *pThis, PRBool *recommendedFloppy);
 
     nsresult (*GetRecommendedUSB)(IGuestOSType *pThis, PRBool *recommendedUSB);
+
+    nsresult (*GetRecommendedTFReset)(IGuestOSType *pThis, PRBool *recommendedTFReset);
+
+    nsresult (*GetInternalAndReservedAttribute1IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -8559,9 +9712,45 @@ struct IGuestOSTypeVtbl
 
     nsresult (*GetRecommendedAudioController)(IGuestOSType *pThis, PRUint32 *recommendedAudioController);
 
+    nsresult (*GetRecommendedAudioCodec)(IGuestOSType *pThis, PRUint32 *recommendedAudioCodec);
+
     nsresult (*GetRecommendedFloppy)(IGuestOSType *pThis, PRBool *recommendedFloppy);
 
     nsresult (*GetRecommendedUSB)(IGuestOSType *pThis, PRBool *recommendedUSB);
+
+    nsresult (*GetRecommendedTFReset)(IGuestOSType *pThis, PRBool *recommendedTFReset);
+
+    nsresult (*GetInternalAndReservedAttribute1IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IGuestOSType)(IGuestOSType *pThis, PRUint32 *reserved);
 
 };
 #define IGuestOSType_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -8617,10 +9806,14 @@ struct IGuestOSTypeVtbl
 #define IGuestOSType_GetRecommendedChipset(p, aRecommendedChipset) ((p)->lpVtbl->GetRecommendedChipset(p, aRecommendedChipset))
 #define IGuestOSType_get_RecommendedAudioController(p, aRecommendedAudioController) ((p)->lpVtbl->GetRecommendedAudioController(p, aRecommendedAudioController))
 #define IGuestOSType_GetRecommendedAudioController(p, aRecommendedAudioController) ((p)->lpVtbl->GetRecommendedAudioController(p, aRecommendedAudioController))
+#define IGuestOSType_get_RecommendedAudioCodec(p, aRecommendedAudioCodec) ((p)->lpVtbl->GetRecommendedAudioCodec(p, aRecommendedAudioCodec))
+#define IGuestOSType_GetRecommendedAudioCodec(p, aRecommendedAudioCodec) ((p)->lpVtbl->GetRecommendedAudioCodec(p, aRecommendedAudioCodec))
 #define IGuestOSType_get_RecommendedFloppy(p, aRecommendedFloppy) ((p)->lpVtbl->GetRecommendedFloppy(p, aRecommendedFloppy))
 #define IGuestOSType_GetRecommendedFloppy(p, aRecommendedFloppy) ((p)->lpVtbl->GetRecommendedFloppy(p, aRecommendedFloppy))
 #define IGuestOSType_get_RecommendedUSB(p, aRecommendedUSB) ((p)->lpVtbl->GetRecommendedUSB(p, aRecommendedUSB))
 #define IGuestOSType_GetRecommendedUSB(p, aRecommendedUSB) ((p)->lpVtbl->GetRecommendedUSB(p, aRecommendedUSB))
+#define IGuestOSType_get_RecommendedTFReset(p, aRecommendedTFReset) ((p)->lpVtbl->GetRecommendedTFReset(p, aRecommendedTFReset))
+#define IGuestOSType_GetRecommendedTFReset(p, aRecommendedTFReset) ((p)->lpVtbl->GetRecommendedTFReset(p, aRecommendedTFReset))
 #endif /* VBOX_WITH_GLUE */
 
 interface IGuestOSType
@@ -8635,10 +9828,10 @@ interface IGuestOSType
 
 
 /* Start of struct IAdditionsFacility declaration */
-#define IADDITIONSFACILITY_IID_STR "54992946-6af1-4e49-98ec-58b558b7291e"
+#define IADDITIONSFACILITY_IID_STR "f2f7fae4-4a06-81fc-a916-78b2da1fa0e5"
 #define IADDITIONSFACILITY_IID { \
-    0x54992946, 0x6af1, 0x4e49, \
-    { 0x98, 0xec, 0x58, 0xb5, 0x58, 0xb7, 0x29, 0x1e } \
+    0xf2f7fae4, 0x4a06, 0x81fc, \
+    { 0xa9, 0x16, 0x78, 0xb2, 0xda, 0x1f, 0xa0, 0xe5 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IAdditionsFacility);
@@ -8657,6 +9850,10 @@ struct IAdditionsFacility_vtbl
 
     nsresult (*GetType)(IAdditionsFacility *pThis, PRUint32 *type);
 
+    nsresult (*GetInternalAndReservedAttribute1IAdditionsFacility)(IAdditionsFacility *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IAdditionsFacility)(IAdditionsFacility *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IAdditionsFacilityVtbl
@@ -8673,6 +9870,10 @@ struct IAdditionsFacilityVtbl
     nsresult (*GetStatus)(IAdditionsFacility *pThis, PRUint32 *status);
 
     nsresult (*GetType)(IAdditionsFacility *pThis, PRUint32 *type);
+
+    nsresult (*GetInternalAndReservedAttribute1IAdditionsFacility)(IAdditionsFacility *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IAdditionsFacility)(IAdditionsFacility *pThis, PRUint32 *reserved);
 
 };
 #define IAdditionsFacility_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -8701,11 +9902,711 @@ interface IAdditionsFacility
 /* End of struct IAdditionsFacility declaration */
 
 
+/* Start of struct IDnDBase declaration */
+#define IDNDBASE_IID_STR "4132147b-42f8-cd96-7570-6a8800e3342c"
+#define IDNDBASE_IID { \
+    0x4132147b, 0x42f8, 0xcd96, \
+    { 0x75, 0x70, 0x6a, 0x88, 0x00, 0xe3, 0x34, 0x2c } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IDnDBase);
+#ifndef VBOX_WITH_GLUE
+struct IDnDBase_vtbl
+{
+    struct nsISupports_vtbl nsisupports;
+
+    nsresult (*GetFormats)(IDnDBase *pThis, PRUint32 *formatsSize, PRUnichar * **formats);
+
+    nsresult (*GetProtocolVersion)(IDnDBase *pThis, PRUint32 *protocolVersion);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDBase)(IDnDBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDBase)(IDnDBase *pThis, PRUint32 *reserved);
+
+    nsresult (*IsFormatSupported)(
+        IDnDBase *pThis,
+        PRUnichar * format,
+        PRBool * supported
+    );
+
+    nsresult (*AddFormats)(
+        IDnDBase *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*RemoveFormats)(
+        IDnDBase *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDBase)(IDnDBase *pThis);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IDnDBaseVtbl
+{
+    nsresult (*QueryInterface)(IDnDBase *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IDnDBase *pThis);
+    nsrefcnt (*Release)(IDnDBase *pThis);
+    nsresult (*GetFormats)(IDnDBase *pThis, PRUint32 *formatsSize, PRUnichar * **formats);
+
+    nsresult (*GetProtocolVersion)(IDnDBase *pThis, PRUint32 *protocolVersion);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDBase)(IDnDBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDBase)(IDnDBase *pThis, PRUint32 *reserved);
+
+    nsresult (*IsFormatSupported)(
+        IDnDBase *pThis,
+        PRUnichar * format,
+        PRBool * supported
+    );
+
+    nsresult (*AddFormats)(
+        IDnDBase *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*RemoveFormats)(
+        IDnDBase *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDBase)(IDnDBase *pThis);
+
+};
+#define IDnDBase_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IDnDBase_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IDnDBase_Release(p) ((p)->lpVtbl->Release(p))
+#define IDnDBase_get_Formats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IDnDBase_GetFormats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IDnDBase_get_ProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IDnDBase_GetProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IDnDBase_IsFormatSupported(p, aFormat, aSupported) ((p)->lpVtbl->IsFormatSupported(p, aFormat, aSupported))
+#define IDnDBase_AddFormats(p, aFormats) ((p)->lpVtbl->AddFormats(p, aFormats))
+#define IDnDBase_RemoveFormats(p, aFormats) ((p)->lpVtbl->RemoveFormats(p, aFormats))
+#endif /* VBOX_WITH_GLUE */
+
+interface IDnDBase
+{
+#ifndef VBOX_WITH_GLUE
+    struct IDnDBase_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IDnDBaseVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IDnDBase declaration */
+
+
+/* Start of struct IDnDSource declaration */
+#define IDNDSOURCE_IID_STR "d23a9ca3-42da-c94b-8aec-21968e08355d"
+#define IDNDSOURCE_IID { \
+    0xd23a9ca3, 0x42da, 0xc94b, \
+    { 0x8a, 0xec, 0x21, 0x96, 0x8e, 0x08, 0x35, 0x5d } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IDnDSource);
+#ifndef VBOX_WITH_GLUE
+struct IDnDSource_vtbl
+{
+    struct IDnDBase_vtbl idndbase;
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDSource)(IDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDSource)(IDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*DragIsPending)(
+        IDnDSource *pThis,
+        PRUint32 screenId,
+        PRUint32 *formatsSize,
+        PRUnichar *** formats,
+        PRUint32 *allowedActionsSize,
+        PRUint32** allowedActions,
+        PRUint32 * defaultAction
+    );
+
+    nsresult (*Drop)(
+        IDnDSource *pThis,
+        PRUnichar * format,
+        PRUint32 action,
+        IProgress * * progress
+    );
+
+    nsresult (*ReceiveData)(
+        IDnDSource *pThis,
+        PRUint32 *dataSize,
+        PRUint8** data
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDSource)(IDnDSource *pThis);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IDnDSourceVtbl
+{
+    nsresult (*QueryInterface)(IDnDSource *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IDnDSource *pThis);
+    nsrefcnt (*Release)(IDnDSource *pThis);
+    nsresult (*GetFormats)(IDnDSource *pThis, PRUint32 *formatsSize, PRUnichar * **formats);
+
+    nsresult (*GetProtocolVersion)(IDnDSource *pThis, PRUint32 *protocolVersion);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDBase)(IDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDBase)(IDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*IsFormatSupported)(
+        IDnDSource *pThis,
+        PRUnichar * format,
+        PRBool * supported
+    );
+
+    nsresult (*AddFormats)(
+        IDnDSource *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*RemoveFormats)(
+        IDnDSource *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDBase)(IDnDSource *pThis);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDSource)(IDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDSource)(IDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*DragIsPending)(
+        IDnDSource *pThis,
+        PRUint32 screenId,
+        PRUint32 *formatsSize,
+        PRUnichar *** formats,
+        PRUint32 *allowedActionsSize,
+        PRUint32** allowedActions,
+        PRUint32 * defaultAction
+    );
+
+    nsresult (*Drop)(
+        IDnDSource *pThis,
+        PRUnichar * format,
+        PRUint32 action,
+        IProgress * * progress
+    );
+
+    nsresult (*ReceiveData)(
+        IDnDSource *pThis,
+        PRUint32 *dataSize,
+        PRUint8** data
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDSource)(IDnDSource *pThis);
+
+};
+#define IDnDSource_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IDnDSource_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IDnDSource_Release(p) ((p)->lpVtbl->Release(p))
+#define IDnDSource_get_Formats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IDnDSource_GetFormats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IDnDSource_get_ProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IDnDSource_GetProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IDnDSource_IsFormatSupported(p, aFormat, aSupported) ((p)->lpVtbl->IsFormatSupported(p, aFormat, aSupported))
+#define IDnDSource_AddFormats(p, aFormats) ((p)->lpVtbl->AddFormats(p, aFormats))
+#define IDnDSource_RemoveFormats(p, aFormats) ((p)->lpVtbl->RemoveFormats(p, aFormats))
+#define IDnDSource_DragIsPending(p, aScreenId, aFormats, aAllowedActions, aDefaultAction) ((p)->lpVtbl->DragIsPending(p, aScreenId, aFormats, aAllowedActions, aDefaultAction))
+#define IDnDSource_Drop(p, aFormat, aAction, aProgress) ((p)->lpVtbl->Drop(p, aFormat, aAction, aProgress))
+#define IDnDSource_ReceiveData(p, aData) ((p)->lpVtbl->ReceiveData(p, aData))
+#endif /* VBOX_WITH_GLUE */
+
+interface IDnDSource
+{
+#ifndef VBOX_WITH_GLUE
+    struct IDnDSource_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IDnDSourceVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IDnDSource declaration */
+
+
+/* Start of struct IGuestDnDSource declaration */
+#define IGUESTDNDSOURCE_IID_STR "dedfb5d9-4c1b-edf7-fdf3-c1be6827dc28"
+#define IGUESTDNDSOURCE_IID { \
+    0xdedfb5d9, 0x4c1b, 0xedf7, \
+    { 0xfd, 0xf3, 0xc1, 0xbe, 0x68, 0x27, 0xdc, 0x28 } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IGuestDnDSource);
+#ifndef VBOX_WITH_GLUE
+struct IGuestDnDSource_vtbl
+{
+    struct IDnDSource_vtbl idndsource;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestDnDSource *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IGuestDnDSourceVtbl
+{
+    nsresult (*QueryInterface)(IGuestDnDSource *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IGuestDnDSource *pThis);
+    nsrefcnt (*Release)(IGuestDnDSource *pThis);
+    nsresult (*GetFormats)(IGuestDnDSource *pThis, PRUint32 *formatsSize, PRUnichar * **formats);
+
+    nsresult (*GetProtocolVersion)(IGuestDnDSource *pThis, PRUint32 *protocolVersion);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDBase)(IGuestDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDBase)(IGuestDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*IsFormatSupported)(
+        IGuestDnDSource *pThis,
+        PRUnichar * format,
+        PRBool * supported
+    );
+
+    nsresult (*AddFormats)(
+        IGuestDnDSource *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*RemoveFormats)(
+        IGuestDnDSource *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDBase)(IGuestDnDSource *pThis);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDSource)(IGuestDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDSource)(IGuestDnDSource *pThis, PRUint32 *reserved);
+
+    nsresult (*DragIsPending)(
+        IGuestDnDSource *pThis,
+        PRUint32 screenId,
+        PRUint32 *formatsSize,
+        PRUnichar *** formats,
+        PRUint32 *allowedActionsSize,
+        PRUint32** allowedActions,
+        PRUint32 * defaultAction
+    );
+
+    nsresult (*Drop)(
+        IGuestDnDSource *pThis,
+        PRUnichar * format,
+        PRUint32 action,
+        IProgress * * progress
+    );
+
+    nsresult (*ReceiveData)(
+        IGuestDnDSource *pThis,
+        PRUint32 *dataSize,
+        PRUint8** data
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDSource)(IGuestDnDSource *pThis);
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestDnDSource *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
+};
+#define IGuestDnDSource_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IGuestDnDSource_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IGuestDnDSource_Release(p) ((p)->lpVtbl->Release(p))
+#define IGuestDnDSource_get_Formats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IGuestDnDSource_GetFormats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IGuestDnDSource_get_ProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IGuestDnDSource_GetProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IGuestDnDSource_IsFormatSupported(p, aFormat, aSupported) ((p)->lpVtbl->IsFormatSupported(p, aFormat, aSupported))
+#define IGuestDnDSource_AddFormats(p, aFormats) ((p)->lpVtbl->AddFormats(p, aFormats))
+#define IGuestDnDSource_RemoveFormats(p, aFormats) ((p)->lpVtbl->RemoveFormats(p, aFormats))
+#define IGuestDnDSource_DragIsPending(p, aScreenId, aFormats, aAllowedActions, aDefaultAction) ((p)->lpVtbl->DragIsPending(p, aScreenId, aFormats, aAllowedActions, aDefaultAction))
+#define IGuestDnDSource_Drop(p, aFormat, aAction, aProgress) ((p)->lpVtbl->Drop(p, aFormat, aAction, aProgress))
+#define IGuestDnDSource_ReceiveData(p, aData) ((p)->lpVtbl->ReceiveData(p, aData))
+#define IGuestDnDSource_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestDnDSource_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#endif /* VBOX_WITH_GLUE */
+
+interface IGuestDnDSource
+{
+#ifndef VBOX_WITH_GLUE
+    struct IGuestDnDSource_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IGuestDnDSourceVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IGuestDnDSource declaration */
+
+
+/* Start of struct IDnDTarget declaration */
+#define IDNDTARGET_IID_STR "ff5befc3-4ba3-7903-2aa4-43988ba11554"
+#define IDNDTARGET_IID { \
+    0xff5befc3, 0x4ba3, 0x7903, \
+    { 0x2a, 0xa4, 0x43, 0x98, 0x8b, 0xa1, 0x15, 0x54 } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IDnDTarget);
+#ifndef VBOX_WITH_GLUE
+struct IDnDTarget_vtbl
+{
+    struct IDnDBase_vtbl idndbase;
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDTarget)(IDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDTarget)(IDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*Enter)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 y,
+        PRUint32 x,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*Move)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 x,
+        PRUint32 y,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*Leave)(
+        IDnDTarget *pThis,
+        PRUint32 screenId
+    );
+
+    nsresult (*Drop)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 x,
+        PRUint32 y,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUnichar * * format,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*SendData)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUnichar * format,
+        PRUint32 dataSize,
+        PRUint8* data,
+        IProgress * * progress
+    );
+
+    nsresult (*Cancel)(
+        IDnDTarget *pThis,
+        PRBool * veto
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDTarget)(IDnDTarget *pThis);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IDnDTargetVtbl
+{
+    nsresult (*QueryInterface)(IDnDTarget *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IDnDTarget *pThis);
+    nsrefcnt (*Release)(IDnDTarget *pThis);
+    nsresult (*GetFormats)(IDnDTarget *pThis, PRUint32 *formatsSize, PRUnichar * **formats);
+
+    nsresult (*GetProtocolVersion)(IDnDTarget *pThis, PRUint32 *protocolVersion);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDBase)(IDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDBase)(IDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*IsFormatSupported)(
+        IDnDTarget *pThis,
+        PRUnichar * format,
+        PRBool * supported
+    );
+
+    nsresult (*AddFormats)(
+        IDnDTarget *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*RemoveFormats)(
+        IDnDTarget *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDBase)(IDnDTarget *pThis);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDTarget)(IDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDTarget)(IDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*Enter)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 y,
+        PRUint32 x,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*Move)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 x,
+        PRUint32 y,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*Leave)(
+        IDnDTarget *pThis,
+        PRUint32 screenId
+    );
+
+    nsresult (*Drop)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 x,
+        PRUint32 y,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUnichar * * format,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*SendData)(
+        IDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUnichar * format,
+        PRUint32 dataSize,
+        PRUint8* data,
+        IProgress * * progress
+    );
+
+    nsresult (*Cancel)(
+        IDnDTarget *pThis,
+        PRBool * veto
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDTarget)(IDnDTarget *pThis);
+
+};
+#define IDnDTarget_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IDnDTarget_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IDnDTarget_Release(p) ((p)->lpVtbl->Release(p))
+#define IDnDTarget_get_Formats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IDnDTarget_GetFormats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IDnDTarget_get_ProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IDnDTarget_GetProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IDnDTarget_IsFormatSupported(p, aFormat, aSupported) ((p)->lpVtbl->IsFormatSupported(p, aFormat, aSupported))
+#define IDnDTarget_AddFormats(p, aFormats) ((p)->lpVtbl->AddFormats(p, aFormats))
+#define IDnDTarget_RemoveFormats(p, aFormats) ((p)->lpVtbl->RemoveFormats(p, aFormats))
+#define IDnDTarget_Enter(p, aScreenId, aY, aX, aDefaultAction, aAllowedActions, aFormats, aResultAction) ((p)->lpVtbl->Enter(p, aScreenId, aY, aX, aDefaultAction, aAllowedActions, aFormats, aResultAction))
+#define IDnDTarget_Move(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aResultAction) ((p)->lpVtbl->Move(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aResultAction))
+#define IDnDTarget_Leave(p, aScreenId) ((p)->lpVtbl->Leave(p, aScreenId))
+#define IDnDTarget_Drop(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aFormat, aResultAction) ((p)->lpVtbl->Drop(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aFormat, aResultAction))
+#define IDnDTarget_SendData(p, aScreenId, aFormat, aData, aProgress) ((p)->lpVtbl->SendData(p, aScreenId, aFormat, aData, aProgress))
+#define IDnDTarget_Cancel(p, aVeto) ((p)->lpVtbl->Cancel(p, aVeto))
+#endif /* VBOX_WITH_GLUE */
+
+interface IDnDTarget
+{
+#ifndef VBOX_WITH_GLUE
+    struct IDnDTarget_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IDnDTargetVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IDnDTarget declaration */
+
+
+/* Start of struct IGuestDnDTarget declaration */
+#define IGUESTDNDTARGET_IID_STR "50ce4b51-0ff7-46b7-a138-3c6e5ac946b4"
+#define IGUESTDNDTARGET_IID { \
+    0x50ce4b51, 0x0ff7, 0x46b7, \
+    { 0xa1, 0x38, 0x3c, 0x6e, 0x5a, 0xc9, 0x46, 0xb4 } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IGuestDnDTarget);
+#ifndef VBOX_WITH_GLUE
+struct IGuestDnDTarget_vtbl
+{
+    struct IDnDTarget_vtbl idndtarget;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestDnDTarget *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IGuestDnDTargetVtbl
+{
+    nsresult (*QueryInterface)(IGuestDnDTarget *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IGuestDnDTarget *pThis);
+    nsrefcnt (*Release)(IGuestDnDTarget *pThis);
+    nsresult (*GetFormats)(IGuestDnDTarget *pThis, PRUint32 *formatsSize, PRUnichar * **formats);
+
+    nsresult (*GetProtocolVersion)(IGuestDnDTarget *pThis, PRUint32 *protocolVersion);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDBase)(IGuestDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDBase)(IGuestDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*IsFormatSupported)(
+        IGuestDnDTarget *pThis,
+        PRUnichar * format,
+        PRBool * supported
+    );
+
+    nsresult (*AddFormats)(
+        IGuestDnDTarget *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*RemoveFormats)(
+        IGuestDnDTarget *pThis,
+        PRUint32 formatsSize,
+        PRUnichar ** formats
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDBase)(IGuestDnDTarget *pThis);
+
+    nsresult (*GetInternalAndReservedAttribute1IDnDTarget)(IGuestDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDnDTarget)(IGuestDnDTarget *pThis, PRUint32 *reserved);
+
+    nsresult (*Enter)(
+        IGuestDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 y,
+        PRUint32 x,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*Move)(
+        IGuestDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 x,
+        PRUint32 y,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*Leave)(
+        IGuestDnDTarget *pThis,
+        PRUint32 screenId
+    );
+
+    nsresult (*Drop)(
+        IGuestDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUint32 x,
+        PRUint32 y,
+        PRUint32 defaultAction,
+        PRUint32 allowedActionsSize,
+        PRUint32* allowedActions,
+        PRUint32 formatsSize,
+        PRUnichar ** formats,
+        PRUnichar * * format,
+        PRUint32 * resultAction
+    );
+
+    nsresult (*SendData)(
+        IGuestDnDTarget *pThis,
+        PRUint32 screenId,
+        PRUnichar * format,
+        PRUint32 dataSize,
+        PRUint8* data,
+        IProgress * * progress
+    );
+
+    nsresult (*Cancel)(
+        IGuestDnDTarget *pThis,
+        PRBool * veto
+    );
+
+    nsresult (*InternalAndReservedMethod1IDnDTarget)(IGuestDnDTarget *pThis);
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestDnDTarget *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
+};
+#define IGuestDnDTarget_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IGuestDnDTarget_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IGuestDnDTarget_Release(p) ((p)->lpVtbl->Release(p))
+#define IGuestDnDTarget_get_Formats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IGuestDnDTarget_GetFormats(p, aFormats) ((p)->lpVtbl->GetFormats(p, aFormats))
+#define IGuestDnDTarget_get_ProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IGuestDnDTarget_GetProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
+#define IGuestDnDTarget_IsFormatSupported(p, aFormat, aSupported) ((p)->lpVtbl->IsFormatSupported(p, aFormat, aSupported))
+#define IGuestDnDTarget_AddFormats(p, aFormats) ((p)->lpVtbl->AddFormats(p, aFormats))
+#define IGuestDnDTarget_RemoveFormats(p, aFormats) ((p)->lpVtbl->RemoveFormats(p, aFormats))
+#define IGuestDnDTarget_Enter(p, aScreenId, aY, aX, aDefaultAction, aAllowedActions, aFormats, aResultAction) ((p)->lpVtbl->Enter(p, aScreenId, aY, aX, aDefaultAction, aAllowedActions, aFormats, aResultAction))
+#define IGuestDnDTarget_Move(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aResultAction) ((p)->lpVtbl->Move(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aResultAction))
+#define IGuestDnDTarget_Leave(p, aScreenId) ((p)->lpVtbl->Leave(p, aScreenId))
+#define IGuestDnDTarget_Drop(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aFormat, aResultAction) ((p)->lpVtbl->Drop(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aFormat, aResultAction))
+#define IGuestDnDTarget_SendData(p, aScreenId, aFormat, aData, aProgress) ((p)->lpVtbl->SendData(p, aScreenId, aFormat, aData, aProgress))
+#define IGuestDnDTarget_Cancel(p, aVeto) ((p)->lpVtbl->Cancel(p, aVeto))
+#define IGuestDnDTarget_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestDnDTarget_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#endif /* VBOX_WITH_GLUE */
+
+interface IGuestDnDTarget
+{
+#ifndef VBOX_WITH_GLUE
+    struct IGuestDnDTarget_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IGuestDnDTargetVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IGuestDnDTarget declaration */
+
+
 /* Start of struct IGuestSession declaration */
-#define IGUESTSESSION_IID_STR "5b28703c-07b6-4fcb-afba-ac199b309752"
+#define IGUESTSESSION_IID_STR "486fd828-4c6b-239b-a846-c4bb69e41038"
 #define IGUESTSESSION_IID { \
-    0x5b28703c, 0x07b6, 0x4fcb, \
-    { 0xaf, 0xba, 0xac, 0x19, 0x9b, 0x30, 0x97, 0x52 } \
+    0x486fd828, 0x4c6b, 0x239b, \
+    { 0xa8, 0x46, 0xc4, 0xbb, 0x69, 0xe4, 0x10, 0x38 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IGuestSession);
@@ -8729,10 +10630,17 @@ struct IGuestSession_vtbl
 
     nsresult (*GetStatus)(IGuestSession *pThis, PRUint32 *status);
 
-    nsresult (*GetEnvironment)(IGuestSession *pThis, PRUint32 *environmentSize, PRUnichar * **environment);
-    nsresult (*SetEnvironment)(IGuestSession *pThis, PRUint32 environmentSize, PRUnichar * *environment);
+    nsresult (*GetEnvironmentChanges)(IGuestSession *pThis, PRUint32 *environmentChangesSize, PRUnichar * **environmentChanges);
+    nsresult (*SetEnvironmentChanges)(IGuestSession *pThis, PRUint32 environmentChangesSize, PRUnichar * *environmentChanges);
+
+    nsresult (*GetEnvironmentBase)(IGuestSession *pThis, PRUint32 *environmentBaseSize, PRUnichar * **environmentBase);
 
     nsresult (*GetProcesses)(IGuestSession *pThis, PRUint32 *processesSize, IGuestProcess * **processes);
+
+    nsresult (*GetPathStyle)(IGuestSession *pThis, PRUint32 *pathStyle);
+
+    nsresult (*GetCurrentDirectory)(IGuestSession *pThis, PRUnichar * *currentDirectory);
+    nsresult (*SetCurrentDirectory)(IGuestSession *pThis, PRUnichar * currentDirectory);
 
     nsresult (*GetDirectories)(IGuestSession *pThis, PRUint32 *directoriesSize, IGuestDirectory * **directories);
 
@@ -8740,21 +10648,46 @@ struct IGuestSession_vtbl
 
     nsresult (*GetEventSource)(IGuestSession *pThis, IEventSource * *eventSource);
 
+    nsresult (*GetInternalAndReservedAttribute1IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
     nsresult (*Close)(IGuestSession *pThis );
 
-    nsresult (*CopyFrom)(
+    nsresult (*DirectoryCopy)(
         IGuestSession *pThis,
         PRUnichar * source,
-        PRUnichar * dest,
+        PRUnichar * destination,
         PRUint32 flagsSize,
         PRUint32* flags,
         IProgress * * progress
     );
 
-    nsresult (*CopyTo)(
+    nsresult (*DirectoryCopyFromGuest)(
         IGuestSession *pThis,
         PRUnichar * source,
-        PRUnichar * dest,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*DirectoryCopyToGuest)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
         PRUint32 flagsSize,
         PRUint32* flags,
         IProgress * * progress
@@ -8780,6 +10713,7 @@ struct IGuestSession_vtbl
     nsresult (*DirectoryExists)(
         IGuestSession *pThis,
         PRUnichar * path,
+        PRBool followSymlinks,
         PRBool * exists
     );
 
@@ -8790,12 +10724,6 @@ struct IGuestSession_vtbl
         PRUint32 flagsSize,
         PRUint32* flags,
         IGuestDirectory * * directory
-    );
-
-    nsresult (*DirectoryQueryInfo)(
-        IGuestSession *pThis,
-        PRUnichar * path,
-        IGuestFsObjInfo * * info
     );
 
     nsresult (*DirectoryRemove)(
@@ -8811,37 +10739,54 @@ struct IGuestSession_vtbl
         IProgress * * progress
     );
 
-    nsresult (*DirectoryRename)(
-        IGuestSession *pThis,
-        PRUnichar * source,
-        PRUnichar * dest,
-        PRUint32 flagsSize,
-        PRUint32* flags
-    );
-
-    nsresult (*DirectorySetACL)(
-        IGuestSession *pThis,
-        PRUnichar * path,
-        PRUnichar * acl
-    );
-
-    nsresult (*EnvironmentClear)(IGuestSession *pThis );
-
-    nsresult (*EnvironmentGet)(
-        IGuestSession *pThis,
-        PRUnichar * name,
-        PRUnichar * * value
-    );
-
-    nsresult (*EnvironmentSet)(
+    nsresult (*EnvironmentScheduleSet)(
         IGuestSession *pThis,
         PRUnichar * name,
         PRUnichar * value
     );
 
-    nsresult (*EnvironmentUnset)(
+    nsresult (*EnvironmentScheduleUnset)(
         IGuestSession *pThis,
         PRUnichar * name
+    );
+
+    nsresult (*EnvironmentGetBaseVariable)(
+        IGuestSession *pThis,
+        PRUnichar * name,
+        PRUnichar * * value
+    );
+
+    nsresult (*EnvironmentDoesBaseVariableExist)(
+        IGuestSession *pThis,
+        PRUnichar * name,
+        PRBool * exists
+    );
+
+    nsresult (*FileCopy)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*FileCopyFromGuest)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*FileCopyToGuest)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
     );
 
     nsresult (*FileCreateTemp)(
@@ -8856,19 +10801,15 @@ struct IGuestSession_vtbl
     nsresult (*FileExists)(
         IGuestSession *pThis,
         PRUnichar * path,
+        PRBool followSymlinks,
         PRBool * exists
-    );
-
-    nsresult (*FileRemove)(
-        IGuestSession *pThis,
-        PRUnichar * path
     );
 
     nsresult (*FileOpen)(
         IGuestSession *pThis,
         PRUnichar * path,
-        PRUnichar * openMode,
-        PRUnichar * disposition,
+        PRUint32 accessMode,
+        PRUint32 openAction,
         PRUint32 creationMode,
         IGuestFile * * file
     );
@@ -8876,47 +10817,73 @@ struct IGuestSession_vtbl
     nsresult (*FileOpenEx)(
         IGuestSession *pThis,
         PRUnichar * path,
-        PRUnichar * openMode,
-        PRUnichar * disposition,
-        PRUnichar * sharingMode,
+        PRUint32 accessMode,
+        PRUint32 openAction,
+        PRUint32 sharingMode,
         PRUint32 creationMode,
-        PRInt64 offset,
+        PRUint32 flagsSize,
+        PRUint32* flags,
         IGuestFile * * file
-    );
-
-    nsresult (*FileQueryInfo)(
-        IGuestSession *pThis,
-        PRUnichar * path,
-        IGuestFsObjInfo * * info
     );
 
     nsresult (*FileQuerySize)(
         IGuestSession *pThis,
         PRUnichar * path,
+        PRBool followSymlinks,
         PRInt64 * size
     );
 
-    nsresult (*FileRename)(
+    nsresult (*FsObjExists)(
         IGuestSession *pThis,
-        PRUnichar * source,
-        PRUnichar * dest,
+        PRUnichar * path,
+        PRBool followSymlinks,
+        PRBool * exists
+    );
+
+    nsresult (*FsObjQueryInfo)(
+        IGuestSession *pThis,
+        PRUnichar * path,
+        PRBool followSymlinks,
+        IGuestFsObjInfo * * info
+    );
+
+    nsresult (*FsObjRemove)(
+        IGuestSession *pThis,
+        PRUnichar * path
+    );
+
+    nsresult (*FsObjRename)(
+        IGuestSession *pThis,
+        PRUnichar * oldPath,
+        PRUnichar * newPath,
         PRUint32 flagsSize,
         PRUint32* flags
     );
 
-    nsresult (*FileSetACL)(
+    nsresult (*FsObjMove)(
         IGuestSession *pThis,
-        PRUnichar * file,
-        PRUnichar * acl
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*FsObjSetACL)(
+        IGuestSession *pThis,
+        PRUnichar * path,
+        PRBool followSymlinks,
+        PRUnichar * acl,
+        PRUint32 mode
     );
 
     nsresult (*ProcessCreate)(
         IGuestSession *pThis,
-        PRUnichar * command,
+        PRUnichar * executable,
         PRUint32 argumentsSize,
         PRUnichar ** arguments,
-        PRUint32 environmentSize,
-        PRUnichar ** environment,
+        PRUint32 environmentChangesSize,
+        PRUnichar ** environmentChanges,
         PRUint32 flagsSize,
         PRUint32* flags,
         PRUint32 timeoutMS,
@@ -8925,11 +10892,11 @@ struct IGuestSession_vtbl
 
     nsresult (*ProcessCreateEx)(
         IGuestSession *pThis,
-        PRUnichar * command,
+        PRUnichar * executable,
         PRUint32 argumentsSize,
         PRUnichar ** arguments,
-        PRUint32 environmentSize,
-        PRUnichar ** environment,
+        PRUint32 environmentChangesSize,
+        PRUnichar ** environmentChanges,
         PRUint32 flagsSize,
         PRUint32* flags,
         PRUint32 timeoutMS,
@@ -8947,7 +10914,7 @@ struct IGuestSession_vtbl
 
     nsresult (*SymlinkCreate)(
         IGuestSession *pThis,
-        PRUnichar * source,
+        PRUnichar * symlink,
         PRUnichar * target,
         PRUint32 type
     );
@@ -8966,16 +10933,6 @@ struct IGuestSession_vtbl
         PRUnichar * * target
     );
 
-    nsresult (*SymlinkRemoveDirectory)(
-        IGuestSession *pThis,
-        PRUnichar * path
-    );
-
-    nsresult (*SymlinkRemoveFile)(
-        IGuestSession *pThis,
-        PRUnichar * file
-    );
-
     nsresult (*WaitFor)(
         IGuestSession *pThis,
         PRUint32 waitFor,
@@ -8990,6 +10947,22 @@ struct IGuestSession_vtbl
         PRUint32 timeoutMS,
         PRUint32 * reason
     );
+
+    nsresult (*InternalAndReservedMethod1IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod2IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod3IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod4IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod5IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod6IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod7IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod8IGuestSession)(IGuestSession *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -9013,10 +10986,17 @@ struct IGuestSessionVtbl
 
     nsresult (*GetStatus)(IGuestSession *pThis, PRUint32 *status);
 
-    nsresult (*GetEnvironment)(IGuestSession *pThis, PRUint32 *environmentSize, PRUnichar * **environment);
-    nsresult (*SetEnvironment)(IGuestSession *pThis, PRUint32 environmentSize, PRUnichar * *environment);
+    nsresult (*GetEnvironmentChanges)(IGuestSession *pThis, PRUint32 *environmentChangesSize, PRUnichar * **environmentChanges);
+    nsresult (*SetEnvironmentChanges)(IGuestSession *pThis, PRUint32 environmentChangesSize, PRUnichar * *environmentChanges);
+
+    nsresult (*GetEnvironmentBase)(IGuestSession *pThis, PRUint32 *environmentBaseSize, PRUnichar * **environmentBase);
 
     nsresult (*GetProcesses)(IGuestSession *pThis, PRUint32 *processesSize, IGuestProcess * **processes);
+
+    nsresult (*GetPathStyle)(IGuestSession *pThis, PRUint32 *pathStyle);
+
+    nsresult (*GetCurrentDirectory)(IGuestSession *pThis, PRUnichar * *currentDirectory);
+    nsresult (*SetCurrentDirectory)(IGuestSession *pThis, PRUnichar * currentDirectory);
 
     nsresult (*GetDirectories)(IGuestSession *pThis, PRUint32 *directoriesSize, IGuestDirectory * **directories);
 
@@ -9024,21 +11004,46 @@ struct IGuestSessionVtbl
 
     nsresult (*GetEventSource)(IGuestSession *pThis, IEventSource * *eventSource);
 
+    nsresult (*GetInternalAndReservedAttribute1IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IGuestSession)(IGuestSession *pThis, PRUint32 *reserved);
+
     nsresult (*Close)(IGuestSession *pThis );
 
-    nsresult (*CopyFrom)(
+    nsresult (*DirectoryCopy)(
         IGuestSession *pThis,
         PRUnichar * source,
-        PRUnichar * dest,
+        PRUnichar * destination,
         PRUint32 flagsSize,
         PRUint32* flags,
         IProgress * * progress
     );
 
-    nsresult (*CopyTo)(
+    nsresult (*DirectoryCopyFromGuest)(
         IGuestSession *pThis,
         PRUnichar * source,
-        PRUnichar * dest,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*DirectoryCopyToGuest)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
         PRUint32 flagsSize,
         PRUint32* flags,
         IProgress * * progress
@@ -9064,6 +11069,7 @@ struct IGuestSessionVtbl
     nsresult (*DirectoryExists)(
         IGuestSession *pThis,
         PRUnichar * path,
+        PRBool followSymlinks,
         PRBool * exists
     );
 
@@ -9074,12 +11080,6 @@ struct IGuestSessionVtbl
         PRUint32 flagsSize,
         PRUint32* flags,
         IGuestDirectory * * directory
-    );
-
-    nsresult (*DirectoryQueryInfo)(
-        IGuestSession *pThis,
-        PRUnichar * path,
-        IGuestFsObjInfo * * info
     );
 
     nsresult (*DirectoryRemove)(
@@ -9095,37 +11095,54 @@ struct IGuestSessionVtbl
         IProgress * * progress
     );
 
-    nsresult (*DirectoryRename)(
-        IGuestSession *pThis,
-        PRUnichar * source,
-        PRUnichar * dest,
-        PRUint32 flagsSize,
-        PRUint32* flags
-    );
-
-    nsresult (*DirectorySetACL)(
-        IGuestSession *pThis,
-        PRUnichar * path,
-        PRUnichar * acl
-    );
-
-    nsresult (*EnvironmentClear)(IGuestSession *pThis );
-
-    nsresult (*EnvironmentGet)(
-        IGuestSession *pThis,
-        PRUnichar * name,
-        PRUnichar * * value
-    );
-
-    nsresult (*EnvironmentSet)(
+    nsresult (*EnvironmentScheduleSet)(
         IGuestSession *pThis,
         PRUnichar * name,
         PRUnichar * value
     );
 
-    nsresult (*EnvironmentUnset)(
+    nsresult (*EnvironmentScheduleUnset)(
         IGuestSession *pThis,
         PRUnichar * name
+    );
+
+    nsresult (*EnvironmentGetBaseVariable)(
+        IGuestSession *pThis,
+        PRUnichar * name,
+        PRUnichar * * value
+    );
+
+    nsresult (*EnvironmentDoesBaseVariableExist)(
+        IGuestSession *pThis,
+        PRUnichar * name,
+        PRBool * exists
+    );
+
+    nsresult (*FileCopy)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*FileCopyFromGuest)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*FileCopyToGuest)(
+        IGuestSession *pThis,
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
     );
 
     nsresult (*FileCreateTemp)(
@@ -9140,19 +11157,15 @@ struct IGuestSessionVtbl
     nsresult (*FileExists)(
         IGuestSession *pThis,
         PRUnichar * path,
+        PRBool followSymlinks,
         PRBool * exists
-    );
-
-    nsresult (*FileRemove)(
-        IGuestSession *pThis,
-        PRUnichar * path
     );
 
     nsresult (*FileOpen)(
         IGuestSession *pThis,
         PRUnichar * path,
-        PRUnichar * openMode,
-        PRUnichar * disposition,
+        PRUint32 accessMode,
+        PRUint32 openAction,
         PRUint32 creationMode,
         IGuestFile * * file
     );
@@ -9160,47 +11173,73 @@ struct IGuestSessionVtbl
     nsresult (*FileOpenEx)(
         IGuestSession *pThis,
         PRUnichar * path,
-        PRUnichar * openMode,
-        PRUnichar * disposition,
-        PRUnichar * sharingMode,
+        PRUint32 accessMode,
+        PRUint32 openAction,
+        PRUint32 sharingMode,
         PRUint32 creationMode,
-        PRInt64 offset,
+        PRUint32 flagsSize,
+        PRUint32* flags,
         IGuestFile * * file
-    );
-
-    nsresult (*FileQueryInfo)(
-        IGuestSession *pThis,
-        PRUnichar * path,
-        IGuestFsObjInfo * * info
     );
 
     nsresult (*FileQuerySize)(
         IGuestSession *pThis,
         PRUnichar * path,
+        PRBool followSymlinks,
         PRInt64 * size
     );
 
-    nsresult (*FileRename)(
+    nsresult (*FsObjExists)(
         IGuestSession *pThis,
-        PRUnichar * source,
-        PRUnichar * dest,
+        PRUnichar * path,
+        PRBool followSymlinks,
+        PRBool * exists
+    );
+
+    nsresult (*FsObjQueryInfo)(
+        IGuestSession *pThis,
+        PRUnichar * path,
+        PRBool followSymlinks,
+        IGuestFsObjInfo * * info
+    );
+
+    nsresult (*FsObjRemove)(
+        IGuestSession *pThis,
+        PRUnichar * path
+    );
+
+    nsresult (*FsObjRename)(
+        IGuestSession *pThis,
+        PRUnichar * oldPath,
+        PRUnichar * newPath,
         PRUint32 flagsSize,
         PRUint32* flags
     );
 
-    nsresult (*FileSetACL)(
+    nsresult (*FsObjMove)(
         IGuestSession *pThis,
-        PRUnichar * file,
-        PRUnichar * acl
+        PRUnichar * source,
+        PRUnichar * destination,
+        PRUint32 flagsSize,
+        PRUint32* flags,
+        IProgress * * progress
+    );
+
+    nsresult (*FsObjSetACL)(
+        IGuestSession *pThis,
+        PRUnichar * path,
+        PRBool followSymlinks,
+        PRUnichar * acl,
+        PRUint32 mode
     );
 
     nsresult (*ProcessCreate)(
         IGuestSession *pThis,
-        PRUnichar * command,
+        PRUnichar * executable,
         PRUint32 argumentsSize,
         PRUnichar ** arguments,
-        PRUint32 environmentSize,
-        PRUnichar ** environment,
+        PRUint32 environmentChangesSize,
+        PRUnichar ** environmentChanges,
         PRUint32 flagsSize,
         PRUint32* flags,
         PRUint32 timeoutMS,
@@ -9209,11 +11248,11 @@ struct IGuestSessionVtbl
 
     nsresult (*ProcessCreateEx)(
         IGuestSession *pThis,
-        PRUnichar * command,
+        PRUnichar * executable,
         PRUint32 argumentsSize,
         PRUnichar ** arguments,
-        PRUint32 environmentSize,
-        PRUnichar ** environment,
+        PRUint32 environmentChangesSize,
+        PRUnichar ** environmentChanges,
         PRUint32 flagsSize,
         PRUint32* flags,
         PRUint32 timeoutMS,
@@ -9231,7 +11270,7 @@ struct IGuestSessionVtbl
 
     nsresult (*SymlinkCreate)(
         IGuestSession *pThis,
-        PRUnichar * source,
+        PRUnichar * symlink,
         PRUnichar * target,
         PRUint32 type
     );
@@ -9250,16 +11289,6 @@ struct IGuestSessionVtbl
         PRUnichar * * target
     );
 
-    nsresult (*SymlinkRemoveDirectory)(
-        IGuestSession *pThis,
-        PRUnichar * path
-    );
-
-    nsresult (*SymlinkRemoveFile)(
-        IGuestSession *pThis,
-        PRUnichar * file
-    );
-
     nsresult (*WaitFor)(
         IGuestSession *pThis,
         PRUint32 waitFor,
@@ -9274,6 +11303,22 @@ struct IGuestSessionVtbl
         PRUint32 timeoutMS,
         PRUint32 * reason
     );
+
+    nsresult (*InternalAndReservedMethod1IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod2IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod3IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod4IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod5IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod6IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod7IGuestSession)(IGuestSession *pThis);
+
+    nsresult (*InternalAndReservedMethod8IGuestSession)(IGuestSession *pThis);
 
 };
 #define IGuestSession_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -9295,12 +11340,20 @@ struct IGuestSessionVtbl
 #define IGuestSession_GetProtocolVersion(p, aProtocolVersion) ((p)->lpVtbl->GetProtocolVersion(p, aProtocolVersion))
 #define IGuestSession_get_Status(p, aStatus) ((p)->lpVtbl->GetStatus(p, aStatus))
 #define IGuestSession_GetStatus(p, aStatus) ((p)->lpVtbl->GetStatus(p, aStatus))
-#define IGuestSession_get_Environment(p, aEnvironment) ((p)->lpVtbl->GetEnvironment(p, aEnvironment))
-#define IGuestSession_GetEnvironment(p, aEnvironment) ((p)->lpVtbl->GetEnvironment(p, aEnvironment))
-#define IGuestSession_put_Environment(p, aEnvironment) ((p)->lpVtbl->SetEnvironment(p, aEnvironment))
-#define IGuestSession_SetEnvironment(p, aEnvironment) ((p)->lpVtbl->SetEnvironment(p, aEnvironment))
+#define IGuestSession_get_EnvironmentChanges(p, aEnvironmentChanges) ((p)->lpVtbl->GetEnvironmentChanges(p, aEnvironmentChanges))
+#define IGuestSession_GetEnvironmentChanges(p, aEnvironmentChanges) ((p)->lpVtbl->GetEnvironmentChanges(p, aEnvironmentChanges))
+#define IGuestSession_put_EnvironmentChanges(p, aEnvironmentChanges) ((p)->lpVtbl->SetEnvironmentChanges(p, aEnvironmentChanges))
+#define IGuestSession_SetEnvironmentChanges(p, aEnvironmentChanges) ((p)->lpVtbl->SetEnvironmentChanges(p, aEnvironmentChanges))
+#define IGuestSession_get_EnvironmentBase(p, aEnvironmentBase) ((p)->lpVtbl->GetEnvironmentBase(p, aEnvironmentBase))
+#define IGuestSession_GetEnvironmentBase(p, aEnvironmentBase) ((p)->lpVtbl->GetEnvironmentBase(p, aEnvironmentBase))
 #define IGuestSession_get_Processes(p, aProcesses) ((p)->lpVtbl->GetProcesses(p, aProcesses))
 #define IGuestSession_GetProcesses(p, aProcesses) ((p)->lpVtbl->GetProcesses(p, aProcesses))
+#define IGuestSession_get_PathStyle(p, aPathStyle) ((p)->lpVtbl->GetPathStyle(p, aPathStyle))
+#define IGuestSession_GetPathStyle(p, aPathStyle) ((p)->lpVtbl->GetPathStyle(p, aPathStyle))
+#define IGuestSession_get_CurrentDirectory(p, aCurrentDirectory) ((p)->lpVtbl->GetCurrentDirectory(p, aCurrentDirectory))
+#define IGuestSession_GetCurrentDirectory(p, aCurrentDirectory) ((p)->lpVtbl->GetCurrentDirectory(p, aCurrentDirectory))
+#define IGuestSession_put_CurrentDirectory(p, aCurrentDirectory) ((p)->lpVtbl->SetCurrentDirectory(p, aCurrentDirectory))
+#define IGuestSession_SetCurrentDirectory(p, aCurrentDirectory) ((p)->lpVtbl->SetCurrentDirectory(p, aCurrentDirectory))
 #define IGuestSession_get_Directories(p, aDirectories) ((p)->lpVtbl->GetDirectories(p, aDirectories))
 #define IGuestSession_GetDirectories(p, aDirectories) ((p)->lpVtbl->GetDirectories(p, aDirectories))
 #define IGuestSession_get_Files(p, aFiles) ((p)->lpVtbl->GetFiles(p, aFiles))
@@ -9308,38 +11361,39 @@ struct IGuestSessionVtbl
 #define IGuestSession_get_EventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IGuestSession_GetEventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IGuestSession_Close(p) ((p)->lpVtbl->Close(p))
-#define IGuestSession_CopyFrom(p, aSource, aDest, aFlags, aProgress) ((p)->lpVtbl->CopyFrom(p, aSource, aDest, aFlags, aProgress))
-#define IGuestSession_CopyTo(p, aSource, aDest, aFlags, aProgress) ((p)->lpVtbl->CopyTo(p, aSource, aDest, aFlags, aProgress))
+#define IGuestSession_DirectoryCopy(p, aSource, aDestination, aFlags, aProgress) ((p)->lpVtbl->DirectoryCopy(p, aSource, aDestination, aFlags, aProgress))
+#define IGuestSession_DirectoryCopyFromGuest(p, aSource, aDestination, aFlags, aProgress) ((p)->lpVtbl->DirectoryCopyFromGuest(p, aSource, aDestination, aFlags, aProgress))
+#define IGuestSession_DirectoryCopyToGuest(p, aSource, aDestination, aFlags, aProgress) ((p)->lpVtbl->DirectoryCopyToGuest(p, aSource, aDestination, aFlags, aProgress))
 #define IGuestSession_DirectoryCreate(p, aPath, aMode, aFlags) ((p)->lpVtbl->DirectoryCreate(p, aPath, aMode, aFlags))
 #define IGuestSession_DirectoryCreateTemp(p, aTemplateName, aMode, aPath, aSecure, aDirectory) ((p)->lpVtbl->DirectoryCreateTemp(p, aTemplateName, aMode, aPath, aSecure, aDirectory))
-#define IGuestSession_DirectoryExists(p, aPath, aExists) ((p)->lpVtbl->DirectoryExists(p, aPath, aExists))
+#define IGuestSession_DirectoryExists(p, aPath, aFollowSymlinks, aExists) ((p)->lpVtbl->DirectoryExists(p, aPath, aFollowSymlinks, aExists))
 #define IGuestSession_DirectoryOpen(p, aPath, aFilter, aFlags, aDirectory) ((p)->lpVtbl->DirectoryOpen(p, aPath, aFilter, aFlags, aDirectory))
-#define IGuestSession_DirectoryQueryInfo(p, aPath, aInfo) ((p)->lpVtbl->DirectoryQueryInfo(p, aPath, aInfo))
 #define IGuestSession_DirectoryRemove(p, aPath) ((p)->lpVtbl->DirectoryRemove(p, aPath))
 #define IGuestSession_DirectoryRemoveRecursive(p, aPath, aFlags, aProgress) ((p)->lpVtbl->DirectoryRemoveRecursive(p, aPath, aFlags, aProgress))
-#define IGuestSession_DirectoryRename(p, aSource, aDest, aFlags) ((p)->lpVtbl->DirectoryRename(p, aSource, aDest, aFlags))
-#define IGuestSession_DirectorySetACL(p, aPath, aAcl) ((p)->lpVtbl->DirectorySetACL(p, aPath, aAcl))
-#define IGuestSession_EnvironmentClear(p) ((p)->lpVtbl->EnvironmentClear(p))
-#define IGuestSession_EnvironmentGet(p, aName, aValue) ((p)->lpVtbl->EnvironmentGet(p, aName, aValue))
-#define IGuestSession_EnvironmentSet(p, aName, aValue) ((p)->lpVtbl->EnvironmentSet(p, aName, aValue))
-#define IGuestSession_EnvironmentUnset(p, aName) ((p)->lpVtbl->EnvironmentUnset(p, aName))
+#define IGuestSession_EnvironmentScheduleSet(p, aName, aValue) ((p)->lpVtbl->EnvironmentScheduleSet(p, aName, aValue))
+#define IGuestSession_EnvironmentScheduleUnset(p, aName) ((p)->lpVtbl->EnvironmentScheduleUnset(p, aName))
+#define IGuestSession_EnvironmentGetBaseVariable(p, aName, aValue) ((p)->lpVtbl->EnvironmentGetBaseVariable(p, aName, aValue))
+#define IGuestSession_EnvironmentDoesBaseVariableExist(p, aName, aExists) ((p)->lpVtbl->EnvironmentDoesBaseVariableExist(p, aName, aExists))
+#define IGuestSession_FileCopy(p, aSource, aDestination, aFlags, aProgress) ((p)->lpVtbl->FileCopy(p, aSource, aDestination, aFlags, aProgress))
+#define IGuestSession_FileCopyFromGuest(p, aSource, aDestination, aFlags, aProgress) ((p)->lpVtbl->FileCopyFromGuest(p, aSource, aDestination, aFlags, aProgress))
+#define IGuestSession_FileCopyToGuest(p, aSource, aDestination, aFlags, aProgress) ((p)->lpVtbl->FileCopyToGuest(p, aSource, aDestination, aFlags, aProgress))
 #define IGuestSession_FileCreateTemp(p, aTemplateName, aMode, aPath, aSecure, aFile) ((p)->lpVtbl->FileCreateTemp(p, aTemplateName, aMode, aPath, aSecure, aFile))
-#define IGuestSession_FileExists(p, aPath, aExists) ((p)->lpVtbl->FileExists(p, aPath, aExists))
-#define IGuestSession_FileRemove(p, aPath) ((p)->lpVtbl->FileRemove(p, aPath))
-#define IGuestSession_FileOpen(p, aPath, aOpenMode, aDisposition, aCreationMode, aFile) ((p)->lpVtbl->FileOpen(p, aPath, aOpenMode, aDisposition, aCreationMode, aFile))
-#define IGuestSession_FileOpenEx(p, aPath, aOpenMode, aDisposition, aSharingMode, aCreationMode, aOffset, aFile) ((p)->lpVtbl->FileOpenEx(p, aPath, aOpenMode, aDisposition, aSharingMode, aCreationMode, aOffset, aFile))
-#define IGuestSession_FileQueryInfo(p, aPath, aInfo) ((p)->lpVtbl->FileQueryInfo(p, aPath, aInfo))
-#define IGuestSession_FileQuerySize(p, aPath, aSize) ((p)->lpVtbl->FileQuerySize(p, aPath, aSize))
-#define IGuestSession_FileRename(p, aSource, aDest, aFlags) ((p)->lpVtbl->FileRename(p, aSource, aDest, aFlags))
-#define IGuestSession_FileSetACL(p, aFile, aAcl) ((p)->lpVtbl->FileSetACL(p, aFile, aAcl))
-#define IGuestSession_ProcessCreate(p, aCommand, aArguments, aEnvironment, aFlags, aTimeoutMS, aGuestProcess) ((p)->lpVtbl->ProcessCreate(p, aCommand, aArguments, aEnvironment, aFlags, aTimeoutMS, aGuestProcess))
-#define IGuestSession_ProcessCreateEx(p, aCommand, aArguments, aEnvironment, aFlags, aTimeoutMS, aPriority, aAffinity, aGuestProcess) ((p)->lpVtbl->ProcessCreateEx(p, aCommand, aArguments, aEnvironment, aFlags, aTimeoutMS, aPriority, aAffinity, aGuestProcess))
+#define IGuestSession_FileExists(p, aPath, aFollowSymlinks, aExists) ((p)->lpVtbl->FileExists(p, aPath, aFollowSymlinks, aExists))
+#define IGuestSession_FileOpen(p, aPath, aAccessMode, aOpenAction, aCreationMode, aFile) ((p)->lpVtbl->FileOpen(p, aPath, aAccessMode, aOpenAction, aCreationMode, aFile))
+#define IGuestSession_FileOpenEx(p, aPath, aAccessMode, aOpenAction, aSharingMode, aCreationMode, aFlags, aFile) ((p)->lpVtbl->FileOpenEx(p, aPath, aAccessMode, aOpenAction, aSharingMode, aCreationMode, aFlags, aFile))
+#define IGuestSession_FileQuerySize(p, aPath, aFollowSymlinks, aSize) ((p)->lpVtbl->FileQuerySize(p, aPath, aFollowSymlinks, aSize))
+#define IGuestSession_FsObjExists(p, aPath, aFollowSymlinks, aExists) ((p)->lpVtbl->FsObjExists(p, aPath, aFollowSymlinks, aExists))
+#define IGuestSession_FsObjQueryInfo(p, aPath, aFollowSymlinks, aInfo) ((p)->lpVtbl->FsObjQueryInfo(p, aPath, aFollowSymlinks, aInfo))
+#define IGuestSession_FsObjRemove(p, aPath) ((p)->lpVtbl->FsObjRemove(p, aPath))
+#define IGuestSession_FsObjRename(p, aOldPath, aNewPath, aFlags) ((p)->lpVtbl->FsObjRename(p, aOldPath, aNewPath, aFlags))
+#define IGuestSession_FsObjMove(p, aSource, aDestination, aFlags, aProgress) ((p)->lpVtbl->FsObjMove(p, aSource, aDestination, aFlags, aProgress))
+#define IGuestSession_FsObjSetACL(p, aPath, aFollowSymlinks, aAcl, aMode) ((p)->lpVtbl->FsObjSetACL(p, aPath, aFollowSymlinks, aAcl, aMode))
+#define IGuestSession_ProcessCreate(p, aExecutable, aArguments, aEnvironmentChanges, aFlags, aTimeoutMS, aGuestProcess) ((p)->lpVtbl->ProcessCreate(p, aExecutable, aArguments, aEnvironmentChanges, aFlags, aTimeoutMS, aGuestProcess))
+#define IGuestSession_ProcessCreateEx(p, aExecutable, aArguments, aEnvironmentChanges, aFlags, aTimeoutMS, aPriority, aAffinity, aGuestProcess) ((p)->lpVtbl->ProcessCreateEx(p, aExecutable, aArguments, aEnvironmentChanges, aFlags, aTimeoutMS, aPriority, aAffinity, aGuestProcess))
 #define IGuestSession_ProcessGet(p, aPid, aGuestProcess) ((p)->lpVtbl->ProcessGet(p, aPid, aGuestProcess))
-#define IGuestSession_SymlinkCreate(p, aSource, aTarget, aType) ((p)->lpVtbl->SymlinkCreate(p, aSource, aTarget, aType))
+#define IGuestSession_SymlinkCreate(p, aSymlink, aTarget, aType) ((p)->lpVtbl->SymlinkCreate(p, aSymlink, aTarget, aType))
 #define IGuestSession_SymlinkExists(p, aSymlink, aExists) ((p)->lpVtbl->SymlinkExists(p, aSymlink, aExists))
 #define IGuestSession_SymlinkRead(p, aSymlink, aFlags, aTarget) ((p)->lpVtbl->SymlinkRead(p, aSymlink, aFlags, aTarget))
-#define IGuestSession_SymlinkRemoveDirectory(p, aPath) ((p)->lpVtbl->SymlinkRemoveDirectory(p, aPath))
-#define IGuestSession_SymlinkRemoveFile(p, aFile) ((p)->lpVtbl->SymlinkRemoveFile(p, aFile))
 #define IGuestSession_WaitFor(p, aWaitFor, aTimeoutMS, aReason) ((p)->lpVtbl->WaitFor(p, aWaitFor, aTimeoutMS, aReason))
 #define IGuestSession_WaitForArray(p, aWaitFor, aTimeoutMS, aReason) ((p)->lpVtbl->WaitForArray(p, aWaitFor, aTimeoutMS, aReason))
 #endif /* VBOX_WITH_GLUE */
@@ -9356,10 +11410,10 @@ interface IGuestSession
 
 
 /* Start of struct IProcess declaration */
-#define IPROCESS_IID_STR "5a4fe06d-8cb1-40ff-ac9e-9676e32f706e"
+#define IPROCESS_IID_STR "2e20707d-4325-9a83-83cf-3faf5b97457c"
 #define IPROCESS_IID { \
-    0x5a4fe06d, 0x8cb1, 0x40ff, \
-    { 0xac, 0x9e, 0x96, 0x76, 0xe3, 0x2f, 0x70, 0x6e } \
+    0x2e20707d, 0x4325, 0x9a83, \
+    { 0x83, 0xcf, 0x3f, 0xaf, 0x5b, 0x97, 0x45, 0x7c } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IProcess);
@@ -9384,6 +11438,14 @@ struct IProcess_vtbl
 
     nsresult (*GetStatus)(IProcess *pThis, PRUint32 *status);
 
+    nsresult (*GetInternalAndReservedAttribute1IProcess)(IProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IProcess)(IProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IProcess)(IProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IProcess)(IProcess *pThis, PRUint32 *reserved);
+
     nsresult (*WaitFor)(
         IProcess *pThis,
         PRUint32 waitFor,
@@ -9430,6 +11492,8 @@ struct IProcess_vtbl
     );
 
     nsresult (*Terminate)(IProcess *pThis );
+
+    nsresult (*InternalAndReservedMethod1IProcess)(IProcess *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -9454,6 +11518,14 @@ struct IProcessVtbl
 
     nsresult (*GetStatus)(IProcess *pThis, PRUint32 *status);
 
+    nsresult (*GetInternalAndReservedAttribute1IProcess)(IProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IProcess)(IProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IProcess)(IProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IProcess)(IProcess *pThis, PRUint32 *reserved);
+
     nsresult (*WaitFor)(
         IProcess *pThis,
         PRUint32 waitFor,
@@ -9500,6 +11572,8 @@ struct IProcessVtbl
     );
 
     nsresult (*Terminate)(IProcess *pThis );
+
+    nsresult (*InternalAndReservedMethod1IProcess)(IProcess *pThis);
 
 };
 #define IProcess_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -9541,10 +11615,10 @@ interface IProcess
 
 
 /* Start of struct IGuestProcess declaration */
-#define IGUESTPROCESS_IID_STR "dfa39a36-5d43-4840-a025-67ea956b3111"
+#define IGUESTPROCESS_IID_STR "35cf4b3f-4453-4f3e-c9b8-5686939c80b6"
 #define IGUESTPROCESS_IID { \
-    0xdfa39a36, 0x5d43, 0x4840, \
-    { 0xa0, 0x25, 0x67, 0xea, 0x95, 0x6b, 0x31, 0x11 } \
+    0x35cf4b3f, 0x4453, 0x4f3e, \
+    { 0xc9, 0xb8, 0x56, 0x86, 0x93, 0x9c, 0x80, 0xb6 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IGuestProcess);
@@ -9552,6 +11626,8 @@ VBOX_EXTERN_CONST(nsIID, IID_IGuestProcess);
 struct IGuestProcess_vtbl
 {
     struct IProcess_vtbl iprocess;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestProcess *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -9575,6 +11651,14 @@ struct IGuestProcessVtbl
     nsresult (*GetPID)(IGuestProcess *pThis, PRUint32 *PID);
 
     nsresult (*GetStatus)(IGuestProcess *pThis, PRUint32 *status);
+
+    nsresult (*GetInternalAndReservedAttribute1IProcess)(IGuestProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IProcess)(IGuestProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IProcess)(IGuestProcess *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IProcess)(IGuestProcess *pThis, PRUint32 *reserved);
 
     nsresult (*WaitFor)(
         IGuestProcess *pThis,
@@ -9623,6 +11707,10 @@ struct IGuestProcessVtbl
 
     nsresult (*Terminate)(IGuestProcess *pThis );
 
+    nsresult (*InternalAndReservedMethod1IProcess)(IGuestProcess *pThis);
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestProcess *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IGuestProcess_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IGuestProcess_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -9649,6 +11737,8 @@ struct IGuestProcessVtbl
 #define IGuestProcess_Write(p, aHandle, aFlags, aData, aTimeoutMS, aWritten) ((p)->lpVtbl->Write(p, aHandle, aFlags, aData, aTimeoutMS, aWritten))
 #define IGuestProcess_WriteArray(p, aHandle, aFlags, aData, aTimeoutMS, aWritten) ((p)->lpVtbl->WriteArray(p, aHandle, aFlags, aData, aTimeoutMS, aWritten))
 #define IGuestProcess_Terminate(p) ((p)->lpVtbl->Terminate(p))
+#define IGuestProcess_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestProcess_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IGuestProcess
@@ -9663,10 +11753,10 @@ interface IGuestProcess
 
 
 /* Start of struct IDirectory declaration */
-#define IDIRECTORY_IID_STR "1b70dd03-26d7-483a-8877-89bbb0f87b70"
+#define IDIRECTORY_IID_STR "f73650f4-4506-50ca-045a-23a0e32ea508"
 #define IDIRECTORY_IID { \
-    0x1b70dd03, 0x26d7, 0x483a, \
-    { 0x88, 0x77, 0x89, 0xbb, 0xb0, 0xf8, 0x7b, 0x70 } \
+    0xf73650f4, 0x4506, 0x50ca, \
+    { 0x04, 0x5a, 0x23, 0xa0, 0xe3, 0x2e, 0xa5, 0x08 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IDirectory);
@@ -9679,12 +11769,24 @@ struct IDirectory_vtbl
 
     nsresult (*GetFilter)(IDirectory *pThis, PRUnichar * *filter);
 
+    nsresult (*GetInternalAndReservedAttribute1IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
     nsresult (*Close)(IDirectory *pThis );
 
     nsresult (*Read)(
         IDirectory *pThis,
         IFsObjInfo * * objInfo
     );
+
+    nsresult (*InternalAndReservedMethod1IDirectory)(IDirectory *pThis);
+
+    nsresult (*InternalAndReservedMethod2IDirectory)(IDirectory *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -9697,12 +11799,24 @@ struct IDirectoryVtbl
 
     nsresult (*GetFilter)(IDirectory *pThis, PRUnichar * *filter);
 
+    nsresult (*GetInternalAndReservedAttribute1IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IDirectory)(IDirectory *pThis, PRUint32 *reserved);
+
     nsresult (*Close)(IDirectory *pThis );
 
     nsresult (*Read)(
         IDirectory *pThis,
         IFsObjInfo * * objInfo
     );
+
+    nsresult (*InternalAndReservedMethod1IDirectory)(IDirectory *pThis);
+
+    nsresult (*InternalAndReservedMethod2IDirectory)(IDirectory *pThis);
 
 };
 #define IDirectory_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -9728,10 +11842,10 @@ interface IDirectory
 
 
 /* Start of struct IGuestDirectory declaration */
-#define IGUESTDIRECTORY_IID_STR "af4a8ce0-0725-42b7-8826-46e3c7ba7357"
+#define IGUESTDIRECTORY_IID_STR "cc830458-4974-a19c-4dc6-cc98c2269626"
 #define IGUESTDIRECTORY_IID { \
-    0xaf4a8ce0, 0x0725, 0x42b7, \
-    { 0x88, 0x26, 0x46, 0xe3, 0xc7, 0xba, 0x73, 0x57 } \
+    0xcc830458, 0x4974, 0xa19c, \
+    { 0x4d, 0xc6, 0xcc, 0x98, 0xc2, 0x26, 0x96, 0x26 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IGuestDirectory);
@@ -9739,6 +11853,8 @@ VBOX_EXTERN_CONST(nsIID, IID_IGuestDirectory);
 struct IGuestDirectory_vtbl
 {
     struct IDirectory_vtbl idirectory;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestDirectory *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -9751,12 +11867,26 @@ struct IGuestDirectoryVtbl
 
     nsresult (*GetFilter)(IGuestDirectory *pThis, PRUnichar * *filter);
 
+    nsresult (*GetInternalAndReservedAttribute1IDirectory)(IGuestDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDirectory)(IGuestDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IDirectory)(IGuestDirectory *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IDirectory)(IGuestDirectory *pThis, PRUint32 *reserved);
+
     nsresult (*Close)(IGuestDirectory *pThis );
 
     nsresult (*Read)(
         IGuestDirectory *pThis,
         IFsObjInfo * * objInfo
     );
+
+    nsresult (*InternalAndReservedMethod1IDirectory)(IGuestDirectory *pThis);
+
+    nsresult (*InternalAndReservedMethod2IDirectory)(IGuestDirectory *pThis);
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestDirectory *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
 
 };
 #define IGuestDirectory_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -9768,6 +11898,8 @@ struct IGuestDirectoryVtbl
 #define IGuestDirectory_GetFilter(p, aFilter) ((p)->lpVtbl->GetFilter(p, aFilter))
 #define IGuestDirectory_Close(p) ((p)->lpVtbl->Close(p))
 #define IGuestDirectory_Read(p, aObjInfo) ((p)->lpVtbl->Read(p, aObjInfo))
+#define IGuestDirectory_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestDirectory_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IGuestDirectory
@@ -9782,10 +11914,10 @@ interface IGuestDirectory
 
 
 /* Start of struct IFile declaration */
-#define IFILE_IID_STR "5ec56ea3-b55d-4bdb-8c4f-5f9fb26b894b"
+#define IFILE_IID_STR "14c66b23-404c-f24a-3cc1-ee9501d44f2a"
 #define IFILE_IID { \
-    0x5ec56ea3, 0xb55d, 0x4bdb, \
-    { 0x8c, 0x4f, 0x5f, 0x9f, 0xb2, 0x6b, 0x89, 0x4b } \
+    0x14c66b23, 0x404c, 0xf24a, \
+    { 0x3c, 0xc1, 0xee, 0x95, 0x01, 0xd4, 0x4f, 0x2a } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IFile);
@@ -9794,29 +11926,42 @@ struct IFile_vtbl
 {
     struct nsISupports_vtbl nsisupports;
 
-    nsresult (*GetCreationMode)(IFile *pThis, PRUint32 *creationMode);
-
-    nsresult (*GetDisposition)(IFile *pThis, PRUnichar * *disposition);
-
     nsresult (*GetEventSource)(IFile *pThis, IEventSource * *eventSource);
-
-    nsresult (*GetFileName)(IFile *pThis, PRUnichar * *fileName);
 
     nsresult (*GetId)(IFile *pThis, PRUint32 *id);
 
     nsresult (*GetInitialSize)(IFile *pThis, PRInt64 *initialSize);
 
-    nsresult (*GetOpenMode)(IFile *pThis, PRUnichar * *openMode);
-
     nsresult (*GetOffset)(IFile *pThis, PRInt64 *offset);
 
     nsresult (*GetStatus)(IFile *pThis, PRUint32 *status);
+
+    nsresult (*GetFileName)(IFile *pThis, PRUnichar * *fileName);
+
+    nsresult (*GetCreationMode)(IFile *pThis, PRUint32 *creationMode);
+
+    nsresult (*GetOpenAction)(IFile *pThis, PRUint32 *openAction);
+
+    nsresult (*GetAccessMode)(IFile *pThis, PRUint32 *accessMode);
+
+    nsresult (*GetInternalAndReservedAttribute1IFile)(IFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IFile)(IFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IFile)(IFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IFile)(IFile *pThis, PRUint32 *reserved);
 
     nsresult (*Close)(IFile *pThis );
 
     nsresult (*QueryInfo)(
         IFile *pThis,
         IFsObjInfo * * objInfo
+    );
+
+    nsresult (*QuerySize)(
+        IFile *pThis,
+        PRInt64 * size
     );
 
     nsresult (*Read)(
@@ -9839,12 +11984,19 @@ struct IFile_vtbl
     nsresult (*Seek)(
         IFile *pThis,
         PRInt64 offset,
-        PRUint32 whence
+        PRUint32 whence,
+        PRInt64 * newOffset
     );
 
     nsresult (*SetACL)(
         IFile *pThis,
-        PRUnichar * acl
+        PRUnichar * acl,
+        PRUint32 mode
+    );
+
+    nsresult (*SetSize)(
+        IFile *pThis,
+        PRInt64 size
     );
 
     nsresult (*Write)(
@@ -9863,6 +12015,14 @@ struct IFile_vtbl
         PRUint32 timeoutMS,
         PRUint32 * written
     );
+
+    nsresult (*InternalAndReservedMethod1IFile)(IFile *pThis);
+
+    nsresult (*InternalAndReservedMethod2IFile)(IFile *pThis);
+
+    nsresult (*InternalAndReservedMethod3IFile)(IFile *pThis);
+
+    nsresult (*InternalAndReservedMethod4IFile)(IFile *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -9871,29 +12031,42 @@ struct IFileVtbl
     nsresult (*QueryInterface)(IFile *pThis, const nsID *iid, void **resultp);
     nsrefcnt (*AddRef)(IFile *pThis);
     nsrefcnt (*Release)(IFile *pThis);
-    nsresult (*GetCreationMode)(IFile *pThis, PRUint32 *creationMode);
-
-    nsresult (*GetDisposition)(IFile *pThis, PRUnichar * *disposition);
-
     nsresult (*GetEventSource)(IFile *pThis, IEventSource * *eventSource);
-
-    nsresult (*GetFileName)(IFile *pThis, PRUnichar * *fileName);
 
     nsresult (*GetId)(IFile *pThis, PRUint32 *id);
 
     nsresult (*GetInitialSize)(IFile *pThis, PRInt64 *initialSize);
 
-    nsresult (*GetOpenMode)(IFile *pThis, PRUnichar * *openMode);
-
     nsresult (*GetOffset)(IFile *pThis, PRInt64 *offset);
 
     nsresult (*GetStatus)(IFile *pThis, PRUint32 *status);
+
+    nsresult (*GetFileName)(IFile *pThis, PRUnichar * *fileName);
+
+    nsresult (*GetCreationMode)(IFile *pThis, PRUint32 *creationMode);
+
+    nsresult (*GetOpenAction)(IFile *pThis, PRUint32 *openAction);
+
+    nsresult (*GetAccessMode)(IFile *pThis, PRUint32 *accessMode);
+
+    nsresult (*GetInternalAndReservedAttribute1IFile)(IFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IFile)(IFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IFile)(IFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IFile)(IFile *pThis, PRUint32 *reserved);
 
     nsresult (*Close)(IFile *pThis );
 
     nsresult (*QueryInfo)(
         IFile *pThis,
         IFsObjInfo * * objInfo
+    );
+
+    nsresult (*QuerySize)(
+        IFile *pThis,
+        PRInt64 * size
     );
 
     nsresult (*Read)(
@@ -9916,12 +12089,19 @@ struct IFileVtbl
     nsresult (*Seek)(
         IFile *pThis,
         PRInt64 offset,
-        PRUint32 whence
+        PRUint32 whence,
+        PRInt64 * newOffset
     );
 
     nsresult (*SetACL)(
         IFile *pThis,
-        PRUnichar * acl
+        PRUnichar * acl,
+        PRUint32 mode
+    );
+
+    nsresult (*SetSize)(
+        IFile *pThis,
+        PRInt64 size
     );
 
     nsresult (*Write)(
@@ -9941,34 +12121,44 @@ struct IFileVtbl
         PRUint32 * written
     );
 
+    nsresult (*InternalAndReservedMethod1IFile)(IFile *pThis);
+
+    nsresult (*InternalAndReservedMethod2IFile)(IFile *pThis);
+
+    nsresult (*InternalAndReservedMethod3IFile)(IFile *pThis);
+
+    nsresult (*InternalAndReservedMethod4IFile)(IFile *pThis);
+
 };
 #define IFile_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IFile_AddRef(p) ((p)->lpVtbl->AddRef(p))
 #define IFile_Release(p) ((p)->lpVtbl->Release(p))
-#define IFile_get_CreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
-#define IFile_GetCreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
-#define IFile_get_Disposition(p, aDisposition) ((p)->lpVtbl->GetDisposition(p, aDisposition))
-#define IFile_GetDisposition(p, aDisposition) ((p)->lpVtbl->GetDisposition(p, aDisposition))
 #define IFile_get_EventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IFile_GetEventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
-#define IFile_get_FileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
-#define IFile_GetFileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
 #define IFile_get_Id(p, aId) ((p)->lpVtbl->GetId(p, aId))
 #define IFile_GetId(p, aId) ((p)->lpVtbl->GetId(p, aId))
 #define IFile_get_InitialSize(p, aInitialSize) ((p)->lpVtbl->GetInitialSize(p, aInitialSize))
 #define IFile_GetInitialSize(p, aInitialSize) ((p)->lpVtbl->GetInitialSize(p, aInitialSize))
-#define IFile_get_OpenMode(p, aOpenMode) ((p)->lpVtbl->GetOpenMode(p, aOpenMode))
-#define IFile_GetOpenMode(p, aOpenMode) ((p)->lpVtbl->GetOpenMode(p, aOpenMode))
 #define IFile_get_Offset(p, aOffset) ((p)->lpVtbl->GetOffset(p, aOffset))
 #define IFile_GetOffset(p, aOffset) ((p)->lpVtbl->GetOffset(p, aOffset))
 #define IFile_get_Status(p, aStatus) ((p)->lpVtbl->GetStatus(p, aStatus))
 #define IFile_GetStatus(p, aStatus) ((p)->lpVtbl->GetStatus(p, aStatus))
+#define IFile_get_FileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
+#define IFile_GetFileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
+#define IFile_get_CreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
+#define IFile_GetCreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
+#define IFile_get_OpenAction(p, aOpenAction) ((p)->lpVtbl->GetOpenAction(p, aOpenAction))
+#define IFile_GetOpenAction(p, aOpenAction) ((p)->lpVtbl->GetOpenAction(p, aOpenAction))
+#define IFile_get_AccessMode(p, aAccessMode) ((p)->lpVtbl->GetAccessMode(p, aAccessMode))
+#define IFile_GetAccessMode(p, aAccessMode) ((p)->lpVtbl->GetAccessMode(p, aAccessMode))
 #define IFile_Close(p) ((p)->lpVtbl->Close(p))
 #define IFile_QueryInfo(p, aObjInfo) ((p)->lpVtbl->QueryInfo(p, aObjInfo))
+#define IFile_QuerySize(p, aSize) ((p)->lpVtbl->QuerySize(p, aSize))
 #define IFile_Read(p, aToRead, aTimeoutMS, aData) ((p)->lpVtbl->Read(p, aToRead, aTimeoutMS, aData))
 #define IFile_ReadAt(p, aOffset, aToRead, aTimeoutMS, aData) ((p)->lpVtbl->ReadAt(p, aOffset, aToRead, aTimeoutMS, aData))
-#define IFile_Seek(p, aOffset, aWhence) ((p)->lpVtbl->Seek(p, aOffset, aWhence))
-#define IFile_SetACL(p, aAcl) ((p)->lpVtbl->SetACL(p, aAcl))
+#define IFile_Seek(p, aOffset, aWhence, aNewOffset) ((p)->lpVtbl->Seek(p, aOffset, aWhence, aNewOffset))
+#define IFile_SetACL(p, aAcl, aMode) ((p)->lpVtbl->SetACL(p, aAcl, aMode))
+#define IFile_SetSize(p, aSize) ((p)->lpVtbl->SetSize(p, aSize))
 #define IFile_Write(p, aData, aTimeoutMS, aWritten) ((p)->lpVtbl->Write(p, aData, aTimeoutMS, aWritten))
 #define IFile_WriteAt(p, aOffset, aData, aTimeoutMS, aWritten) ((p)->lpVtbl->WriteAt(p, aOffset, aData, aTimeoutMS, aWritten))
 #endif /* VBOX_WITH_GLUE */
@@ -9985,10 +12175,10 @@ interface IFile
 
 
 /* Start of struct IGuestFile declaration */
-#define IGUESTFILE_IID_STR "60661aec-145f-4d11-b80e-8ea151598093"
+#define IGUESTFILE_IID_STR "92f21dc0-44de-1653-b717-2ebf0ca9b664"
 #define IGUESTFILE_IID { \
-    0x60661aec, 0x145f, 0x4d11, \
-    { 0xb8, 0x0e, 0x8e, 0xa1, 0x51, 0x59, 0x80, 0x93 } \
+    0x92f21dc0, 0x44de, 0x1653, \
+    { 0xb7, 0x17, 0x2e, 0xbf, 0x0c, 0xa9, 0xb6, 0x64 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IGuestFile);
@@ -9997,6 +12187,8 @@ struct IGuestFile_vtbl
 {
     struct IFile_vtbl ifile;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFile *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IGuestFileVtbl
@@ -10004,29 +12196,42 @@ struct IGuestFileVtbl
     nsresult (*QueryInterface)(IGuestFile *pThis, const nsID *iid, void **resultp);
     nsrefcnt (*AddRef)(IGuestFile *pThis);
     nsrefcnt (*Release)(IGuestFile *pThis);
-    nsresult (*GetCreationMode)(IGuestFile *pThis, PRUint32 *creationMode);
-
-    nsresult (*GetDisposition)(IGuestFile *pThis, PRUnichar * *disposition);
-
     nsresult (*GetEventSource)(IGuestFile *pThis, IEventSource * *eventSource);
-
-    nsresult (*GetFileName)(IGuestFile *pThis, PRUnichar * *fileName);
 
     nsresult (*GetId)(IGuestFile *pThis, PRUint32 *id);
 
     nsresult (*GetInitialSize)(IGuestFile *pThis, PRInt64 *initialSize);
 
-    nsresult (*GetOpenMode)(IGuestFile *pThis, PRUnichar * *openMode);
-
     nsresult (*GetOffset)(IGuestFile *pThis, PRInt64 *offset);
 
     nsresult (*GetStatus)(IGuestFile *pThis, PRUint32 *status);
+
+    nsresult (*GetFileName)(IGuestFile *pThis, PRUnichar * *fileName);
+
+    nsresult (*GetCreationMode)(IGuestFile *pThis, PRUint32 *creationMode);
+
+    nsresult (*GetOpenAction)(IGuestFile *pThis, PRUint32 *openAction);
+
+    nsresult (*GetAccessMode)(IGuestFile *pThis, PRUint32 *accessMode);
+
+    nsresult (*GetInternalAndReservedAttribute1IFile)(IGuestFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IFile)(IGuestFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IFile)(IGuestFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IFile)(IGuestFile *pThis, PRUint32 *reserved);
 
     nsresult (*Close)(IGuestFile *pThis );
 
     nsresult (*QueryInfo)(
         IGuestFile *pThis,
         IFsObjInfo * * objInfo
+    );
+
+    nsresult (*QuerySize)(
+        IGuestFile *pThis,
+        PRInt64 * size
     );
 
     nsresult (*Read)(
@@ -10049,12 +12254,19 @@ struct IGuestFileVtbl
     nsresult (*Seek)(
         IGuestFile *pThis,
         PRInt64 offset,
-        PRUint32 whence
+        PRUint32 whence,
+        PRInt64 * newOffset
     );
 
     nsresult (*SetACL)(
         IGuestFile *pThis,
-        PRUnichar * acl
+        PRUnichar * acl,
+        PRUint32 mode
+    );
+
+    nsresult (*SetSize)(
+        IGuestFile *pThis,
+        PRInt64 size
     );
 
     nsresult (*Write)(
@@ -10074,36 +12286,50 @@ struct IGuestFileVtbl
         PRUint32 * written
     );
 
+    nsresult (*InternalAndReservedMethod1IFile)(IGuestFile *pThis);
+
+    nsresult (*InternalAndReservedMethod2IFile)(IGuestFile *pThis);
+
+    nsresult (*InternalAndReservedMethod3IFile)(IGuestFile *pThis);
+
+    nsresult (*InternalAndReservedMethod4IFile)(IGuestFile *pThis);
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFile *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IGuestFile_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IGuestFile_AddRef(p) ((p)->lpVtbl->AddRef(p))
 #define IGuestFile_Release(p) ((p)->lpVtbl->Release(p))
-#define IGuestFile_get_CreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
-#define IGuestFile_GetCreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
-#define IGuestFile_get_Disposition(p, aDisposition) ((p)->lpVtbl->GetDisposition(p, aDisposition))
-#define IGuestFile_GetDisposition(p, aDisposition) ((p)->lpVtbl->GetDisposition(p, aDisposition))
 #define IGuestFile_get_EventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IGuestFile_GetEventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
-#define IGuestFile_get_FileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
-#define IGuestFile_GetFileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
 #define IGuestFile_get_Id(p, aId) ((p)->lpVtbl->GetId(p, aId))
 #define IGuestFile_GetId(p, aId) ((p)->lpVtbl->GetId(p, aId))
 #define IGuestFile_get_InitialSize(p, aInitialSize) ((p)->lpVtbl->GetInitialSize(p, aInitialSize))
 #define IGuestFile_GetInitialSize(p, aInitialSize) ((p)->lpVtbl->GetInitialSize(p, aInitialSize))
-#define IGuestFile_get_OpenMode(p, aOpenMode) ((p)->lpVtbl->GetOpenMode(p, aOpenMode))
-#define IGuestFile_GetOpenMode(p, aOpenMode) ((p)->lpVtbl->GetOpenMode(p, aOpenMode))
 #define IGuestFile_get_Offset(p, aOffset) ((p)->lpVtbl->GetOffset(p, aOffset))
 #define IGuestFile_GetOffset(p, aOffset) ((p)->lpVtbl->GetOffset(p, aOffset))
 #define IGuestFile_get_Status(p, aStatus) ((p)->lpVtbl->GetStatus(p, aStatus))
 #define IGuestFile_GetStatus(p, aStatus) ((p)->lpVtbl->GetStatus(p, aStatus))
+#define IGuestFile_get_FileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
+#define IGuestFile_GetFileName(p, aFileName) ((p)->lpVtbl->GetFileName(p, aFileName))
+#define IGuestFile_get_CreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
+#define IGuestFile_GetCreationMode(p, aCreationMode) ((p)->lpVtbl->GetCreationMode(p, aCreationMode))
+#define IGuestFile_get_OpenAction(p, aOpenAction) ((p)->lpVtbl->GetOpenAction(p, aOpenAction))
+#define IGuestFile_GetOpenAction(p, aOpenAction) ((p)->lpVtbl->GetOpenAction(p, aOpenAction))
+#define IGuestFile_get_AccessMode(p, aAccessMode) ((p)->lpVtbl->GetAccessMode(p, aAccessMode))
+#define IGuestFile_GetAccessMode(p, aAccessMode) ((p)->lpVtbl->GetAccessMode(p, aAccessMode))
 #define IGuestFile_Close(p) ((p)->lpVtbl->Close(p))
 #define IGuestFile_QueryInfo(p, aObjInfo) ((p)->lpVtbl->QueryInfo(p, aObjInfo))
+#define IGuestFile_QuerySize(p, aSize) ((p)->lpVtbl->QuerySize(p, aSize))
 #define IGuestFile_Read(p, aToRead, aTimeoutMS, aData) ((p)->lpVtbl->Read(p, aToRead, aTimeoutMS, aData))
 #define IGuestFile_ReadAt(p, aOffset, aToRead, aTimeoutMS, aData) ((p)->lpVtbl->ReadAt(p, aOffset, aToRead, aTimeoutMS, aData))
-#define IGuestFile_Seek(p, aOffset, aWhence) ((p)->lpVtbl->Seek(p, aOffset, aWhence))
-#define IGuestFile_SetACL(p, aAcl) ((p)->lpVtbl->SetACL(p, aAcl))
+#define IGuestFile_Seek(p, aOffset, aWhence, aNewOffset) ((p)->lpVtbl->Seek(p, aOffset, aWhence, aNewOffset))
+#define IGuestFile_SetACL(p, aAcl, aMode) ((p)->lpVtbl->SetACL(p, aAcl, aMode))
+#define IGuestFile_SetSize(p, aSize) ((p)->lpVtbl->SetSize(p, aSize))
 #define IGuestFile_Write(p, aData, aTimeoutMS, aWritten) ((p)->lpVtbl->Write(p, aData, aTimeoutMS, aWritten))
 #define IGuestFile_WriteAt(p, aOffset, aData, aTimeoutMS, aWritten) ((p)->lpVtbl->WriteAt(p, aOffset, aData, aTimeoutMS, aWritten))
+#define IGuestFile_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestFile_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IGuestFile
@@ -10118,10 +12344,10 @@ interface IGuestFile
 
 
 /* Start of struct IFsObjInfo declaration */
-#define IFSOBJINFO_IID_STR "4047ba30-7006-4966-ae86-94164e5e20eb"
+#define IFSOBJINFO_IID_STR "d344626e-4b0a-10bc-9c2b-68973052de16"
 #define IFSOBJINFO_IID { \
-    0x4047ba30, 0x7006, 0x4966, \
-    { 0xae, 0x86, 0x94, 0x16, 0x4e, 0x5e, 0x20, 0xeb } \
+    0xd344626e, 0x4b0a, 0x10bc, \
+    { 0x9c, 0x2b, 0x68, 0x97, 0x30, 0x52, 0xde, 0x16 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IFsObjInfo);
@@ -10168,6 +12394,14 @@ struct IFsObjInfo_vtbl
 
     nsresult (*GetUserName)(IFsObjInfo *pThis, PRUnichar * *userName);
 
+    nsresult (*GetInternalAndReservedAttribute1IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IFsObjInfoVtbl
@@ -10212,6 +12446,14 @@ struct IFsObjInfoVtbl
     nsresult (*GetUserFlags)(IFsObjInfo *pThis, PRUint32 *userFlags);
 
     nsresult (*GetUserName)(IFsObjInfo *pThis, PRUnichar * *userName);
+
+    nsresult (*GetInternalAndReservedAttribute1IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IFsObjInfo)(IFsObjInfo *pThis, PRUint32 *reserved);
 
 };
 #define IFsObjInfo_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -10269,10 +12511,10 @@ interface IFsObjInfo
 
 
 /* Start of struct IGuestFsObjInfo declaration */
-#define IGUESTFSOBJINFO_IID_STR "d5cf678e-3484-4e4a-ac55-329e15462e18"
+#define IGUESTFSOBJINFO_IID_STR "6620db85-44e0-ca69-e9e0-d4907ceccbe5"
 #define IGUESTFSOBJINFO_IID { \
-    0xd5cf678e, 0x3484, 0x4e4a, \
-    { 0xac, 0x55, 0x32, 0x9e, 0x15, 0x46, 0x2e, 0x18 } \
+    0x6620db85, 0x44e0, 0xca69, \
+    { 0xe9, 0xe0, 0xd4, 0x90, 0x7c, 0xec, 0xcb, 0xe5 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IGuestFsObjInfo);
@@ -10280,6 +12522,8 @@ VBOX_EXTERN_CONST(nsIID, IID_IGuestFsObjInfo);
 struct IGuestFsObjInfo_vtbl
 {
     struct IFsObjInfo_vtbl ifsobjinfo;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFsObjInfo *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -10326,6 +12570,16 @@ struct IGuestFsObjInfoVtbl
 
     nsresult (*GetUserName)(IGuestFsObjInfo *pThis, PRUnichar * *userName);
 
+    nsresult (*GetInternalAndReservedAttribute1IFsObjInfo)(IGuestFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IFsObjInfo)(IGuestFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IFsObjInfo)(IGuestFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IFsObjInfo)(IGuestFsObjInfo *pThis, PRUint32 *reserved);
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFsObjInfo *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IGuestFsObjInfo_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IGuestFsObjInfo_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -10368,6 +12622,8 @@ struct IGuestFsObjInfoVtbl
 #define IGuestFsObjInfo_GetUserFlags(p, aUserFlags) ((p)->lpVtbl->GetUserFlags(p, aUserFlags))
 #define IGuestFsObjInfo_get_UserName(p, aUserName) ((p)->lpVtbl->GetUserName(p, aUserName))
 #define IGuestFsObjInfo_GetUserName(p, aUserName) ((p)->lpVtbl->GetUserName(p, aUserName))
+#define IGuestFsObjInfo_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestFsObjInfo_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IGuestFsObjInfo
@@ -10382,10 +12638,10 @@ interface IGuestFsObjInfo
 
 
 /* Start of struct IGuest declaration */
-#define IGUEST_IID_STR "8011a1b1-6adb-4ffb-a37e-20abdaee4650"
+#define IGUEST_IID_STR "13a11514-402e-022e-6180-c3944de3f9c8"
 #define IGUEST_IID { \
-    0x8011a1b1, 0x6adb, 0x4ffb, \
-    { 0xa3, 0x7e, 0x20, 0xab, 0xda, 0xee, 0x46, 0x50 } \
+    0x13a11514, 0x402e, 0x022e, \
+    { 0x61, 0x80, 0xc3, 0x94, 0x4d, 0xe3, 0xf9, 0xc8 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IGuest);
@@ -10402,6 +12658,10 @@ struct IGuest_vtbl
 
     nsresult (*GetAdditionsRevision)(IGuest *pThis, PRUint32 *additionsRevision);
 
+    nsresult (*GetDnDSource)(IGuest *pThis, IGuestDnDSource * *dnDSource);
+
+    nsresult (*GetDnDTarget)(IGuest *pThis, IGuestDnDTarget * *dnDTarget);
+
     nsresult (*GetEventSource)(IGuest *pThis, IEventSource * *eventSource);
 
     nsresult (*GetFacilities)(IGuest *pThis, PRUint32 *facilitiesSize, IAdditionsFacility * **facilities);
@@ -10413,6 +12673,38 @@ struct IGuest_vtbl
 
     nsresult (*GetStatisticsUpdateInterval)(IGuest *pThis, PRUint32 *statisticsUpdateInterval);
     nsresult (*SetStatisticsUpdateInterval)(IGuest *pThis, PRUint32 statisticsUpdateInterval);
+
+    nsresult (*GetInternalAndReservedAttribute1IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IGuest)(IGuest *pThis, PRUint32 *reserved);
 
     nsresult (*InternalGetStatistics)(
         IGuest *pThis,
@@ -10452,83 +12744,6 @@ struct IGuest_vtbl
         PRBool allowInteractiveLogon
     );
 
-    nsresult (*DragHGEnter)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 y,
-        PRUint32 x,
-        PRUint32 defaultAction,
-        PRUint32 allowedActionsSize,
-        PRUint32* allowedActions,
-        PRUint32 formatsSize,
-        PRUnichar ** formats,
-        PRUint32 * resultAction
-    );
-
-    nsresult (*DragHGMove)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 x,
-        PRUint32 y,
-        PRUint32 defaultAction,
-        PRUint32 allowedActionsSize,
-        PRUint32* allowedActions,
-        PRUint32 formatsSize,
-        PRUnichar ** formats,
-        PRUint32 * resultAction
-    );
-
-    nsresult (*DragHGLeave)(
-        IGuest *pThis,
-        PRUint32 screenId
-    );
-
-    nsresult (*DragHGDrop)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 x,
-        PRUint32 y,
-        PRUint32 defaultAction,
-        PRUint32 allowedActionsSize,
-        PRUint32* allowedActions,
-        PRUint32 formatsSize,
-        PRUnichar ** formats,
-        PRUnichar * * format,
-        PRUint32 * resultAction
-    );
-
-    nsresult (*DragHGPutData)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUnichar * format,
-        PRUint32 dataSize,
-        PRUint8* data,
-        IProgress * * progress
-    );
-
-    nsresult (*DragGHPending)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 *formatsSize,
-        PRUnichar *** formats,
-        PRUint32 *allowedActionsSize,
-        PRUint32** allowedActions,
-        PRUint32 * defaultAction
-    );
-
-    nsresult (*DragGHDropped)(
-        IGuest *pThis,
-        PRUnichar * format,
-        PRUint32 action,
-        IProgress * * progress
-    );
-
-    nsresult (*DragGHGetData)(
-        IGuest *pThis,
-        PRUint32 *dataSize,
-        PRUint8** data
-    );
-
     nsresult (*CreateSession)(
         IGuest *pThis,
         PRUnichar * user,
@@ -10554,6 +12769,22 @@ struct IGuest_vtbl
         PRUint32* flags,
         IProgress * * progress
     );
+
+    nsresult (*InternalAndReservedMethod1IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod2IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod3IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod4IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod5IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod6IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod7IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod8IGuest)(IGuest *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -10570,6 +12801,10 @@ struct IGuestVtbl
 
     nsresult (*GetAdditionsRevision)(IGuest *pThis, PRUint32 *additionsRevision);
 
+    nsresult (*GetDnDSource)(IGuest *pThis, IGuestDnDSource * *dnDSource);
+
+    nsresult (*GetDnDTarget)(IGuest *pThis, IGuestDnDTarget * *dnDTarget);
+
     nsresult (*GetEventSource)(IGuest *pThis, IEventSource * *eventSource);
 
     nsresult (*GetFacilities)(IGuest *pThis, PRUint32 *facilitiesSize, IAdditionsFacility * **facilities);
@@ -10581,6 +12816,38 @@ struct IGuestVtbl
 
     nsresult (*GetStatisticsUpdateInterval)(IGuest *pThis, PRUint32 *statisticsUpdateInterval);
     nsresult (*SetStatisticsUpdateInterval)(IGuest *pThis, PRUint32 statisticsUpdateInterval);
+
+    nsresult (*GetInternalAndReservedAttribute1IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IGuest)(IGuest *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IGuest)(IGuest *pThis, PRUint32 *reserved);
 
     nsresult (*InternalGetStatistics)(
         IGuest *pThis,
@@ -10620,83 +12887,6 @@ struct IGuestVtbl
         PRBool allowInteractiveLogon
     );
 
-    nsresult (*DragHGEnter)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 y,
-        PRUint32 x,
-        PRUint32 defaultAction,
-        PRUint32 allowedActionsSize,
-        PRUint32* allowedActions,
-        PRUint32 formatsSize,
-        PRUnichar ** formats,
-        PRUint32 * resultAction
-    );
-
-    nsresult (*DragHGMove)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 x,
-        PRUint32 y,
-        PRUint32 defaultAction,
-        PRUint32 allowedActionsSize,
-        PRUint32* allowedActions,
-        PRUint32 formatsSize,
-        PRUnichar ** formats,
-        PRUint32 * resultAction
-    );
-
-    nsresult (*DragHGLeave)(
-        IGuest *pThis,
-        PRUint32 screenId
-    );
-
-    nsresult (*DragHGDrop)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 x,
-        PRUint32 y,
-        PRUint32 defaultAction,
-        PRUint32 allowedActionsSize,
-        PRUint32* allowedActions,
-        PRUint32 formatsSize,
-        PRUnichar ** formats,
-        PRUnichar * * format,
-        PRUint32 * resultAction
-    );
-
-    nsresult (*DragHGPutData)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUnichar * format,
-        PRUint32 dataSize,
-        PRUint8* data,
-        IProgress * * progress
-    );
-
-    nsresult (*DragGHPending)(
-        IGuest *pThis,
-        PRUint32 screenId,
-        PRUint32 *formatsSize,
-        PRUnichar *** formats,
-        PRUint32 *allowedActionsSize,
-        PRUint32** allowedActions,
-        PRUint32 * defaultAction
-    );
-
-    nsresult (*DragGHDropped)(
-        IGuest *pThis,
-        PRUnichar * format,
-        PRUint32 action,
-        IProgress * * progress
-    );
-
-    nsresult (*DragGHGetData)(
-        IGuest *pThis,
-        PRUint32 *dataSize,
-        PRUint8** data
-    );
-
     nsresult (*CreateSession)(
         IGuest *pThis,
         PRUnichar * user,
@@ -10723,6 +12913,22 @@ struct IGuestVtbl
         IProgress * * progress
     );
 
+    nsresult (*InternalAndReservedMethod1IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod2IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod3IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod4IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod5IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod6IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod7IGuest)(IGuest *pThis);
+
+    nsresult (*InternalAndReservedMethod8IGuest)(IGuest *pThis);
+
 };
 #define IGuest_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IGuest_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -10735,6 +12941,10 @@ struct IGuestVtbl
 #define IGuest_GetAdditionsVersion(p, aAdditionsVersion) ((p)->lpVtbl->GetAdditionsVersion(p, aAdditionsVersion))
 #define IGuest_get_AdditionsRevision(p, aAdditionsRevision) ((p)->lpVtbl->GetAdditionsRevision(p, aAdditionsRevision))
 #define IGuest_GetAdditionsRevision(p, aAdditionsRevision) ((p)->lpVtbl->GetAdditionsRevision(p, aAdditionsRevision))
+#define IGuest_get_DnDSource(p, aDnDSource) ((p)->lpVtbl->GetDnDSource(p, aDnDSource))
+#define IGuest_GetDnDSource(p, aDnDSource) ((p)->lpVtbl->GetDnDSource(p, aDnDSource))
+#define IGuest_get_DnDTarget(p, aDnDTarget) ((p)->lpVtbl->GetDnDTarget(p, aDnDTarget))
+#define IGuest_GetDnDTarget(p, aDnDTarget) ((p)->lpVtbl->GetDnDTarget(p, aDnDTarget))
 #define IGuest_get_EventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IGuest_GetEventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IGuest_get_Facilities(p, aFacilities) ((p)->lpVtbl->GetFacilities(p, aFacilities))
@@ -10753,14 +12963,6 @@ struct IGuestVtbl
 #define IGuest_GetFacilityStatus(p, aFacility, aTimestamp, aStatus) ((p)->lpVtbl->GetFacilityStatus(p, aFacility, aTimestamp, aStatus))
 #define IGuest_GetAdditionsStatus(p, aLevel, aActive) ((p)->lpVtbl->GetAdditionsStatus(p, aLevel, aActive))
 #define IGuest_SetCredentials(p, aUserName, aPassword, aDomain, aAllowInteractiveLogon) ((p)->lpVtbl->SetCredentials(p, aUserName, aPassword, aDomain, aAllowInteractiveLogon))
-#define IGuest_DragHGEnter(p, aScreenId, aY, aX, aDefaultAction, aAllowedActions, aFormats, aResultAction) ((p)->lpVtbl->DragHGEnter(p, aScreenId, aY, aX, aDefaultAction, aAllowedActions, aFormats, aResultAction))
-#define IGuest_DragHGMove(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aResultAction) ((p)->lpVtbl->DragHGMove(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aResultAction))
-#define IGuest_DragHGLeave(p, aScreenId) ((p)->lpVtbl->DragHGLeave(p, aScreenId))
-#define IGuest_DragHGDrop(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aFormat, aResultAction) ((p)->lpVtbl->DragHGDrop(p, aScreenId, aX, aY, aDefaultAction, aAllowedActions, aFormats, aFormat, aResultAction))
-#define IGuest_DragHGPutData(p, aScreenId, aFormat, aData, aProgress) ((p)->lpVtbl->DragHGPutData(p, aScreenId, aFormat, aData, aProgress))
-#define IGuest_DragGHPending(p, aScreenId, aFormats, aAllowedActions, aDefaultAction) ((p)->lpVtbl->DragGHPending(p, aScreenId, aFormats, aAllowedActions, aDefaultAction))
-#define IGuest_DragGHDropped(p, aFormat, aAction, aProgress) ((p)->lpVtbl->DragGHDropped(p, aFormat, aAction, aProgress))
-#define IGuest_DragGHGetData(p, aData) ((p)->lpVtbl->DragGHGetData(p, aData))
 #define IGuest_CreateSession(p, aUser, aPassword, aDomain, aSessionName, aGuestSession) ((p)->lpVtbl->CreateSession(p, aUser, aPassword, aDomain, aSessionName, aGuestSession))
 #define IGuest_FindSession(p, aSessionName, aSessions) ((p)->lpVtbl->FindSession(p, aSessionName, aSessions))
 #define IGuest_UpdateGuestAdditions(p, aSource, aArguments, aFlags, aProgress) ((p)->lpVtbl->UpdateGuestAdditions(p, aSource, aArguments, aFlags, aProgress))
@@ -10778,10 +12980,10 @@ interface IGuest
 
 
 /* Start of struct IProgress declaration */
-#define IPROGRESS_IID_STR "c20238e4-3221-4d3f-8891-81ce92d9f913"
+#define IPROGRESS_IID_STR "77faf1c0-489d-b123-274c-5a95e77ab286"
 #define IPROGRESS_IID { \
-    0xc20238e4, 0x3221, 0x4d3f, \
-    { 0x88, 0x91, 0x81, 0xce, 0x92, 0xd9, 0xf9, 0x13 } \
+    0x77faf1c0, 0x489d, 0xb123, \
+    { 0x27, 0x4c, 0x5a, 0x95, 0xe7, 0x7a, 0xb2, 0x86 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IProgress);
@@ -10823,6 +13025,10 @@ struct IProgress_vtbl
     nsresult (*GetTimeout)(IProgress *pThis, PRUint32 *timeout);
     nsresult (*SetTimeout)(IProgress *pThis, PRUint32 timeout);
 
+    nsresult (*GetInternalAndReservedAttribute1IProgress)(IProgress *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IProgress)(IProgress *pThis, PRUint32 *reserved);
+
     nsresult (*SetCurrentOperationProgress)(
         IProgress *pThis,
         PRUint32 percent
@@ -10851,6 +13057,8 @@ struct IProgress_vtbl
     );
 
     nsresult (*Cancel)(IProgress *pThis );
+
+    nsresult (*InternalAndReservedMethod1IProgress)(IProgress *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -10892,6 +13100,10 @@ struct IProgressVtbl
     nsresult (*GetTimeout)(IProgress *pThis, PRUint32 *timeout);
     nsresult (*SetTimeout)(IProgress *pThis, PRUint32 timeout);
 
+    nsresult (*GetInternalAndReservedAttribute1IProgress)(IProgress *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IProgress)(IProgress *pThis, PRUint32 *reserved);
+
     nsresult (*SetCurrentOperationProgress)(
         IProgress *pThis,
         PRUint32 percent
@@ -10920,6 +13132,8 @@ struct IProgressVtbl
     );
 
     nsresult (*Cancel)(IProgress *pThis );
+
+    nsresult (*InternalAndReservedMethod1IProgress)(IProgress *pThis);
 
 };
 #define IProgress_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -10979,10 +13193,10 @@ interface IProgress
 
 
 /* Start of struct ISnapshot declaration */
-#define ISNAPSHOT_IID_STR "0472823b-c6e7-472a-8e9f-d732e86b8463"
+#define ISNAPSHOT_IID_STR "5732f030-4194-ec8b-c761-e1a99327e9f0"
 #define ISNAPSHOT_IID { \
-    0x0472823b, 0xc6e7, 0x472a, \
-    { 0x8e, 0x9f, 0xd7, 0x32, 0xe8, 0x6b, 0x84, 0x63 } \
+    0x5732f030, 0x4194, 0xec8b, \
+    { 0xc7, 0x61, 0xe1, 0xa9, 0x93, 0x27, 0xe9, 0xf0 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_ISnapshot);
@@ -11009,10 +13223,16 @@ struct ISnapshot_vtbl
 
     nsresult (*GetChildren)(ISnapshot *pThis, PRUint32 *childrenSize, ISnapshot * **children);
 
+    nsresult (*GetInternalAndReservedAttribute1ISnapshot)(ISnapshot *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISnapshot)(ISnapshot *pThis, PRUint32 *reserved);
+
     nsresult (*GetChildrenCount)(
         ISnapshot *pThis,
         PRUint32 * childrenCount
     );
+
+    nsresult (*InternalAndReservedMethod1ISnapshot)(ISnapshot *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -11039,10 +13259,16 @@ struct ISnapshotVtbl
 
     nsresult (*GetChildren)(ISnapshot *pThis, PRUint32 *childrenSize, ISnapshot * **children);
 
+    nsresult (*GetInternalAndReservedAttribute1ISnapshot)(ISnapshot *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISnapshot)(ISnapshot *pThis, PRUint32 *reserved);
+
     nsresult (*GetChildrenCount)(
         ISnapshot *pThis,
         PRUint32 * childrenCount
     );
+
+    nsresult (*InternalAndReservedMethod1ISnapshot)(ISnapshot *pThis);
 
 };
 #define ISnapshot_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -11083,10 +13309,10 @@ interface ISnapshot
 
 
 /* Start of struct IMediumAttachment declaration */
-#define IMEDIUMATTACHMENT_IID_STR "4b252567-5d4e-4db8-b3c8-569ec1c9236c"
+#define IMEDIUMATTACHMENT_IID_STR "3785b3f7-7b5f-4000-8842-ad0cc6ab30b7"
 #define IMEDIUMATTACHMENT_IID { \
-    0x4b252567, 0x5d4e, 0x4db8, \
-    { 0xb3, 0xc8, 0x56, 0x9e, 0xc1, 0xc9, 0x23, 0x6c } \
+    0x3785b3f7, 0x7b5f, 0x4000, \
+    { 0x88, 0x42, 0xad, 0x0c, 0xc6, 0xab, 0x30, 0xb7 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IMediumAttachment);
@@ -11119,6 +13345,14 @@ struct IMediumAttachment_vtbl
 
     nsresult (*GetBandwidthGroup)(IMediumAttachment *pThis, IBandwidthGroup * *bandwidthGroup);
 
+    nsresult (*GetInternalAndReservedAttribute1IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IMediumAttachmentVtbl
@@ -11149,6 +13383,14 @@ struct IMediumAttachmentVtbl
     nsresult (*GetHotPluggable)(IMediumAttachment *pThis, PRBool *hotPluggable);
 
     nsresult (*GetBandwidthGroup)(IMediumAttachment *pThis, IBandwidthGroup * *bandwidthGroup);
+
+    nsresult (*GetInternalAndReservedAttribute1IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMediumAttachment)(IMediumAttachment *pThis, PRUint32 *reserved);
 
 };
 #define IMediumAttachment_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -11192,10 +13434,10 @@ interface IMediumAttachment
 
 
 /* Start of struct IMedium declaration */
-#define IMEDIUM_IID_STR "05f2bbb6-a3a6-4fb9-9b49-6d0dda7142ac"
+#define IMEDIUM_IID_STR "4afe423b-43e0-e9d0-82e8-ceb307940dda"
 #define IMEDIUM_IID { \
-    0x05f2bbb6, 0xa3a6, 0x4fb9, \
-    { 0x9b, 0x49, 0x6d, 0x0d, 0xda, 0x71, 0x42, 0xac } \
+    0x4afe423b, 0x43e0, 0xe9d0, \
+    { 0x82, 0xe8, 0xce, 0xb3, 0x07, 0x94, 0x0d, 0xda } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IMedium);
@@ -11249,6 +13491,22 @@ struct IMedium_vtbl
 
     nsresult (*GetMachineIds)(IMedium *pThis, PRUint32 *machineIdsSize, PRUnichar * **machineIds);
 
+    nsresult (*GetInternalAndReservedAttribute1IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IMedium)(IMedium *pThis, PRUint32 *reserved);
+
     nsresult (*SetIds)(
         IMedium *pThis,
         PRBool setImageId,
@@ -11375,6 +13633,34 @@ struct IMedium_vtbl
         IMedium *pThis,
         IProgress * * progress
     );
+
+    nsresult (*ChangeEncryption)(
+        IMedium *pThis,
+        PRUnichar * currentPassword,
+        PRUnichar * cipher,
+        PRUnichar * newPassword,
+        PRUnichar * newPasswordId,
+        IProgress * * progress
+    );
+
+    nsresult (*GetEncryptionSettings)(
+        IMedium *pThis,
+        PRUnichar * * cipher,
+        PRUnichar * * passwordId
+    );
+
+    nsresult (*CheckEncryptionPassword)(
+        IMedium *pThis,
+        PRUnichar * password
+    );
+
+    nsresult (*InternalAndReservedMethod1IMedium)(IMedium *pThis);
+
+    nsresult (*InternalAndReservedMethod2IMedium)(IMedium *pThis);
+
+    nsresult (*InternalAndReservedMethod3IMedium)(IMedium *pThis);
+
+    nsresult (*InternalAndReservedMethod4IMedium)(IMedium *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -11428,6 +13714,22 @@ struct IMediumVtbl
 
     nsresult (*GetMachineIds)(IMedium *pThis, PRUint32 *machineIdsSize, PRUnichar * **machineIds);
 
+    nsresult (*GetInternalAndReservedAttribute1IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IMedium)(IMedium *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IMedium)(IMedium *pThis, PRUint32 *reserved);
+
     nsresult (*SetIds)(
         IMedium *pThis,
         PRBool setImageId,
@@ -11554,6 +13856,34 @@ struct IMediumVtbl
         IMedium *pThis,
         IProgress * * progress
     );
+
+    nsresult (*ChangeEncryption)(
+        IMedium *pThis,
+        PRUnichar * currentPassword,
+        PRUnichar * cipher,
+        PRUnichar * newPassword,
+        PRUnichar * newPasswordId,
+        IProgress * * progress
+    );
+
+    nsresult (*GetEncryptionSettings)(
+        IMedium *pThis,
+        PRUnichar * * cipher,
+        PRUnichar * * passwordId
+    );
+
+    nsresult (*CheckEncryptionPassword)(
+        IMedium *pThis,
+        PRUnichar * password
+    );
+
+    nsresult (*InternalAndReservedMethod1IMedium)(IMedium *pThis);
+
+    nsresult (*InternalAndReservedMethod2IMedium)(IMedium *pThis);
+
+    nsresult (*InternalAndReservedMethod3IMedium)(IMedium *pThis);
+
+    nsresult (*InternalAndReservedMethod4IMedium)(IMedium *pThis);
 
 };
 #define IMedium_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -11627,6 +13957,9 @@ struct IMediumVtbl
 #define IMedium_Compact(p, aProgress) ((p)->lpVtbl->Compact(p, aProgress))
 #define IMedium_Resize(p, aLogicalSize, aProgress) ((p)->lpVtbl->Resize(p, aLogicalSize, aProgress))
 #define IMedium_Reset(p, aProgress) ((p)->lpVtbl->Reset(p, aProgress))
+#define IMedium_ChangeEncryption(p, aCurrentPassword, aCipher, aNewPassword, aNewPasswordId, aProgress) ((p)->lpVtbl->ChangeEncryption(p, aCurrentPassword, aCipher, aNewPassword, aNewPasswordId, aProgress))
+#define IMedium_GetEncryptionSettings(p, aCipher, aPasswordId) ((p)->lpVtbl->GetEncryptionSettings(p, aCipher, aPasswordId))
+#define IMedium_CheckEncryptionPassword(p, aPassword) ((p)->lpVtbl->CheckEncryptionPassword(p, aPassword))
 #endif /* VBOX_WITH_GLUE */
 
 interface IMedium
@@ -11641,10 +13974,10 @@ interface IMedium
 
 
 /* Start of struct IMediumFormat declaration */
-#define IMEDIUMFORMAT_IID_STR "6238e1cf-a17d-4ec1-8172-418bfb22b93a"
+#define IMEDIUMFORMAT_IID_STR "10f337fb-422e-e57e-661b-0998ac309175"
 #define IMEDIUMFORMAT_IID { \
-    0x6238e1cf, 0xa17d, 0x4ec1, \
-    { 0x81, 0x72, 0x41, 0x8b, 0xfb, 0x22, 0xb9, 0x3a } \
+    0x10f337fb, 0x422e, 0xe57e, \
+    { 0x66, 0x1b, 0x09, 0x98, 0xac, 0x30, 0x91, 0x75 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IMediumFormat);
@@ -11659,6 +13992,10 @@ struct IMediumFormat_vtbl
 
     nsresult (*GetCapabilities)(IMediumFormat *pThis, PRUint32 *capabilitiesSize, PRUint32 **capabilities);
 
+    nsresult (*GetInternalAndReservedAttribute1IMediumFormat)(IMediumFormat *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMediumFormat)(IMediumFormat *pThis, PRUint32 *reserved);
+
     nsresult (*DescribeFileExtensions)(
         IMediumFormat *pThis,
         PRUint32 *extensionsSize,
@@ -11680,6 +14017,8 @@ struct IMediumFormat_vtbl
         PRUint32 *defaultsSize,
         PRUnichar *** defaults
     );
+
+    nsresult (*InternalAndReservedMethod1IMediumFormat)(IMediumFormat *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -11694,6 +14033,10 @@ struct IMediumFormatVtbl
 
     nsresult (*GetCapabilities)(IMediumFormat *pThis, PRUint32 *capabilitiesSize, PRUint32 **capabilities);
 
+    nsresult (*GetInternalAndReservedAttribute1IMediumFormat)(IMediumFormat *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMediumFormat)(IMediumFormat *pThis, PRUint32 *reserved);
+
     nsresult (*DescribeFileExtensions)(
         IMediumFormat *pThis,
         PRUint32 *extensionsSize,
@@ -11715,6 +14058,8 @@ struct IMediumFormatVtbl
         PRUint32 *defaultsSize,
         PRUnichar *** defaults
     );
+
+    nsresult (*InternalAndReservedMethod1IMediumFormat)(IMediumFormat *pThis);
 
 };
 #define IMediumFormat_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -11742,10 +14087,10 @@ interface IMediumFormat
 
 
 /* Start of struct IToken declaration */
-#define ITOKEN_IID_STR "3b1c4797-e289-4d4c-b74c-50c9b86a36f8"
+#define ITOKEN_IID_STR "20479eaf-d8ed-44cf-85ac-c83a26c95a4d"
 #define ITOKEN_IID { \
-    0x3b1c4797, 0xe289, 0x4d4c, \
-    { 0xb7, 0x4c, 0x50, 0xc9, 0xb8, 0x6a, 0x36, 0xf8 } \
+    0x20479eaf, 0xd8ed, 0x44cf, \
+    { 0x85, 0xac, 0xc8, 0x3a, 0x26, 0xc9, 0x5a, 0x4d } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IToken);
@@ -11754,9 +14099,15 @@ struct IToken_vtbl
 {
     struct nsISupports_vtbl nsisupports;
 
+    nsresult (*GetInternalAndReservedAttribute1IToken)(IToken *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IToken)(IToken *pThis, PRUint32 *reserved);
+
     nsresult (*Abandon)(IToken *pThis );
 
     nsresult (*Dummy)(IToken *pThis );
+
+    nsresult (*InternalAndReservedMethod1IToken)(IToken *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -11765,9 +14116,15 @@ struct ITokenVtbl
     nsresult (*QueryInterface)(IToken *pThis, const nsID *iid, void **resultp);
     nsrefcnt (*AddRef)(IToken *pThis);
     nsrefcnt (*Release)(IToken *pThis);
+    nsresult (*GetInternalAndReservedAttribute1IToken)(IToken *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IToken)(IToken *pThis, PRUint32 *reserved);
+
     nsresult (*Abandon)(IToken *pThis );
 
     nsresult (*Dummy)(IToken *pThis );
+
+    nsresult (*InternalAndReservedMethod1IToken)(IToken *pThis);
 
 };
 #define IToken_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -11789,10 +14146,10 @@ interface IToken
 
 
 /* Start of struct IKeyboard declaration */
-#define IKEYBOARD_IID_STR "f6916ec5-a881-4237-898f-7de58cf88672"
+#define IKEYBOARD_IID_STR "da91d4c9-4c02-fdb1-c5ac-d89e22e81302"
 #define IKEYBOARD_IID { \
-    0xf6916ec5, 0xa881, 0x4237, \
-    { 0x89, 0x8f, 0x7d, 0xe5, 0x8c, 0xf8, 0x86, 0x72 } \
+    0xda91d4c9, 0x4c02, 0xfdb1, \
+    { 0xc5, 0xac, 0xd8, 0x9e, 0x22, 0xe8, 0x13, 0x02 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IKeyboard);
@@ -11801,7 +14158,13 @@ struct IKeyboard_vtbl
 {
     struct nsISupports_vtbl nsisupports;
 
+    nsresult (*GetKeyboardLEDs)(IKeyboard *pThis, PRUint32 *keyboardLEDsSize, PRUint32 **keyboardLEDs);
+
     nsresult (*GetEventSource)(IKeyboard *pThis, IEventSource * *eventSource);
+
+    nsresult (*GetInternalAndReservedAttribute1IKeyboard)(IKeyboard *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IKeyboard)(IKeyboard *pThis, PRUint32 *reserved);
 
     nsresult (*PutScancode)(
         IKeyboard *pThis,
@@ -11816,6 +14179,10 @@ struct IKeyboard_vtbl
     );
 
     nsresult (*PutCAD)(IKeyboard *pThis );
+
+    nsresult (*ReleaseKeys)(IKeyboard *pThis );
+
+    nsresult (*InternalAndReservedMethod1IKeyboard)(IKeyboard *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -11824,7 +14191,13 @@ struct IKeyboardVtbl
     nsresult (*QueryInterface)(IKeyboard *pThis, const nsID *iid, void **resultp);
     nsrefcnt (*AddRef)(IKeyboard *pThis);
     nsrefcnt (*Release)(IKeyboard *pThis);
+    nsresult (*GetKeyboardLEDs)(IKeyboard *pThis, PRUint32 *keyboardLEDsSize, PRUint32 **keyboardLEDs);
+
     nsresult (*GetEventSource)(IKeyboard *pThis, IEventSource * *eventSource);
+
+    nsresult (*GetInternalAndReservedAttribute1IKeyboard)(IKeyboard *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IKeyboard)(IKeyboard *pThis, PRUint32 *reserved);
 
     nsresult (*PutScancode)(
         IKeyboard *pThis,
@@ -11840,15 +14213,22 @@ struct IKeyboardVtbl
 
     nsresult (*PutCAD)(IKeyboard *pThis );
 
+    nsresult (*ReleaseKeys)(IKeyboard *pThis );
+
+    nsresult (*InternalAndReservedMethod1IKeyboard)(IKeyboard *pThis);
+
 };
 #define IKeyboard_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IKeyboard_AddRef(p) ((p)->lpVtbl->AddRef(p))
 #define IKeyboard_Release(p) ((p)->lpVtbl->Release(p))
+#define IKeyboard_get_KeyboardLEDs(p, aKeyboardLEDs) ((p)->lpVtbl->GetKeyboardLEDs(p, aKeyboardLEDs))
+#define IKeyboard_GetKeyboardLEDs(p, aKeyboardLEDs) ((p)->lpVtbl->GetKeyboardLEDs(p, aKeyboardLEDs))
 #define IKeyboard_get_EventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IKeyboard_GetEventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IKeyboard_PutScancode(p, aScancode) ((p)->lpVtbl->PutScancode(p, aScancode))
 #define IKeyboard_PutScancodes(p, aScancodes, aCodesStored) ((p)->lpVtbl->PutScancodes(p, aScancodes, aCodesStored))
 #define IKeyboard_PutCAD(p) ((p)->lpVtbl->PutCAD(p))
+#define IKeyboard_ReleaseKeys(p) ((p)->lpVtbl->ReleaseKeys(p))
 #endif /* VBOX_WITH_GLUE */
 
 interface IKeyboard
@@ -11862,11 +14242,98 @@ interface IKeyboard
 /* End of struct IKeyboard declaration */
 
 
+/* Start of struct IMousePointerShape declaration */
+#define IMOUSEPOINTERSHAPE_IID_STR "e04e5545-4a0f-f9d2-5bef-f9b25b6557ed"
+#define IMOUSEPOINTERSHAPE_IID { \
+    0xe04e5545, 0x4a0f, 0xf9d2, \
+    { 0x5b, 0xef, 0xf9, 0xb2, 0x5b, 0x65, 0x57, 0xed } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IMousePointerShape);
+#ifndef VBOX_WITH_GLUE
+struct IMousePointerShape_vtbl
+{
+    struct nsISupports_vtbl nsisupports;
+
+    nsresult (*GetVisible)(IMousePointerShape *pThis, PRBool *visible);
+
+    nsresult (*GetAlpha)(IMousePointerShape *pThis, PRBool *alpha);
+
+    nsresult (*GetHotX)(IMousePointerShape *pThis, PRUint32 *hotX);
+
+    nsresult (*GetHotY)(IMousePointerShape *pThis, PRUint32 *hotY);
+
+    nsresult (*GetWidth)(IMousePointerShape *pThis, PRUint32 *width);
+
+    nsresult (*GetHeight)(IMousePointerShape *pThis, PRUint32 *height);
+
+    nsresult (*GetShape)(IMousePointerShape *pThis, PRUint32 *shapeSize, PRUint8 **shape);
+
+    nsresult (*GetInternalAndReservedAttribute1IMousePointerShape)(IMousePointerShape *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMousePointerShape)(IMousePointerShape *pThis, PRUint32 *reserved);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IMousePointerShapeVtbl
+{
+    nsresult (*QueryInterface)(IMousePointerShape *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IMousePointerShape *pThis);
+    nsrefcnt (*Release)(IMousePointerShape *pThis);
+    nsresult (*GetVisible)(IMousePointerShape *pThis, PRBool *visible);
+
+    nsresult (*GetAlpha)(IMousePointerShape *pThis, PRBool *alpha);
+
+    nsresult (*GetHotX)(IMousePointerShape *pThis, PRUint32 *hotX);
+
+    nsresult (*GetHotY)(IMousePointerShape *pThis, PRUint32 *hotY);
+
+    nsresult (*GetWidth)(IMousePointerShape *pThis, PRUint32 *width);
+
+    nsresult (*GetHeight)(IMousePointerShape *pThis, PRUint32 *height);
+
+    nsresult (*GetShape)(IMousePointerShape *pThis, PRUint32 *shapeSize, PRUint8 **shape);
+
+    nsresult (*GetInternalAndReservedAttribute1IMousePointerShape)(IMousePointerShape *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMousePointerShape)(IMousePointerShape *pThis, PRUint32 *reserved);
+
+};
+#define IMousePointerShape_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IMousePointerShape_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IMousePointerShape_Release(p) ((p)->lpVtbl->Release(p))
+#define IMousePointerShape_get_Visible(p, aVisible) ((p)->lpVtbl->GetVisible(p, aVisible))
+#define IMousePointerShape_GetVisible(p, aVisible) ((p)->lpVtbl->GetVisible(p, aVisible))
+#define IMousePointerShape_get_Alpha(p, aAlpha) ((p)->lpVtbl->GetAlpha(p, aAlpha))
+#define IMousePointerShape_GetAlpha(p, aAlpha) ((p)->lpVtbl->GetAlpha(p, aAlpha))
+#define IMousePointerShape_get_HotX(p, aHotX) ((p)->lpVtbl->GetHotX(p, aHotX))
+#define IMousePointerShape_GetHotX(p, aHotX) ((p)->lpVtbl->GetHotX(p, aHotX))
+#define IMousePointerShape_get_HotY(p, aHotY) ((p)->lpVtbl->GetHotY(p, aHotY))
+#define IMousePointerShape_GetHotY(p, aHotY) ((p)->lpVtbl->GetHotY(p, aHotY))
+#define IMousePointerShape_get_Width(p, aWidth) ((p)->lpVtbl->GetWidth(p, aWidth))
+#define IMousePointerShape_GetWidth(p, aWidth) ((p)->lpVtbl->GetWidth(p, aWidth))
+#define IMousePointerShape_get_Height(p, aHeight) ((p)->lpVtbl->GetHeight(p, aHeight))
+#define IMousePointerShape_GetHeight(p, aHeight) ((p)->lpVtbl->GetHeight(p, aHeight))
+#define IMousePointerShape_get_Shape(p, aShape) ((p)->lpVtbl->GetShape(p, aShape))
+#define IMousePointerShape_GetShape(p, aShape) ((p)->lpVtbl->GetShape(p, aShape))
+#endif /* VBOX_WITH_GLUE */
+
+interface IMousePointerShape
+{
+#ifndef VBOX_WITH_GLUE
+    struct IMousePointerShape_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IMousePointerShapeVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IMousePointerShape declaration */
+
+
 /* Start of struct IMouse declaration */
-#define IMOUSE_IID_STR "ee770393-415f-4421-b2d5-28b73cacf86a"
+#define IMOUSE_IID_STR "ee35adb0-4748-3e12-e7fd-5aad957bba0f"
 #define IMOUSE_IID { \
-    0xee770393, 0x415f, 0x4421, \
-    { 0xb2, 0xd5, 0x28, 0xb7, 0x3c, 0xac, 0xf8, 0x6a } \
+    0xee35adb0, 0x4748, 0x3e12, \
+    { 0xe7, 0xfd, 0x5a, 0xad, 0x95, 0x7b, 0xba, 0x0f } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IMouse);
@@ -11883,7 +14350,13 @@ struct IMouse_vtbl
 
     nsresult (*GetNeedsHostCursor)(IMouse *pThis, PRBool *needsHostCursor);
 
+    nsresult (*GetPointerShape)(IMouse *pThis, IMousePointerShape * *pointerShape);
+
     nsresult (*GetEventSource)(IMouse *pThis, IEventSource * *eventSource);
+
+    nsresult (*GetInternalAndReservedAttribute1IMouse)(IMouse *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMouse)(IMouse *pThis, PRUint32 *reserved);
 
     nsresult (*PutMouseEvent)(
         IMouse *pThis,
@@ -11917,6 +14390,8 @@ struct IMouse_vtbl
         PRUnichar * contacts,
         PRUint32 scanTime
     );
+
+    nsresult (*InternalAndReservedMethod1IMouse)(IMouse *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -11933,7 +14408,13 @@ struct IMouseVtbl
 
     nsresult (*GetNeedsHostCursor)(IMouse *pThis, PRBool *needsHostCursor);
 
+    nsresult (*GetPointerShape)(IMouse *pThis, IMousePointerShape * *pointerShape);
+
     nsresult (*GetEventSource)(IMouse *pThis, IEventSource * *eventSource);
+
+    nsresult (*GetInternalAndReservedAttribute1IMouse)(IMouse *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMouse)(IMouse *pThis, PRUint32 *reserved);
 
     nsresult (*PutMouseEvent)(
         IMouse *pThis,
@@ -11968,6 +14449,8 @@ struct IMouseVtbl
         PRUint32 scanTime
     );
 
+    nsresult (*InternalAndReservedMethod1IMouse)(IMouse *pThis);
+
 };
 #define IMouse_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IMouse_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -11980,6 +14463,8 @@ struct IMouseVtbl
 #define IMouse_GetMultiTouchSupported(p, aMultiTouchSupported) ((p)->lpVtbl->GetMultiTouchSupported(p, aMultiTouchSupported))
 #define IMouse_get_NeedsHostCursor(p, aNeedsHostCursor) ((p)->lpVtbl->GetNeedsHostCursor(p, aNeedsHostCursor))
 #define IMouse_GetNeedsHostCursor(p, aNeedsHostCursor) ((p)->lpVtbl->GetNeedsHostCursor(p, aNeedsHostCursor))
+#define IMouse_get_PointerShape(p, aPointerShape) ((p)->lpVtbl->GetPointerShape(p, aPointerShape))
+#define IMouse_GetPointerShape(p, aPointerShape) ((p)->lpVtbl->GetPointerShape(p, aPointerShape))
 #define IMouse_get_EventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IMouse_GetEventSource(p, aEventSource) ((p)->lpVtbl->GetEventSource(p, aEventSource))
 #define IMouse_PutMouseEvent(p, aDx, aDy, aDz, aDw, aButtonState) ((p)->lpVtbl->PutMouseEvent(p, aDx, aDy, aDz, aDw, aButtonState))
@@ -11999,11 +14484,75 @@ interface IMouse
 /* End of struct IMouse declaration */
 
 
+/* Start of struct IDisplaySourceBitmap declaration */
+#define IDISPLAYSOURCEBITMAP_IID_STR "0b78daeb-f52f-43b9-99e8-4a3c226cbe2d"
+#define IDISPLAYSOURCEBITMAP_IID { \
+    0x0b78daeb, 0xf52f, 0x43b9, \
+    { 0x99, 0xe8, 0x4a, 0x3c, 0x22, 0x6c, 0xbe, 0x2d } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IDisplaySourceBitmap);
+#ifndef VBOX_WITH_GLUE
+struct IDisplaySourceBitmap_vtbl
+{
+    struct nsISupports_vtbl nsisupports;
+
+    nsresult (*GetScreenId)(IDisplaySourceBitmap *pThis, PRUint32 *screenId);
+
+    nsresult (*QueryBitmapInfo)(
+        IDisplaySourceBitmap *pThis,
+        PRUint8 * * address,
+        PRUint32 * width,
+        PRUint32 * height,
+        PRUint32 * bitsPerPixel,
+        PRUint32 * bytesPerLine,
+        PRUint32 * bitmapFormat
+    );
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IDisplaySourceBitmapVtbl
+{
+    nsresult (*QueryInterface)(IDisplaySourceBitmap *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IDisplaySourceBitmap *pThis);
+    nsrefcnt (*Release)(IDisplaySourceBitmap *pThis);
+    nsresult (*GetScreenId)(IDisplaySourceBitmap *pThis, PRUint32 *screenId);
+
+    nsresult (*QueryBitmapInfo)(
+        IDisplaySourceBitmap *pThis,
+        PRUint8 * * address,
+        PRUint32 * width,
+        PRUint32 * height,
+        PRUint32 * bitsPerPixel,
+        PRUint32 * bytesPerLine,
+        PRUint32 * bitmapFormat
+    );
+
+};
+#define IDisplaySourceBitmap_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IDisplaySourceBitmap_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IDisplaySourceBitmap_Release(p) ((p)->lpVtbl->Release(p))
+#define IDisplaySourceBitmap_get_ScreenId(p, aScreenId) ((p)->lpVtbl->GetScreenId(p, aScreenId))
+#define IDisplaySourceBitmap_GetScreenId(p, aScreenId) ((p)->lpVtbl->GetScreenId(p, aScreenId))
+#define IDisplaySourceBitmap_QueryBitmapInfo(p, aAddress, aWidth, aHeight, aBitsPerPixel, aBytesPerLine, aBitmapFormat) ((p)->lpVtbl->QueryBitmapInfo(p, aAddress, aWidth, aHeight, aBitsPerPixel, aBytesPerLine, aBitmapFormat))
+#endif /* VBOX_WITH_GLUE */
+
+interface IDisplaySourceBitmap
+{
+#ifndef VBOX_WITH_GLUE
+    struct IDisplaySourceBitmap_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IDisplaySourceBitmapVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IDisplaySourceBitmap declaration */
+
+
 /* Start of struct IFramebuffer declaration */
-#define IFRAMEBUFFER_IID_STR "e3f122c0-adab-4fc9-a8dc-da112fb48428"
+#define IFRAMEBUFFER_IID_STR "8b82295f-415f-1aa1-17fd-9fbbac8edf44"
 #define IFRAMEBUFFER_IID { \
-    0xe3f122c0, 0xadab, 0x4fc9, \
-    { 0xa8, 0xdc, 0xda, 0x11, 0x2f, 0xb4, 0x84, 0x28 } \
+    0x8b82295f, 0x415f, 0x1aa1, \
+    { 0x17, 0xfd, 0x9f, 0xbb, 0xac, 0x8e, 0xdf, 0x44 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IFramebuffer);
@@ -12011,8 +14560,6 @@ VBOX_EXTERN_CONST(nsIID, IID_IFramebuffer);
 struct IFramebuffer_vtbl
 {
     struct nsISupports_vtbl nsisupports;
-
-    nsresult (*GetAddress)(IFramebuffer *pThis, PRUint8 * *address);
 
     nsresult (*GetWidth)(IFramebuffer *pThis, PRUint32 *width);
 
@@ -12024,17 +14571,13 @@ struct IFramebuffer_vtbl
 
     nsresult (*GetPixelFormat)(IFramebuffer *pThis, PRUint32 *pixelFormat);
 
-    nsresult (*GetUsesGuestVRAM)(IFramebuffer *pThis, PRBool *usesGuestVRAM);
-
     nsresult (*GetHeightReduction)(IFramebuffer *pThis, PRUint32 *heightReduction);
 
     nsresult (*GetOverlay)(IFramebuffer *pThis, IFramebufferOverlay * *overlay);
 
     nsresult (*GetWinId)(IFramebuffer *pThis, PRInt64 *winId);
 
-    nsresult (*Lock)(IFramebuffer *pThis );
-
-    nsresult (*Unlock)(IFramebuffer *pThis );
+    nsresult (*GetCapabilities)(IFramebuffer *pThis, PRUint32 *capabilitiesSize, PRUint32 **capabilities);
 
     nsresult (*NotifyUpdate)(
         IFramebuffer *pThis,
@@ -12044,16 +14587,23 @@ struct IFramebuffer_vtbl
         PRUint32 height
     );
 
-    nsresult (*RequestResize)(
+    nsresult (*NotifyUpdateImage)(
         IFramebuffer *pThis,
-        PRUint32 screenId,
-        PRUint32 pixelFormat,
-        PRUint8 * VRAM,
-        PRUint32 bitsPerPixel,
-        PRUint32 bytesPerLine,
+        PRUint32 x,
+        PRUint32 y,
         PRUint32 width,
         PRUint32 height,
-        PRBool * finished
+        PRUint32 imageSize,
+        PRUint8* image
+    );
+
+    nsresult (*NotifyChange)(
+        IFramebuffer *pThis,
+        PRUint32 screenId,
+        PRUint32 xOrigin,
+        PRUint32 yOrigin,
+        PRUint32 width,
+        PRUint32 height
     );
 
     nsresult (*VideoModeSupported)(
@@ -12085,7 +14635,8 @@ struct IFramebuffer_vtbl
     nsresult (*Notify3DEvent)(
         IFramebuffer *pThis,
         PRUint32 type,
-        PRUint8 * data
+        PRUint32 dataSize,
+        PRUint8* data
     );
 
 };
@@ -12095,8 +14646,6 @@ struct IFramebufferVtbl
     nsresult (*QueryInterface)(IFramebuffer *pThis, const nsID *iid, void **resultp);
     nsrefcnt (*AddRef)(IFramebuffer *pThis);
     nsrefcnt (*Release)(IFramebuffer *pThis);
-    nsresult (*GetAddress)(IFramebuffer *pThis, PRUint8 * *address);
-
     nsresult (*GetWidth)(IFramebuffer *pThis, PRUint32 *width);
 
     nsresult (*GetHeight)(IFramebuffer *pThis, PRUint32 *height);
@@ -12107,17 +14656,13 @@ struct IFramebufferVtbl
 
     nsresult (*GetPixelFormat)(IFramebuffer *pThis, PRUint32 *pixelFormat);
 
-    nsresult (*GetUsesGuestVRAM)(IFramebuffer *pThis, PRBool *usesGuestVRAM);
-
     nsresult (*GetHeightReduction)(IFramebuffer *pThis, PRUint32 *heightReduction);
 
     nsresult (*GetOverlay)(IFramebuffer *pThis, IFramebufferOverlay * *overlay);
 
     nsresult (*GetWinId)(IFramebuffer *pThis, PRInt64 *winId);
 
-    nsresult (*Lock)(IFramebuffer *pThis );
-
-    nsresult (*Unlock)(IFramebuffer *pThis );
+    nsresult (*GetCapabilities)(IFramebuffer *pThis, PRUint32 *capabilitiesSize, PRUint32 **capabilities);
 
     nsresult (*NotifyUpdate)(
         IFramebuffer *pThis,
@@ -12127,16 +14672,23 @@ struct IFramebufferVtbl
         PRUint32 height
     );
 
-    nsresult (*RequestResize)(
+    nsresult (*NotifyUpdateImage)(
         IFramebuffer *pThis,
-        PRUint32 screenId,
-        PRUint32 pixelFormat,
-        PRUint8 * VRAM,
-        PRUint32 bitsPerPixel,
-        PRUint32 bytesPerLine,
+        PRUint32 x,
+        PRUint32 y,
         PRUint32 width,
         PRUint32 height,
-        PRBool * finished
+        PRUint32 imageSize,
+        PRUint8* image
+    );
+
+    nsresult (*NotifyChange)(
+        IFramebuffer *pThis,
+        PRUint32 screenId,
+        PRUint32 xOrigin,
+        PRUint32 yOrigin,
+        PRUint32 width,
+        PRUint32 height
     );
 
     nsresult (*VideoModeSupported)(
@@ -12168,15 +14720,14 @@ struct IFramebufferVtbl
     nsresult (*Notify3DEvent)(
         IFramebuffer *pThis,
         PRUint32 type,
-        PRUint8 * data
+        PRUint32 dataSize,
+        PRUint8* data
     );
 
 };
 #define IFramebuffer_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IFramebuffer_AddRef(p) ((p)->lpVtbl->AddRef(p))
 #define IFramebuffer_Release(p) ((p)->lpVtbl->Release(p))
-#define IFramebuffer_get_Address(p, aAddress) ((p)->lpVtbl->GetAddress(p, aAddress))
-#define IFramebuffer_GetAddress(p, aAddress) ((p)->lpVtbl->GetAddress(p, aAddress))
 #define IFramebuffer_get_Width(p, aWidth) ((p)->lpVtbl->GetWidth(p, aWidth))
 #define IFramebuffer_GetWidth(p, aWidth) ((p)->lpVtbl->GetWidth(p, aWidth))
 #define IFramebuffer_get_Height(p, aHeight) ((p)->lpVtbl->GetHeight(p, aHeight))
@@ -12187,18 +14738,17 @@ struct IFramebufferVtbl
 #define IFramebuffer_GetBytesPerLine(p, aBytesPerLine) ((p)->lpVtbl->GetBytesPerLine(p, aBytesPerLine))
 #define IFramebuffer_get_PixelFormat(p, aPixelFormat) ((p)->lpVtbl->GetPixelFormat(p, aPixelFormat))
 #define IFramebuffer_GetPixelFormat(p, aPixelFormat) ((p)->lpVtbl->GetPixelFormat(p, aPixelFormat))
-#define IFramebuffer_get_UsesGuestVRAM(p, aUsesGuestVRAM) ((p)->lpVtbl->GetUsesGuestVRAM(p, aUsesGuestVRAM))
-#define IFramebuffer_GetUsesGuestVRAM(p, aUsesGuestVRAM) ((p)->lpVtbl->GetUsesGuestVRAM(p, aUsesGuestVRAM))
 #define IFramebuffer_get_HeightReduction(p, aHeightReduction) ((p)->lpVtbl->GetHeightReduction(p, aHeightReduction))
 #define IFramebuffer_GetHeightReduction(p, aHeightReduction) ((p)->lpVtbl->GetHeightReduction(p, aHeightReduction))
 #define IFramebuffer_get_Overlay(p, aOverlay) ((p)->lpVtbl->GetOverlay(p, aOverlay))
 #define IFramebuffer_GetOverlay(p, aOverlay) ((p)->lpVtbl->GetOverlay(p, aOverlay))
 #define IFramebuffer_get_WinId(p, aWinId) ((p)->lpVtbl->GetWinId(p, aWinId))
 #define IFramebuffer_GetWinId(p, aWinId) ((p)->lpVtbl->GetWinId(p, aWinId))
-#define IFramebuffer_Lock(p) ((p)->lpVtbl->Lock(p))
-#define IFramebuffer_Unlock(p) ((p)->lpVtbl->Unlock(p))
+#define IFramebuffer_get_Capabilities(p, aCapabilities) ((p)->lpVtbl->GetCapabilities(p, aCapabilities))
+#define IFramebuffer_GetCapabilities(p, aCapabilities) ((p)->lpVtbl->GetCapabilities(p, aCapabilities))
 #define IFramebuffer_NotifyUpdate(p, aX, aY, aWidth, aHeight) ((p)->lpVtbl->NotifyUpdate(p, aX, aY, aWidth, aHeight))
-#define IFramebuffer_RequestResize(p, aScreenId, aPixelFormat, aVRAM, aBitsPerPixel, aBytesPerLine, aWidth, aHeight, aFinished) ((p)->lpVtbl->RequestResize(p, aScreenId, aPixelFormat, aVRAM, aBitsPerPixel, aBytesPerLine, aWidth, aHeight, aFinished))
+#define IFramebuffer_NotifyUpdateImage(p, aX, aY, aWidth, aHeight, aImage) ((p)->lpVtbl->NotifyUpdateImage(p, aX, aY, aWidth, aHeight, aImage))
+#define IFramebuffer_NotifyChange(p, aScreenId, aXOrigin, aYOrigin, aWidth, aHeight) ((p)->lpVtbl->NotifyChange(p, aScreenId, aXOrigin, aYOrigin, aWidth, aHeight))
 #define IFramebuffer_VideoModeSupported(p, aWidth, aHeight, aBpp, aSupported) ((p)->lpVtbl->VideoModeSupported(p, aWidth, aHeight, aBpp, aSupported))
 #define IFramebuffer_GetVisibleRegion(p, aRectangles, aCount, aCountCopied) ((p)->lpVtbl->GetVisibleRegion(p, aRectangles, aCount, aCountCopied))
 #define IFramebuffer_SetVisibleRegion(p, aRectangles, aCount) ((p)->lpVtbl->SetVisibleRegion(p, aRectangles, aCount))
@@ -12218,10 +14768,10 @@ interface IFramebuffer
 
 
 /* Start of struct IFramebufferOverlay declaration */
-#define IFRAMEBUFFEROVERLAY_IID_STR "0bcc1c7e-e415-47d2-bfdb-e4c705fb0f47"
+#define IFRAMEBUFFEROVERLAY_IID_STR "af398a9a-6b76-4805-8fab-00a9dcf4732b"
 #define IFRAMEBUFFEROVERLAY_IID { \
-    0x0bcc1c7e, 0xe415, 0x47d2, \
-    { 0xbf, 0xdb, 0xe4, 0xc7, 0x05, 0xfb, 0x0f, 0x47 } \
+    0xaf398a9a, 0x6b76, 0x4805, \
+    { 0x8f, 0xab, 0x00, 0xa9, 0xdc, 0xf4, 0x73, 0x2b } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IFramebufferOverlay);
@@ -12253,8 +14803,6 @@ struct IFramebufferOverlayVtbl
     nsresult (*QueryInterface)(IFramebufferOverlay *pThis, const nsID *iid, void **resultp);
     nsrefcnt (*AddRef)(IFramebufferOverlay *pThis);
     nsrefcnt (*Release)(IFramebufferOverlay *pThis);
-    nsresult (*GetAddress)(IFramebufferOverlay *pThis, PRUint8 * *address);
-
     nsresult (*GetWidth)(IFramebufferOverlay *pThis, PRUint32 *width);
 
     nsresult (*GetHeight)(IFramebufferOverlay *pThis, PRUint32 *height);
@@ -12265,17 +14813,13 @@ struct IFramebufferOverlayVtbl
 
     nsresult (*GetPixelFormat)(IFramebufferOverlay *pThis, PRUint32 *pixelFormat);
 
-    nsresult (*GetUsesGuestVRAM)(IFramebufferOverlay *pThis, PRBool *usesGuestVRAM);
-
     nsresult (*GetHeightReduction)(IFramebufferOverlay *pThis, PRUint32 *heightReduction);
 
     nsresult (*GetOverlay)(IFramebufferOverlay *pThis, IFramebufferOverlay * *overlay);
 
     nsresult (*GetWinId)(IFramebufferOverlay *pThis, PRInt64 *winId);
 
-    nsresult (*Lock)(IFramebufferOverlay *pThis );
-
-    nsresult (*Unlock)(IFramebufferOverlay *pThis );
+    nsresult (*GetCapabilities)(IFramebufferOverlay *pThis, PRUint32 *capabilitiesSize, PRUint32 **capabilities);
 
     nsresult (*NotifyUpdate)(
         IFramebufferOverlay *pThis,
@@ -12285,16 +14829,23 @@ struct IFramebufferOverlayVtbl
         PRUint32 height
     );
 
-    nsresult (*RequestResize)(
+    nsresult (*NotifyUpdateImage)(
         IFramebufferOverlay *pThis,
-        PRUint32 screenId,
-        PRUint32 pixelFormat,
-        PRUint8 * VRAM,
-        PRUint32 bitsPerPixel,
-        PRUint32 bytesPerLine,
+        PRUint32 x,
+        PRUint32 y,
         PRUint32 width,
         PRUint32 height,
-        PRBool * finished
+        PRUint32 imageSize,
+        PRUint8* image
+    );
+
+    nsresult (*NotifyChange)(
+        IFramebufferOverlay *pThis,
+        PRUint32 screenId,
+        PRUint32 xOrigin,
+        PRUint32 yOrigin,
+        PRUint32 width,
+        PRUint32 height
     );
 
     nsresult (*VideoModeSupported)(
@@ -12326,7 +14877,8 @@ struct IFramebufferOverlayVtbl
     nsresult (*Notify3DEvent)(
         IFramebufferOverlay *pThis,
         PRUint32 type,
-        PRUint8 * data
+        PRUint32 dataSize,
+        PRUint8* data
     );
 
     nsresult (*GetX)(IFramebufferOverlay *pThis, PRUint32 *x);
@@ -12349,8 +14901,6 @@ struct IFramebufferOverlayVtbl
 #define IFramebufferOverlay_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IFramebufferOverlay_AddRef(p) ((p)->lpVtbl->AddRef(p))
 #define IFramebufferOverlay_Release(p) ((p)->lpVtbl->Release(p))
-#define IFramebufferOverlay_get_Address(p, aAddress) ((p)->lpVtbl->GetAddress(p, aAddress))
-#define IFramebufferOverlay_GetAddress(p, aAddress) ((p)->lpVtbl->GetAddress(p, aAddress))
 #define IFramebufferOverlay_get_Width(p, aWidth) ((p)->lpVtbl->GetWidth(p, aWidth))
 #define IFramebufferOverlay_GetWidth(p, aWidth) ((p)->lpVtbl->GetWidth(p, aWidth))
 #define IFramebufferOverlay_get_Height(p, aHeight) ((p)->lpVtbl->GetHeight(p, aHeight))
@@ -12361,18 +14911,17 @@ struct IFramebufferOverlayVtbl
 #define IFramebufferOverlay_GetBytesPerLine(p, aBytesPerLine) ((p)->lpVtbl->GetBytesPerLine(p, aBytesPerLine))
 #define IFramebufferOverlay_get_PixelFormat(p, aPixelFormat) ((p)->lpVtbl->GetPixelFormat(p, aPixelFormat))
 #define IFramebufferOverlay_GetPixelFormat(p, aPixelFormat) ((p)->lpVtbl->GetPixelFormat(p, aPixelFormat))
-#define IFramebufferOverlay_get_UsesGuestVRAM(p, aUsesGuestVRAM) ((p)->lpVtbl->GetUsesGuestVRAM(p, aUsesGuestVRAM))
-#define IFramebufferOverlay_GetUsesGuestVRAM(p, aUsesGuestVRAM) ((p)->lpVtbl->GetUsesGuestVRAM(p, aUsesGuestVRAM))
 #define IFramebufferOverlay_get_HeightReduction(p, aHeightReduction) ((p)->lpVtbl->GetHeightReduction(p, aHeightReduction))
 #define IFramebufferOverlay_GetHeightReduction(p, aHeightReduction) ((p)->lpVtbl->GetHeightReduction(p, aHeightReduction))
 #define IFramebufferOverlay_get_Overlay(p, aOverlay) ((p)->lpVtbl->GetOverlay(p, aOverlay))
 #define IFramebufferOverlay_GetOverlay(p, aOverlay) ((p)->lpVtbl->GetOverlay(p, aOverlay))
 #define IFramebufferOverlay_get_WinId(p, aWinId) ((p)->lpVtbl->GetWinId(p, aWinId))
 #define IFramebufferOverlay_GetWinId(p, aWinId) ((p)->lpVtbl->GetWinId(p, aWinId))
-#define IFramebufferOverlay_Lock(p) ((p)->lpVtbl->Lock(p))
-#define IFramebufferOverlay_Unlock(p) ((p)->lpVtbl->Unlock(p))
+#define IFramebufferOverlay_get_Capabilities(p, aCapabilities) ((p)->lpVtbl->GetCapabilities(p, aCapabilities))
+#define IFramebufferOverlay_GetCapabilities(p, aCapabilities) ((p)->lpVtbl->GetCapabilities(p, aCapabilities))
 #define IFramebufferOverlay_NotifyUpdate(p, aX, aY, aWidth, aHeight) ((p)->lpVtbl->NotifyUpdate(p, aX, aY, aWidth, aHeight))
-#define IFramebufferOverlay_RequestResize(p, aScreenId, aPixelFormat, aVRAM, aBitsPerPixel, aBytesPerLine, aWidth, aHeight, aFinished) ((p)->lpVtbl->RequestResize(p, aScreenId, aPixelFormat, aVRAM, aBitsPerPixel, aBytesPerLine, aWidth, aHeight, aFinished))
+#define IFramebufferOverlay_NotifyUpdateImage(p, aX, aY, aWidth, aHeight, aImage) ((p)->lpVtbl->NotifyUpdateImage(p, aX, aY, aWidth, aHeight, aImage))
+#define IFramebufferOverlay_NotifyChange(p, aScreenId, aXOrigin, aYOrigin, aWidth, aHeight) ((p)->lpVtbl->NotifyChange(p, aScreenId, aXOrigin, aYOrigin, aWidth, aHeight))
 #define IFramebufferOverlay_VideoModeSupported(p, aWidth, aHeight, aBpp, aSupported) ((p)->lpVtbl->VideoModeSupported(p, aWidth, aHeight, aBpp, aSupported))
 #define IFramebufferOverlay_GetVisibleRegion(p, aRectangles, aCount, aCountCopied) ((p)->lpVtbl->GetVisibleRegion(p, aRectangles, aCount, aCountCopied))
 #define IFramebufferOverlay_SetVisibleRegion(p, aRectangles, aCount) ((p)->lpVtbl->SetVisibleRegion(p, aRectangles, aCount))
@@ -12405,10 +14954,10 @@ interface IFramebufferOverlay
 
 
 /* Start of struct IDisplay declaration */
-#define IDISPLAY_IID_STR "480b372c-c0b5-4c23-9bd7-dcbb85b1594c"
+#define IDISPLAY_IID_STR "7303a66d-433b-25a4-f9a8-fcadf87e0c2a"
 #define IDISPLAY_IID { \
-    0x480b372c, 0xc0b5, 0x4c23, \
-    { 0x9b, 0xd7, 0xdc, 0xbb, 0x85, 0xb1, 0x59, 0x4c } \
+    0x7303a66d, 0x433b, 0x25a4, \
+    { 0xf9, 0xa8, 0xfc, 0xad, 0xf8, 0x7e, 0x0c, 0x2a } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IDisplay);
@@ -12417,6 +14966,10 @@ struct IDisplay_vtbl
 {
     struct nsISupports_vtbl nsisupports;
 
+    nsresult (*GetInternalAndReservedAttribute1IDisplay)(IDisplay *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDisplay)(IDisplay *pThis, PRUint32 *reserved);
+
     nsresult (*GetScreenResolution)(
         IDisplay *pThis,
         PRUint32 screenId,
@@ -12424,21 +14977,27 @@ struct IDisplay_vtbl
         PRUint32 * height,
         PRUint32 * bitsPerPixel,
         PRInt32 * xOrigin,
-        PRInt32 * yOrigin
+        PRInt32 * yOrigin,
+        PRUint32 * guestMonitorStatus
     );
 
-    nsresult (*SetFramebuffer)(
+    nsresult (*AttachFramebuffer)(
         IDisplay *pThis,
         PRUint32 screenId,
-        IFramebuffer * framebuffer
+        IFramebuffer * framebuffer,
+        PRUnichar * * id
     );
 
-    nsresult (*GetFramebuffer)(
+    nsresult (*DetachFramebuffer)(
         IDisplay *pThis,
         PRUint32 screenId,
-        IFramebuffer * * framebuffer,
-        PRInt32 * xOrigin,
-        PRInt32 * yOrigin
+        PRUnichar * id
+    );
+
+    nsresult (*QueryFramebuffer)(
+        IDisplay *pThis,
+        PRUint32 screenId,
+        IFramebuffer * * framebuffer
     );
 
     nsresult (*SetVideoModeHint)(
@@ -12463,7 +15022,8 @@ struct IDisplay_vtbl
         PRUint32 screenId,
         PRUint8 * address,
         PRUint32 width,
-        PRUint32 height
+        PRUint32 height,
+        PRUint32 bitmapFormat
     );
 
     nsresult (*TakeScreenShotToArray)(
@@ -12471,15 +15031,7 @@ struct IDisplay_vtbl
         PRUint32 screenId,
         PRUint32 width,
         PRUint32 height,
-        PRUint32 *screenDataSize,
-        PRUint8** screenData
-    );
-
-    nsresult (*TakeScreenShotPNGToArray)(
-        IDisplay *pThis,
-        PRUint32 screenId,
-        PRUint32 width,
-        PRUint32 height,
+        PRUint32 bitmapFormat,
         PRUint32 *screenDataSize,
         PRUint8** screenData
     );
@@ -12496,7 +15048,7 @@ struct IDisplay_vtbl
 
     nsresult (*InvalidateAndUpdate)(IDisplay *pThis );
 
-    nsresult (*ResizeCompleted)(
+    nsresult (*InvalidateAndUpdateScreen)(
         IDisplay *pThis,
         PRUint32 screenId
     );
@@ -12514,6 +15066,32 @@ struct IDisplay_vtbl
         PRUint32 width,
         PRUint32 height
     );
+
+    nsresult (*QuerySourceBitmap)(
+        IDisplay *pThis,
+        PRUint32 screenId,
+        IDisplaySourceBitmap * * displaySourceBitmap
+    );
+
+    nsresult (*NotifyScaleFactorChange)(
+        IDisplay *pThis,
+        PRUint32 screenId,
+        PRUint32 u32ScaleFactorWMultiplied,
+        PRUint32 u32ScaleFactorHMultiplied
+    );
+
+    nsresult (*NotifyHiDPIOutputPolicyChange)(
+        IDisplay *pThis,
+        PRBool fUnscaledHiDPI
+    );
+
+    nsresult (*InternalAndReservedMethod1IDisplay)(IDisplay *pThis);
+
+    nsresult (*InternalAndReservedMethod2IDisplay)(IDisplay *pThis);
+
+    nsresult (*InternalAndReservedMethod3IDisplay)(IDisplay *pThis);
+
+    nsresult (*InternalAndReservedMethod4IDisplay)(IDisplay *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -12522,6 +15100,10 @@ struct IDisplayVtbl
     nsresult (*QueryInterface)(IDisplay *pThis, const nsID *iid, void **resultp);
     nsrefcnt (*AddRef)(IDisplay *pThis);
     nsrefcnt (*Release)(IDisplay *pThis);
+    nsresult (*GetInternalAndReservedAttribute1IDisplay)(IDisplay *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IDisplay)(IDisplay *pThis, PRUint32 *reserved);
+
     nsresult (*GetScreenResolution)(
         IDisplay *pThis,
         PRUint32 screenId,
@@ -12529,21 +15111,27 @@ struct IDisplayVtbl
         PRUint32 * height,
         PRUint32 * bitsPerPixel,
         PRInt32 * xOrigin,
-        PRInt32 * yOrigin
+        PRInt32 * yOrigin,
+        PRUint32 * guestMonitorStatus
     );
 
-    nsresult (*SetFramebuffer)(
+    nsresult (*AttachFramebuffer)(
         IDisplay *pThis,
         PRUint32 screenId,
-        IFramebuffer * framebuffer
+        IFramebuffer * framebuffer,
+        PRUnichar * * id
     );
 
-    nsresult (*GetFramebuffer)(
+    nsresult (*DetachFramebuffer)(
         IDisplay *pThis,
         PRUint32 screenId,
-        IFramebuffer * * framebuffer,
-        PRInt32 * xOrigin,
-        PRInt32 * yOrigin
+        PRUnichar * id
+    );
+
+    nsresult (*QueryFramebuffer)(
+        IDisplay *pThis,
+        PRUint32 screenId,
+        IFramebuffer * * framebuffer
     );
 
     nsresult (*SetVideoModeHint)(
@@ -12568,7 +15156,8 @@ struct IDisplayVtbl
         PRUint32 screenId,
         PRUint8 * address,
         PRUint32 width,
-        PRUint32 height
+        PRUint32 height,
+        PRUint32 bitmapFormat
     );
 
     nsresult (*TakeScreenShotToArray)(
@@ -12576,15 +15165,7 @@ struct IDisplayVtbl
         PRUint32 screenId,
         PRUint32 width,
         PRUint32 height,
-        PRUint32 *screenDataSize,
-        PRUint8** screenData
-    );
-
-    nsresult (*TakeScreenShotPNGToArray)(
-        IDisplay *pThis,
-        PRUint32 screenId,
-        PRUint32 width,
-        PRUint32 height,
+        PRUint32 bitmapFormat,
         PRUint32 *screenDataSize,
         PRUint8** screenData
     );
@@ -12601,7 +15182,7 @@ struct IDisplayVtbl
 
     nsresult (*InvalidateAndUpdate)(IDisplay *pThis );
 
-    nsresult (*ResizeCompleted)(
+    nsresult (*InvalidateAndUpdateScreen)(
         IDisplay *pThis,
         PRUint32 screenId
     );
@@ -12620,23 +15201,52 @@ struct IDisplayVtbl
         PRUint32 height
     );
 
+    nsresult (*QuerySourceBitmap)(
+        IDisplay *pThis,
+        PRUint32 screenId,
+        IDisplaySourceBitmap * * displaySourceBitmap
+    );
+
+    nsresult (*NotifyScaleFactorChange)(
+        IDisplay *pThis,
+        PRUint32 screenId,
+        PRUint32 u32ScaleFactorWMultiplied,
+        PRUint32 u32ScaleFactorHMultiplied
+    );
+
+    nsresult (*NotifyHiDPIOutputPolicyChange)(
+        IDisplay *pThis,
+        PRBool fUnscaledHiDPI
+    );
+
+    nsresult (*InternalAndReservedMethod1IDisplay)(IDisplay *pThis);
+
+    nsresult (*InternalAndReservedMethod2IDisplay)(IDisplay *pThis);
+
+    nsresult (*InternalAndReservedMethod3IDisplay)(IDisplay *pThis);
+
+    nsresult (*InternalAndReservedMethod4IDisplay)(IDisplay *pThis);
+
 };
 #define IDisplay_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IDisplay_AddRef(p) ((p)->lpVtbl->AddRef(p))
 #define IDisplay_Release(p) ((p)->lpVtbl->Release(p))
-#define IDisplay_GetScreenResolution(p, aScreenId, aWidth, aHeight, aBitsPerPixel, aXOrigin, aYOrigin) ((p)->lpVtbl->GetScreenResolution(p, aScreenId, aWidth, aHeight, aBitsPerPixel, aXOrigin, aYOrigin))
-#define IDisplay_SetFramebuffer(p, aScreenId, aFramebuffer) ((p)->lpVtbl->SetFramebuffer(p, aScreenId, aFramebuffer))
-#define IDisplay_GetFramebuffer(p, aScreenId, aFramebuffer, aXOrigin, aYOrigin) ((p)->lpVtbl->GetFramebuffer(p, aScreenId, aFramebuffer, aXOrigin, aYOrigin))
+#define IDisplay_GetScreenResolution(p, aScreenId, aWidth, aHeight, aBitsPerPixel, aXOrigin, aYOrigin, aGuestMonitorStatus) ((p)->lpVtbl->GetScreenResolution(p, aScreenId, aWidth, aHeight, aBitsPerPixel, aXOrigin, aYOrigin, aGuestMonitorStatus))
+#define IDisplay_AttachFramebuffer(p, aScreenId, aFramebuffer, aId) ((p)->lpVtbl->AttachFramebuffer(p, aScreenId, aFramebuffer, aId))
+#define IDisplay_DetachFramebuffer(p, aScreenId, aId) ((p)->lpVtbl->DetachFramebuffer(p, aScreenId, aId))
+#define IDisplay_QueryFramebuffer(p, aScreenId, aFramebuffer) ((p)->lpVtbl->QueryFramebuffer(p, aScreenId, aFramebuffer))
 #define IDisplay_SetVideoModeHint(p, aDisplay, aEnabled, aChangeOrigin, aOriginX, aOriginY, aWidth, aHeight, aBitsPerPixel) ((p)->lpVtbl->SetVideoModeHint(p, aDisplay, aEnabled, aChangeOrigin, aOriginX, aOriginY, aWidth, aHeight, aBitsPerPixel))
 #define IDisplay_SetSeamlessMode(p, aEnabled) ((p)->lpVtbl->SetSeamlessMode(p, aEnabled))
-#define IDisplay_TakeScreenShot(p, aScreenId, aAddress, aWidth, aHeight) ((p)->lpVtbl->TakeScreenShot(p, aScreenId, aAddress, aWidth, aHeight))
-#define IDisplay_TakeScreenShotToArray(p, aScreenId, aWidth, aHeight, aScreenData) ((p)->lpVtbl->TakeScreenShotToArray(p, aScreenId, aWidth, aHeight, aScreenData))
-#define IDisplay_TakeScreenShotPNGToArray(p, aScreenId, aWidth, aHeight, aScreenData) ((p)->lpVtbl->TakeScreenShotPNGToArray(p, aScreenId, aWidth, aHeight, aScreenData))
+#define IDisplay_TakeScreenShot(p, aScreenId, aAddress, aWidth, aHeight, aBitmapFormat) ((p)->lpVtbl->TakeScreenShot(p, aScreenId, aAddress, aWidth, aHeight, aBitmapFormat))
+#define IDisplay_TakeScreenShotToArray(p, aScreenId, aWidth, aHeight, aBitmapFormat, aScreenData) ((p)->lpVtbl->TakeScreenShotToArray(p, aScreenId, aWidth, aHeight, aBitmapFormat, aScreenData))
 #define IDisplay_DrawToScreen(p, aScreenId, aAddress, aX, aY, aWidth, aHeight) ((p)->lpVtbl->DrawToScreen(p, aScreenId, aAddress, aX, aY, aWidth, aHeight))
 #define IDisplay_InvalidateAndUpdate(p) ((p)->lpVtbl->InvalidateAndUpdate(p))
-#define IDisplay_ResizeCompleted(p, aScreenId) ((p)->lpVtbl->ResizeCompleted(p, aScreenId))
+#define IDisplay_InvalidateAndUpdateScreen(p, aScreenId) ((p)->lpVtbl->InvalidateAndUpdateScreen(p, aScreenId))
 #define IDisplay_CompleteVHWACommand(p, aCommand) ((p)->lpVtbl->CompleteVHWACommand(p, aCommand))
 #define IDisplay_ViewportChanged(p, aScreenId, aX, aY, aWidth, aHeight) ((p)->lpVtbl->ViewportChanged(p, aScreenId, aX, aY, aWidth, aHeight))
+#define IDisplay_QuerySourceBitmap(p, aScreenId, aDisplaySourceBitmap) ((p)->lpVtbl->QuerySourceBitmap(p, aScreenId, aDisplaySourceBitmap))
+#define IDisplay_NotifyScaleFactorChange(p, aScreenId, aU32ScaleFactorWMultiplied, aU32ScaleFactorHMultiplied) ((p)->lpVtbl->NotifyScaleFactorChange(p, aScreenId, aU32ScaleFactorWMultiplied, aU32ScaleFactorHMultiplied))
+#define IDisplay_NotifyHiDPIOutputPolicyChange(p, aFUnscaledHiDPI) ((p)->lpVtbl->NotifyHiDPIOutputPolicyChange(p, aFUnscaledHiDPI))
 #endif /* VBOX_WITH_GLUE */
 
 interface IDisplay
@@ -12651,10 +15261,10 @@ interface IDisplay
 
 
 /* Start of struct INetworkAdapter declaration */
-#define INETWORKADAPTER_IID_STR "efa0f965-63c7-4c60-afdf-b1cc9943b9c0"
+#define INETWORKADAPTER_IID_STR "e925c2aa-4fe4-aaf6-91c5-e9b8ea4151ee"
 #define INETWORKADAPTER_IID { \
-    0xefa0f965, 0x63c7, 0x4c60, \
-    { 0xaf, 0xdf, 0xb1, 0xcc, 0x99, 0x43, 0xb9, 0xc0 } \
+    0xe925c2aa, 0x4fe4, 0xaaf6, \
+    { 0x91, 0xc5, 0xe9, 0xb8, 0xea, 0x41, 0x51, 0xee } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_INetworkAdapter);
@@ -12715,6 +15325,14 @@ struct INetworkAdapter_vtbl
     nsresult (*GetBandwidthGroup)(INetworkAdapter *pThis, IBandwidthGroup * *bandwidthGroup);
     nsresult (*SetBandwidthGroup)(INetworkAdapter *pThis, IBandwidthGroup * bandwidthGroup);
 
+    nsresult (*GetInternalAndReservedAttribute1INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
     nsresult (*GetProperty)(
         INetworkAdapter *pThis,
         PRUnichar * key,
@@ -12735,6 +15353,8 @@ struct INetworkAdapter_vtbl
         PRUint32 *returnValuesSize,
         PRUnichar *** returnValues
     );
+
+    nsresult (*InternalAndReservedMethod1INetworkAdapter)(INetworkAdapter *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -12795,6 +15415,14 @@ struct INetworkAdapterVtbl
     nsresult (*GetBandwidthGroup)(INetworkAdapter *pThis, IBandwidthGroup * *bandwidthGroup);
     nsresult (*SetBandwidthGroup)(INetworkAdapter *pThis, IBandwidthGroup * bandwidthGroup);
 
+    nsresult (*GetInternalAndReservedAttribute1INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4INetworkAdapter)(INetworkAdapter *pThis, PRUint32 *reserved);
+
     nsresult (*GetProperty)(
         INetworkAdapter *pThis,
         PRUnichar * key,
@@ -12815,6 +15443,8 @@ struct INetworkAdapterVtbl
         PRUint32 *returnValuesSize,
         PRUnichar *** returnValues
     );
+
+    nsresult (*InternalAndReservedMethod1INetworkAdapter)(INetworkAdapter *pThis);
 
 };
 #define INetworkAdapter_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -12905,10 +15535,10 @@ interface INetworkAdapter
 
 
 /* Start of struct ISerialPort declaration */
-#define ISERIALPORT_IID_STR "937f6970-5103-4745-b78e-d28dcf1479a8"
+#define ISERIALPORT_IID_STR "cb0a4a29-43a3-9040-0c25-34845db7b042"
 #define ISERIALPORT_IID { \
-    0x937f6970, 0x5103, 0x4745, \
-    { 0xb7, 0x8e, 0xd2, 0x8d, 0xcf, 0x14, 0x79, 0xa8 } \
+    0xcb0a4a29, 0x43a3, 0x9040, \
+    { 0x0c, 0x25, 0x34, 0x84, 0x5d, 0xb7, 0xb0, 0x42 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_ISerialPort);
@@ -12937,6 +15567,10 @@ struct ISerialPort_vtbl
     nsresult (*GetPath)(ISerialPort *pThis, PRUnichar * *path);
     nsresult (*SetPath)(ISerialPort *pThis, PRUnichar * path);
 
+    nsresult (*GetInternalAndReservedAttribute1ISerialPort)(ISerialPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISerialPort)(ISerialPort *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct ISerialPortVtbl
@@ -12963,6 +15597,10 @@ struct ISerialPortVtbl
 
     nsresult (*GetPath)(ISerialPort *pThis, PRUnichar * *path);
     nsresult (*SetPath)(ISerialPort *pThis, PRUnichar * path);
+
+    nsresult (*GetInternalAndReservedAttribute1ISerialPort)(ISerialPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISerialPort)(ISerialPort *pThis, PRUint32 *reserved);
 
 };
 #define ISerialPort_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -13008,10 +15646,10 @@ interface ISerialPort
 
 
 /* Start of struct IParallelPort declaration */
-#define IPARALLELPORT_IID_STR "0c925f06-dd10-4b77-8de8-294d738c3214"
+#define IPARALLELPORT_IID_STR "788b87df-7708-444b-9eef-c116ce423d39"
 #define IPARALLELPORT_IID { \
-    0x0c925f06, 0xdd10, 0x4b77, \
-    { 0x8d, 0xe8, 0x29, 0x4d, 0x73, 0x8c, 0x32, 0x14 } \
+    0x788b87df, 0x7708, 0x444b, \
+    { 0x9e, 0xef, 0xc1, 0x16, 0xce, 0x42, 0x3d, 0x39 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IParallelPort);
@@ -13034,6 +15672,14 @@ struct IParallelPort_vtbl
     nsresult (*GetPath)(IParallelPort *pThis, PRUnichar * *path);
     nsresult (*SetPath)(IParallelPort *pThis, PRUnichar * path);
 
+    nsresult (*GetInternalAndReservedAttribute1IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IParallelPortVtbl
@@ -13054,6 +15700,14 @@ struct IParallelPortVtbl
 
     nsresult (*GetPath)(IParallelPort *pThis, PRUnichar * *path);
     nsresult (*SetPath)(IParallelPort *pThis, PRUnichar * path);
+
+    nsresult (*GetInternalAndReservedAttribute1IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IParallelPort)(IParallelPort *pThis, PRUint32 *reserved);
 
 };
 #define IParallelPort_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -13091,10 +15745,10 @@ interface IParallelPort
 
 
 /* Start of struct IMachineDebugger declaration */
-#define IMACHINEDEBUGGER_IID_STR "5e4534dc-21b8-4f6b-8a08-eef50e1a0aa1"
+#define IMACHINEDEBUGGER_IID_STR "9c0f5269-47ae-ee34-c2fe-53a16e388925"
 #define IMACHINEDEBUGGER_IID { \
-    0x5e4534dc, 0x21b8, 0x4f6b, \
-    { 0x8a, 0x08, 0xee, 0xf5, 0x0e, 0x1a, 0x0a, 0xa1 } \
+    0x9c0f5269, 0x47ae, 0xee34, \
+    { 0xc2, 0xfe, 0x53, 0xa1, 0x6e, 0x38, 0x89, 0x25 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IMachineDebugger);
@@ -13155,6 +15809,38 @@ struct IMachineDebugger_vtbl
 
     nsresult (*GetVM)(IMachineDebugger *pThis, PRInt64 *VM);
 
+    nsresult (*GetInternalAndReservedAttribute1IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
     nsresult (*DumpGuestCore)(
         IMachineDebugger *pThis,
         PRUnichar * filename,
@@ -13225,9 +15911,26 @@ struct IMachineDebugger_vtbl
         PRUint8* bytes
     );
 
+    nsresult (*LoadPlugIn)(
+        IMachineDebugger *pThis,
+        PRUnichar * name,
+        PRUnichar * * plugInName
+    );
+
+    nsresult (*UnloadPlugIn)(
+        IMachineDebugger *pThis,
+        PRUnichar * name
+    );
+
     nsresult (*DetectOS)(
         IMachineDebugger *pThis,
         PRUnichar * * os
+    );
+
+    nsresult (*QueryOSKernelLog)(
+        IMachineDebugger *pThis,
+        PRUint32 maxMessages,
+        PRUnichar * * dmesg
     );
 
     nsresult (*GetRegister)(
@@ -13284,6 +15987,38 @@ struct IMachineDebugger_vtbl
         PRBool withDescriptions,
         PRUnichar * * stats
     );
+
+    nsresult (*InternalAndReservedMethod1IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod2IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod3IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod4IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod5IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod6IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod7IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod8IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod9IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod10IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod11IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod12IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod13IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod14IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod15IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod16IMachineDebugger)(IMachineDebugger *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -13344,6 +16079,38 @@ struct IMachineDebuggerVtbl
 
     nsresult (*GetVM)(IMachineDebugger *pThis, PRInt64 *VM);
 
+    nsresult (*GetInternalAndReservedAttribute1IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute9IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute10IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute11IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute12IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute13IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute14IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute15IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute16IMachineDebugger)(IMachineDebugger *pThis, PRUint32 *reserved);
+
     nsresult (*DumpGuestCore)(
         IMachineDebugger *pThis,
         PRUnichar * filename,
@@ -13414,9 +16181,26 @@ struct IMachineDebuggerVtbl
         PRUint8* bytes
     );
 
+    nsresult (*LoadPlugIn)(
+        IMachineDebugger *pThis,
+        PRUnichar * name,
+        PRUnichar * * plugInName
+    );
+
+    nsresult (*UnloadPlugIn)(
+        IMachineDebugger *pThis,
+        PRUnichar * name
+    );
+
     nsresult (*DetectOS)(
         IMachineDebugger *pThis,
         PRUnichar * * os
+    );
+
+    nsresult (*QueryOSKernelLog)(
+        IMachineDebugger *pThis,
+        PRUint32 maxMessages,
+        PRUnichar * * dmesg
     );
 
     nsresult (*GetRegister)(
@@ -13473,6 +16257,38 @@ struct IMachineDebuggerVtbl
         PRBool withDescriptions,
         PRUnichar * * stats
     );
+
+    nsresult (*InternalAndReservedMethod1IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod2IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod3IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod4IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod5IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod6IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod7IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod8IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod9IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod10IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod11IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod12IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod13IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod14IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod15IMachineDebugger)(IMachineDebugger *pThis);
+
+    nsresult (*InternalAndReservedMethod16IMachineDebugger)(IMachineDebugger *pThis);
 
 };
 #define IMachineDebugger_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -13549,7 +16365,10 @@ struct IMachineDebuggerVtbl
 #define IMachineDebugger_WritePhysicalMemory(p, aAddress, aSize, aBytes) ((p)->lpVtbl->WritePhysicalMemory(p, aAddress, aSize, aBytes))
 #define IMachineDebugger_ReadVirtualMemory(p, aCpuId, aAddress, aSize, aBytes) ((p)->lpVtbl->ReadVirtualMemory(p, aCpuId, aAddress, aSize, aBytes))
 #define IMachineDebugger_WriteVirtualMemory(p, aCpuId, aAddress, aSize, aBytes) ((p)->lpVtbl->WriteVirtualMemory(p, aCpuId, aAddress, aSize, aBytes))
+#define IMachineDebugger_LoadPlugIn(p, aName, aPlugInName) ((p)->lpVtbl->LoadPlugIn(p, aName, aPlugInName))
+#define IMachineDebugger_UnloadPlugIn(p, aName) ((p)->lpVtbl->UnloadPlugIn(p, aName))
 #define IMachineDebugger_DetectOS(p, aOs) ((p)->lpVtbl->DetectOS(p, aOs))
+#define IMachineDebugger_QueryOSKernelLog(p, aMaxMessages, aDmesg) ((p)->lpVtbl->QueryOSKernelLog(p, aMaxMessages, aDmesg))
 #define IMachineDebugger_GetRegister(p, aCpuId, aName, aValue) ((p)->lpVtbl->GetRegister(p, aCpuId, aName, aValue))
 #define IMachineDebugger_GetRegisters(p, aCpuId, aNames, aValues) ((p)->lpVtbl->GetRegisters(p, aCpuId, aNames, aValues))
 #define IMachineDebugger_SetRegister(p, aCpuId, aName, aValue) ((p)->lpVtbl->SetRegister(p, aCpuId, aName, aValue))
@@ -13572,10 +16391,10 @@ interface IMachineDebugger
 
 
 /* Start of struct IUSBDeviceFilters declaration */
-#define IUSBDEVICEFILTERS_IID_STR "2ab550b2-53cc-4c2e-ae07-0adf4114e75c"
+#define IUSBDEVICEFILTERS_IID_STR "9709db9b-3346-49d6-8f1c-41b0c4784ff2"
 #define IUSBDEVICEFILTERS_IID { \
-    0x2ab550b2, 0x53cc, 0x4c2e, \
-    { 0xae, 0x07, 0x0a, 0xdf, 0x41, 0x14, 0xe7, 0x5c } \
+    0x9709db9b, 0x3346, 0x49d6, \
+    { 0x8f, 0x1c, 0x41, 0xb0, 0xc4, 0x78, 0x4f, 0xf2 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IUSBDeviceFilters);
@@ -13586,6 +16405,10 @@ struct IUSBDeviceFilters_vtbl
 
     nsresult (*GetDeviceFilters)(IUSBDeviceFilters *pThis, PRUint32 *deviceFiltersSize, IUSBDeviceFilter * **deviceFilters);
 
+    nsresult (*GetInternalAndReservedAttribute1IUSBDeviceFilters)(IUSBDeviceFilters *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDeviceFilters)(IUSBDeviceFilters *pThis, PRUint32 *reserved);
+
     nsresult (*CreateDeviceFilter)(
         IUSBDeviceFilters *pThis,
         PRUnichar * name,
@@ -13603,6 +16426,10 @@ struct IUSBDeviceFilters_vtbl
         PRUint32 position,
         IUSBDeviceFilter * * filter
     );
+
+    nsresult (*InternalAndReservedMethod1IUSBDeviceFilters)(IUSBDeviceFilters *pThis);
+
+    nsresult (*InternalAndReservedMethod2IUSBDeviceFilters)(IUSBDeviceFilters *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -13613,6 +16440,10 @@ struct IUSBDeviceFiltersVtbl
     nsrefcnt (*Release)(IUSBDeviceFilters *pThis);
     nsresult (*GetDeviceFilters)(IUSBDeviceFilters *pThis, PRUint32 *deviceFiltersSize, IUSBDeviceFilter * **deviceFilters);
 
+    nsresult (*GetInternalAndReservedAttribute1IUSBDeviceFilters)(IUSBDeviceFilters *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDeviceFilters)(IUSBDeviceFilters *pThis, PRUint32 *reserved);
+
     nsresult (*CreateDeviceFilter)(
         IUSBDeviceFilters *pThis,
         PRUnichar * name,
@@ -13630,6 +16461,10 @@ struct IUSBDeviceFiltersVtbl
         PRUint32 position,
         IUSBDeviceFilter * * filter
     );
+
+    nsresult (*InternalAndReservedMethod1IUSBDeviceFilters)(IUSBDeviceFilters *pThis);
+
+    nsresult (*InternalAndReservedMethod2IUSBDeviceFilters)(IUSBDeviceFilters *pThis);
 
 };
 #define IUSBDeviceFilters_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -13654,10 +16489,10 @@ interface IUSBDeviceFilters
 
 
 /* Start of struct IUSBController declaration */
-#define IUSBCONTROLLER_IID_STR "d2745291-65f7-4d75-9556-38047d802319"
+#define IUSBCONTROLLER_IID_STR "0c293c51-4810-e174-4f78-199376c63bbe"
 #define IUSBCONTROLLER_IID { \
-    0xd2745291, 0x65f7, 0x4d75, \
-    { 0x95, 0x56, 0x38, 0x04, 0x7d, 0x80, 0x23, 0x19 } \
+    0x0c293c51, 0x4810, 0xe174, \
+    { 0x4f, 0x78, 0x19, 0x93, 0x76, 0xc6, 0x3b, 0xbe } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IUSBController);
@@ -13667,10 +16502,16 @@ struct IUSBController_vtbl
     struct nsISupports_vtbl nsisupports;
 
     nsresult (*GetName)(IUSBController *pThis, PRUnichar * *name);
+    nsresult (*SetName)(IUSBController *pThis, PRUnichar * name);
 
     nsresult (*GetType)(IUSBController *pThis, PRUint32 *type);
+    nsresult (*SetType)(IUSBController *pThis, PRUint32 type);
 
     nsresult (*GetUSBStandard)(IUSBController *pThis, PRUint16 *USBStandard);
+
+    nsresult (*GetInternalAndReservedAttribute1IUSBController)(IUSBController *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBController)(IUSBController *pThis, PRUint32 *reserved);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -13680,10 +16521,16 @@ struct IUSBControllerVtbl
     nsrefcnt (*AddRef)(IUSBController *pThis);
     nsrefcnt (*Release)(IUSBController *pThis);
     nsresult (*GetName)(IUSBController *pThis, PRUnichar * *name);
+    nsresult (*SetName)(IUSBController *pThis, PRUnichar * name);
 
     nsresult (*GetType)(IUSBController *pThis, PRUint32 *type);
+    nsresult (*SetType)(IUSBController *pThis, PRUint32 type);
 
     nsresult (*GetUSBStandard)(IUSBController *pThis, PRUint16 *USBStandard);
+
+    nsresult (*GetInternalAndReservedAttribute1IUSBController)(IUSBController *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBController)(IUSBController *pThis, PRUint32 *reserved);
 
 };
 #define IUSBController_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -13691,8 +16538,12 @@ struct IUSBControllerVtbl
 #define IUSBController_Release(p) ((p)->lpVtbl->Release(p))
 #define IUSBController_get_Name(p, aName) ((p)->lpVtbl->GetName(p, aName))
 #define IUSBController_GetName(p, aName) ((p)->lpVtbl->GetName(p, aName))
+#define IUSBController_put_Name(p, aName) ((p)->lpVtbl->SetName(p, aName))
+#define IUSBController_SetName(p, aName) ((p)->lpVtbl->SetName(p, aName))
 #define IUSBController_get_Type(p, aType) ((p)->lpVtbl->GetType(p, aType))
 #define IUSBController_GetType(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define IUSBController_put_Type(p, aType) ((p)->lpVtbl->SetType(p, aType))
+#define IUSBController_SetType(p, aType) ((p)->lpVtbl->SetType(p, aType))
 #define IUSBController_get_USBStandard(p, aUSBStandard) ((p)->lpVtbl->GetUSBStandard(p, aUSBStandard))
 #define IUSBController_GetUSBStandard(p, aUSBStandard) ((p)->lpVtbl->GetUSBStandard(p, aUSBStandard))
 #endif /* VBOX_WITH_GLUE */
@@ -13709,10 +16560,10 @@ interface IUSBController
 
 
 /* Start of struct IUSBDevice declaration */
-#define IUSBDEVICE_IID_STR "f8967b0b-4483-400f-92b5-8b675d98a85b"
+#define IUSBDEVICE_IID_STR "5915d179-83c7-4f2b-a323-9a97f46f4e29"
 #define IUSBDEVICE_IID { \
-    0xf8967b0b, 0x4483, 0x400f, \
-    { 0x92, 0xb5, 0x8b, 0x67, 0x5d, 0x98, 0xa8, 0x5b } \
+    0x5915d179, 0x83c7, 0x4f2b, \
+    { 0xa3, 0x23, 0x9a, 0x97, 0xf4, 0x6f, 0x4e, 0x29 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IUSBDevice);
@@ -13743,7 +16594,17 @@ struct IUSBDevice_vtbl
 
     nsresult (*GetPortVersion)(IUSBDevice *pThis, PRUint16 *portVersion);
 
+    nsresult (*GetSpeed)(IUSBDevice *pThis, PRUint32 *speed);
+
     nsresult (*GetRemote)(IUSBDevice *pThis, PRBool *remote);
+
+    nsresult (*GetInternalAndReservedAttribute1IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -13774,7 +16635,17 @@ struct IUSBDeviceVtbl
 
     nsresult (*GetPortVersion)(IUSBDevice *pThis, PRUint16 *portVersion);
 
+    nsresult (*GetSpeed)(IUSBDevice *pThis, PRUint32 *speed);
+
     nsresult (*GetRemote)(IUSBDevice *pThis, PRBool *remote);
+
+    nsresult (*GetInternalAndReservedAttribute1IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IUSBDevice)(IUSBDevice *pThis, PRUint32 *reserved);
 
 };
 #define IUSBDevice_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -13802,6 +16673,8 @@ struct IUSBDeviceVtbl
 #define IUSBDevice_GetVersion(p, aVersion) ((p)->lpVtbl->GetVersion(p, aVersion))
 #define IUSBDevice_get_PortVersion(p, aPortVersion) ((p)->lpVtbl->GetPortVersion(p, aPortVersion))
 #define IUSBDevice_GetPortVersion(p, aPortVersion) ((p)->lpVtbl->GetPortVersion(p, aPortVersion))
+#define IUSBDevice_get_Speed(p, aSpeed) ((p)->lpVtbl->GetSpeed(p, aSpeed))
+#define IUSBDevice_GetSpeed(p, aSpeed) ((p)->lpVtbl->GetSpeed(p, aSpeed))
 #define IUSBDevice_get_Remote(p, aRemote) ((p)->lpVtbl->GetRemote(p, aRemote))
 #define IUSBDevice_GetRemote(p, aRemote) ((p)->lpVtbl->GetRemote(p, aRemote))
 #endif /* VBOX_WITH_GLUE */
@@ -13818,10 +16691,10 @@ interface IUSBDevice
 
 
 /* Start of struct IUSBDeviceFilter declaration */
-#define IUSBDEVICEFILTER_IID_STR "d6831fb4-1a94-4c2c-96ef-8d0d6192066d"
+#define IUSBDEVICEFILTER_IID_STR "45587218-4289-ef4e-8e6a-e5b07816b631"
 #define IUSBDEVICEFILTER_IID { \
-    0xd6831fb4, 0x1a94, 0x4c2c, \
-    { 0x96, 0xef, 0x8d, 0x0d, 0x61, 0x92, 0x06, 0x6d } \
+    0x45587218, 0x4289, 0xef4e, \
+    { 0x8e, 0x6a, 0xe5, 0xb0, 0x78, 0x16, 0xb6, 0x31 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IUSBDeviceFilter);
@@ -13863,6 +16736,22 @@ struct IUSBDeviceFilter_vtbl
     nsresult (*GetMaskedInterfaces)(IUSBDeviceFilter *pThis, PRUint32 *maskedInterfaces);
     nsresult (*SetMaskedInterfaces)(IUSBDeviceFilter *pThis, PRUint32 maskedInterfaces);
 
+    nsresult (*GetInternalAndReservedAttribute1IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IUSBDeviceFilterVtbl
@@ -13902,6 +16791,22 @@ struct IUSBDeviceFilterVtbl
 
     nsresult (*GetMaskedInterfaces)(IUSBDeviceFilter *pThis, PRUint32 *maskedInterfaces);
     nsresult (*SetMaskedInterfaces)(IUSBDeviceFilter *pThis, PRUint32 maskedInterfaces);
+
+    nsresult (*GetInternalAndReservedAttribute1IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IUSBDeviceFilter)(IUSBDeviceFilter *pThis, PRUint32 *reserved);
 
 };
 #define IUSBDeviceFilter_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -13965,10 +16870,10 @@ interface IUSBDeviceFilter
 
 
 /* Start of struct IHostUSBDevice declaration */
-#define IHOSTUSBDEVICE_IID_STR "173b4b44-d268-4334-a00d-b6521c9a740a"
+#define IHOSTUSBDEVICE_IID_STR "c19073dd-cc7b-431b-98b2-951fda8eab89"
 #define IHOSTUSBDEVICE_IID { \
-    0x173b4b44, 0xd268, 0x4334, \
-    { 0xa0, 0x0d, 0xb6, 0x52, 0x1c, 0x9a, 0x74, 0x0a } \
+    0xc19073dd, 0xcc7b, 0x431b, \
+    { 0x98, 0xb2, 0x95, 0x1f, 0xda, 0x8e, 0xab, 0x89 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IHostUSBDevice);
@@ -13978,6 +16883,14 @@ struct IHostUSBDevice_vtbl
     struct IUSBDevice_vtbl iusbdevice;
 
     nsresult (*GetState)(IHostUSBDevice *pThis, PRUint32 *state);
+
+    nsresult (*GetInternalAndReservedAttribute1IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -14008,9 +16921,27 @@ struct IHostUSBDeviceVtbl
 
     nsresult (*GetPortVersion)(IHostUSBDevice *pThis, PRUint16 *portVersion);
 
+    nsresult (*GetSpeed)(IHostUSBDevice *pThis, PRUint32 *speed);
+
     nsresult (*GetRemote)(IHostUSBDevice *pThis, PRBool *remote);
 
+    nsresult (*GetInternalAndReservedAttribute1IUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
     nsresult (*GetState)(IHostUSBDevice *pThis, PRUint32 *state);
+
+    nsresult (*GetInternalAndReservedAttribute1IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostUSBDevice)(IHostUSBDevice *pThis, PRUint32 *reserved);
 
 };
 #define IHostUSBDevice_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14038,6 +16969,8 @@ struct IHostUSBDeviceVtbl
 #define IHostUSBDevice_GetVersion(p, aVersion) ((p)->lpVtbl->GetVersion(p, aVersion))
 #define IHostUSBDevice_get_PortVersion(p, aPortVersion) ((p)->lpVtbl->GetPortVersion(p, aPortVersion))
 #define IHostUSBDevice_GetPortVersion(p, aPortVersion) ((p)->lpVtbl->GetPortVersion(p, aPortVersion))
+#define IHostUSBDevice_get_Speed(p, aSpeed) ((p)->lpVtbl->GetSpeed(p, aSpeed))
+#define IHostUSBDevice_GetSpeed(p, aSpeed) ((p)->lpVtbl->GetSpeed(p, aSpeed))
 #define IHostUSBDevice_get_Remote(p, aRemote) ((p)->lpVtbl->GetRemote(p, aRemote))
 #define IHostUSBDevice_GetRemote(p, aRemote) ((p)->lpVtbl->GetRemote(p, aRemote))
 #define IHostUSBDevice_get_State(p, aState) ((p)->lpVtbl->GetState(p, aState))
@@ -14056,10 +16989,10 @@ interface IHostUSBDevice
 
 
 /* Start of struct IHostUSBDeviceFilter declaration */
-#define IHOSTUSBDEVICEFILTER_IID_STR "4cc70246-d74a-400f-8222-3900489c0374"
+#define IHOSTUSBDEVICEFILTER_IID_STR "01adb2d6-aedf-461c-be2c-99e91bdad8a1"
 #define IHOSTUSBDEVICEFILTER_IID { \
-    0x4cc70246, 0xd74a, 0x400f, \
-    { 0x82, 0x22, 0x39, 0x00, 0x48, 0x9c, 0x03, 0x74 } \
+    0x01adb2d6, 0xaedf, 0x461c, \
+    { 0xbe, 0x2c, 0x99, 0xe9, 0x1b, 0xda, 0xd8, 0xa1 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IHostUSBDeviceFilter);
@@ -14070,6 +17003,22 @@ struct IHostUSBDeviceFilter_vtbl
 
     nsresult (*GetAction)(IHostUSBDeviceFilter *pThis, PRUint32 *action);
     nsresult (*SetAction)(IHostUSBDeviceFilter *pThis, PRUint32 action);
+
+    nsresult (*GetInternalAndReservedAttribute1IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -14111,8 +17060,40 @@ struct IHostUSBDeviceFilterVtbl
     nsresult (*GetMaskedInterfaces)(IHostUSBDeviceFilter *pThis, PRUint32 *maskedInterfaces);
     nsresult (*SetMaskedInterfaces)(IHostUSBDeviceFilter *pThis, PRUint32 maskedInterfaces);
 
+    nsresult (*GetInternalAndReservedAttribute1IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
     nsresult (*GetAction)(IHostUSBDeviceFilter *pThis, PRUint32 *action);
     nsresult (*SetAction)(IHostUSBDeviceFilter *pThis, PRUint32 action);
+
+    nsresult (*GetInternalAndReservedAttribute1IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IHostUSBDeviceFilter)(IHostUSBDeviceFilter *pThis, PRUint32 *reserved);
 
 };
 #define IHostUSBDeviceFilter_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14180,10 +17161,10 @@ interface IHostUSBDeviceFilter
 
 
 /* Start of struct IAudioAdapter declaration */
-#define IAUDIOADAPTER_IID_STR "921873db-5f3f-4b69-91f9-7be9e535a2cb"
+#define IAUDIOADAPTER_IID_STR "aeccc0a8-e0a0-427f-b946-c42063f54d81"
 #define IAUDIOADAPTER_IID { \
-    0x921873db, 0x5f3f, 0x4b69, \
-    { 0x91, 0xf9, 0x7b, 0xe9, 0xe5, 0x35, 0xa2, 0xcb } \
+    0xaeccc0a8, 0xe0a0, 0x427f, \
+    { 0xb9, 0x46, 0xc4, 0x20, 0x63, 0xf5, 0x4d, 0x81 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IAudioAdapter);
@@ -14195,11 +17176,40 @@ struct IAudioAdapter_vtbl
     nsresult (*GetEnabled)(IAudioAdapter *pThis, PRBool *enabled);
     nsresult (*SetEnabled)(IAudioAdapter *pThis, PRBool enabled);
 
+    nsresult (*GetEnabledIn)(IAudioAdapter *pThis, PRBool *enabledIn);
+    nsresult (*SetEnabledIn)(IAudioAdapter *pThis, PRBool enabledIn);
+
+    nsresult (*GetEnabledOut)(IAudioAdapter *pThis, PRBool *enabledOut);
+    nsresult (*SetEnabledOut)(IAudioAdapter *pThis, PRBool enabledOut);
+
     nsresult (*GetAudioController)(IAudioAdapter *pThis, PRUint32 *audioController);
     nsresult (*SetAudioController)(IAudioAdapter *pThis, PRUint32 audioController);
 
+    nsresult (*GetAudioCodec)(IAudioAdapter *pThis, PRUint32 *audioCodec);
+    nsresult (*SetAudioCodec)(IAudioAdapter *pThis, PRUint32 audioCodec);
+
     nsresult (*GetAudioDriver)(IAudioAdapter *pThis, PRUint32 *audioDriver);
     nsresult (*SetAudioDriver)(IAudioAdapter *pThis, PRUint32 audioDriver);
+
+    nsresult (*GetPropertiesList)(IAudioAdapter *pThis, PRUint32 *propertiesListSize, PRUnichar * **propertiesList);
+
+    nsresult (*GetInternalAndReservedAttribute1IAudioAdapter)(IAudioAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IAudioAdapter)(IAudioAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*SetProperty)(
+        IAudioAdapter *pThis,
+        PRUnichar * key,
+        PRUnichar * value
+    );
+
+    nsresult (*GetProperty)(
+        IAudioAdapter *pThis,
+        PRUnichar * key,
+        PRUnichar * * value
+    );
+
+    nsresult (*InternalAndReservedMethod1IAudioAdapter)(IAudioAdapter *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -14211,11 +17221,40 @@ struct IAudioAdapterVtbl
     nsresult (*GetEnabled)(IAudioAdapter *pThis, PRBool *enabled);
     nsresult (*SetEnabled)(IAudioAdapter *pThis, PRBool enabled);
 
+    nsresult (*GetEnabledIn)(IAudioAdapter *pThis, PRBool *enabledIn);
+    nsresult (*SetEnabledIn)(IAudioAdapter *pThis, PRBool enabledIn);
+
+    nsresult (*GetEnabledOut)(IAudioAdapter *pThis, PRBool *enabledOut);
+    nsresult (*SetEnabledOut)(IAudioAdapter *pThis, PRBool enabledOut);
+
     nsresult (*GetAudioController)(IAudioAdapter *pThis, PRUint32 *audioController);
     nsresult (*SetAudioController)(IAudioAdapter *pThis, PRUint32 audioController);
 
+    nsresult (*GetAudioCodec)(IAudioAdapter *pThis, PRUint32 *audioCodec);
+    nsresult (*SetAudioCodec)(IAudioAdapter *pThis, PRUint32 audioCodec);
+
     nsresult (*GetAudioDriver)(IAudioAdapter *pThis, PRUint32 *audioDriver);
     nsresult (*SetAudioDriver)(IAudioAdapter *pThis, PRUint32 audioDriver);
+
+    nsresult (*GetPropertiesList)(IAudioAdapter *pThis, PRUint32 *propertiesListSize, PRUnichar * **propertiesList);
+
+    nsresult (*GetInternalAndReservedAttribute1IAudioAdapter)(IAudioAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IAudioAdapter)(IAudioAdapter *pThis, PRUint32 *reserved);
+
+    nsresult (*SetProperty)(
+        IAudioAdapter *pThis,
+        PRUnichar * key,
+        PRUnichar * value
+    );
+
+    nsresult (*GetProperty)(
+        IAudioAdapter *pThis,
+        PRUnichar * key,
+        PRUnichar * * value
+    );
+
+    nsresult (*InternalAndReservedMethod1IAudioAdapter)(IAudioAdapter *pThis);
 
 };
 #define IAudioAdapter_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14225,14 +17264,30 @@ struct IAudioAdapterVtbl
 #define IAudioAdapter_GetEnabled(p, aEnabled) ((p)->lpVtbl->GetEnabled(p, aEnabled))
 #define IAudioAdapter_put_Enabled(p, aEnabled) ((p)->lpVtbl->SetEnabled(p, aEnabled))
 #define IAudioAdapter_SetEnabled(p, aEnabled) ((p)->lpVtbl->SetEnabled(p, aEnabled))
+#define IAudioAdapter_get_EnabledIn(p, aEnabledIn) ((p)->lpVtbl->GetEnabledIn(p, aEnabledIn))
+#define IAudioAdapter_GetEnabledIn(p, aEnabledIn) ((p)->lpVtbl->GetEnabledIn(p, aEnabledIn))
+#define IAudioAdapter_put_EnabledIn(p, aEnabledIn) ((p)->lpVtbl->SetEnabledIn(p, aEnabledIn))
+#define IAudioAdapter_SetEnabledIn(p, aEnabledIn) ((p)->lpVtbl->SetEnabledIn(p, aEnabledIn))
+#define IAudioAdapter_get_EnabledOut(p, aEnabledOut) ((p)->lpVtbl->GetEnabledOut(p, aEnabledOut))
+#define IAudioAdapter_GetEnabledOut(p, aEnabledOut) ((p)->lpVtbl->GetEnabledOut(p, aEnabledOut))
+#define IAudioAdapter_put_EnabledOut(p, aEnabledOut) ((p)->lpVtbl->SetEnabledOut(p, aEnabledOut))
+#define IAudioAdapter_SetEnabledOut(p, aEnabledOut) ((p)->lpVtbl->SetEnabledOut(p, aEnabledOut))
 #define IAudioAdapter_get_AudioController(p, aAudioController) ((p)->lpVtbl->GetAudioController(p, aAudioController))
 #define IAudioAdapter_GetAudioController(p, aAudioController) ((p)->lpVtbl->GetAudioController(p, aAudioController))
 #define IAudioAdapter_put_AudioController(p, aAudioController) ((p)->lpVtbl->SetAudioController(p, aAudioController))
 #define IAudioAdapter_SetAudioController(p, aAudioController) ((p)->lpVtbl->SetAudioController(p, aAudioController))
+#define IAudioAdapter_get_AudioCodec(p, aAudioCodec) ((p)->lpVtbl->GetAudioCodec(p, aAudioCodec))
+#define IAudioAdapter_GetAudioCodec(p, aAudioCodec) ((p)->lpVtbl->GetAudioCodec(p, aAudioCodec))
+#define IAudioAdapter_put_AudioCodec(p, aAudioCodec) ((p)->lpVtbl->SetAudioCodec(p, aAudioCodec))
+#define IAudioAdapter_SetAudioCodec(p, aAudioCodec) ((p)->lpVtbl->SetAudioCodec(p, aAudioCodec))
 #define IAudioAdapter_get_AudioDriver(p, aAudioDriver) ((p)->lpVtbl->GetAudioDriver(p, aAudioDriver))
 #define IAudioAdapter_GetAudioDriver(p, aAudioDriver) ((p)->lpVtbl->GetAudioDriver(p, aAudioDriver))
 #define IAudioAdapter_put_AudioDriver(p, aAudioDriver) ((p)->lpVtbl->SetAudioDriver(p, aAudioDriver))
 #define IAudioAdapter_SetAudioDriver(p, aAudioDriver) ((p)->lpVtbl->SetAudioDriver(p, aAudioDriver))
+#define IAudioAdapter_get_PropertiesList(p, aPropertiesList) ((p)->lpVtbl->GetPropertiesList(p, aPropertiesList))
+#define IAudioAdapter_GetPropertiesList(p, aPropertiesList) ((p)->lpVtbl->GetPropertiesList(p, aPropertiesList))
+#define IAudioAdapter_SetProperty(p, aKey, aValue) ((p)->lpVtbl->SetProperty(p, aKey, aValue))
+#define IAudioAdapter_GetProperty(p, aKey, aValue) ((p)->lpVtbl->GetProperty(p, aKey, aValue))
 #endif /* VBOX_WITH_GLUE */
 
 interface IAudioAdapter
@@ -14247,10 +17302,10 @@ interface IAudioAdapter
 
 
 /* Start of struct IVRDEServer declaration */
-#define IVRDESERVER_IID_STR "d38de40a-c2c1-4e95-b5a4-167b05f5694c"
+#define IVRDESERVER_IID_STR "6e758489-453a-6f98-9cb9-2da2cb8eabb5"
 #define IVRDESERVER_IID { \
-    0xd38de40a, 0xc2c1, 0x4e95, \
-    { 0xb5, 0xa4, 0x16, 0x7b, 0x05, 0xf5, 0x69, 0x4c } \
+    0x6e758489, 0x453a, 0x6f98, \
+    { 0x9c, 0xb9, 0x2d, 0xa2, 0xcb, 0x8e, 0xab, 0xb5 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IVRDEServer);
@@ -14282,6 +17337,10 @@ struct IVRDEServer_vtbl
 
     nsresult (*GetVRDEProperties)(IVRDEServer *pThis, PRUint32 *VRDEPropertiesSize, PRUnichar * **VRDEProperties);
 
+    nsresult (*GetInternalAndReservedAttribute1IVRDEServer)(IVRDEServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVRDEServer)(IVRDEServer *pThis, PRUint32 *reserved);
+
     nsresult (*SetVRDEProperty)(
         IVRDEServer *pThis,
         PRUnichar * key,
@@ -14293,6 +17352,8 @@ struct IVRDEServer_vtbl
         PRUnichar * key,
         PRUnichar * * value
     );
+
+    nsresult (*InternalAndReservedMethod1IVRDEServer)(IVRDEServer *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -14324,6 +17385,10 @@ struct IVRDEServerVtbl
 
     nsresult (*GetVRDEProperties)(IVRDEServer *pThis, PRUint32 *VRDEPropertiesSize, PRUnichar * **VRDEProperties);
 
+    nsresult (*GetInternalAndReservedAttribute1IVRDEServer)(IVRDEServer *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVRDEServer)(IVRDEServer *pThis, PRUint32 *reserved);
+
     nsresult (*SetVRDEProperty)(
         IVRDEServer *pThis,
         PRUnichar * key,
@@ -14335,6 +17400,8 @@ struct IVRDEServerVtbl
         PRUnichar * key,
         PRUnichar * * value
     );
+
+    nsresult (*InternalAndReservedMethod1IVRDEServer)(IVRDEServer *pThis);
 
 };
 #define IVRDEServer_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14386,10 +17453,10 @@ interface IVRDEServer
 
 
 /* Start of struct ISharedFolder declaration */
-#define ISHAREDFOLDER_IID_STR "8388da11-b559-4574-a5b7-2bd7acd5cef8"
+#define ISHAREDFOLDER_IID_STR "15aabe95-e594-4e18-9222-b5e83a23f1da"
 #define ISHAREDFOLDER_IID { \
-    0x8388da11, 0xb559, 0x4574, \
-    { 0xa5, 0xb7, 0x2b, 0xd7, 0xac, 0xd5, 0xce, 0xf8 } \
+    0x15aabe95, 0xe594, 0x4e18, \
+    { 0x92, 0x22, 0xb5, 0xe8, 0x3a, 0x23, 0xf1, 0xda } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_ISharedFolder);
@@ -14410,6 +17477,14 @@ struct ISharedFolder_vtbl
 
     nsresult (*GetLastAccessError)(ISharedFolder *pThis, PRUnichar * *lastAccessError);
 
+    nsresult (*GetInternalAndReservedAttribute1ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct ISharedFolderVtbl
@@ -14428,6 +17503,14 @@ struct ISharedFolderVtbl
     nsresult (*GetAutoMount)(ISharedFolder *pThis, PRBool *autoMount);
 
     nsresult (*GetLastAccessError)(ISharedFolder *pThis, PRUnichar * *lastAccessError);
+
+    nsresult (*GetInternalAndReservedAttribute1ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4ISharedFolder)(ISharedFolder *pThis, PRUint32 *reserved);
 
 };
 #define ISharedFolder_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14459,10 +17542,10 @@ interface ISharedFolder
 
 
 /* Start of struct ISession declaration */
-#define ISESSION_IID_STR "12F4DCDB-12B2-4EC1-B7CD-DDD9F6C5BF4D"
+#define ISESSION_IID_STR "7844aa05-b02e-4cdd-a04f-ade4a762e6b7"
 #define ISESSION_IID { \
-    0x12F4DCDB, 0x12B2, 0x4EC1, \
-    { 0xB7, 0xCD, 0xDD, 0xD9, 0xF6, 0xC5, 0xBF, 0x4D } \
+    0x7844aa05, 0xb02e, 0x4cdd, \
+    { 0xa0, 0x4f, 0xad, 0xe4, 0xa7, 0x62, 0xe6, 0xb7 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_ISession);
@@ -14475,11 +17558,28 @@ struct ISession_vtbl
 
     nsresult (*GetType)(ISession *pThis, PRUint32 *type);
 
+    nsresult (*GetName)(ISession *pThis, PRUnichar * *name);
+    nsresult (*SetName)(ISession *pThis, PRUnichar * name);
+
     nsresult (*GetMachine)(ISession *pThis, IMachine * *machine);
 
     nsresult (*GetConsole)(ISession *pThis, IConsole * *console);
 
+    nsresult (*GetInternalAndReservedAttribute1ISession)(ISession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISession)(ISession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3ISession)(ISession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4ISession)(ISession *pThis, PRUint32 *reserved);
+
     nsresult (*UnlockMachine)(ISession *pThis );
+
+    nsresult (*InternalAndReservedMethod1ISession)(ISession *pThis);
+
+    nsresult (*InternalAndReservedMethod2ISession)(ISession *pThis);
+
+    nsresult (*InternalAndReservedMethod3ISession)(ISession *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -14492,11 +17592,28 @@ struct ISessionVtbl
 
     nsresult (*GetType)(ISession *pThis, PRUint32 *type);
 
+    nsresult (*GetName)(ISession *pThis, PRUnichar * *name);
+    nsresult (*SetName)(ISession *pThis, PRUnichar * name);
+
     nsresult (*GetMachine)(ISession *pThis, IMachine * *machine);
 
     nsresult (*GetConsole)(ISession *pThis, IConsole * *console);
 
+    nsresult (*GetInternalAndReservedAttribute1ISession)(ISession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2ISession)(ISession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3ISession)(ISession *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4ISession)(ISession *pThis, PRUint32 *reserved);
+
     nsresult (*UnlockMachine)(ISession *pThis );
+
+    nsresult (*InternalAndReservedMethod1ISession)(ISession *pThis);
+
+    nsresult (*InternalAndReservedMethod2ISession)(ISession *pThis);
+
+    nsresult (*InternalAndReservedMethod3ISession)(ISession *pThis);
 
 };
 #define ISession_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14506,6 +17623,10 @@ struct ISessionVtbl
 #define ISession_GetState(p, aState) ((p)->lpVtbl->GetState(p, aState))
 #define ISession_get_Type(p, aType) ((p)->lpVtbl->GetType(p, aType))
 #define ISession_GetType(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define ISession_get_Name(p, aName) ((p)->lpVtbl->GetName(p, aName))
+#define ISession_GetName(p, aName) ((p)->lpVtbl->GetName(p, aName))
+#define ISession_put_Name(p, aName) ((p)->lpVtbl->SetName(p, aName))
+#define ISession_SetName(p, aName) ((p)->lpVtbl->SetName(p, aName))
 #define ISession_get_Machine(p, aMachine) ((p)->lpVtbl->GetMachine(p, aMachine))
 #define ISession_GetMachine(p, aMachine) ((p)->lpVtbl->GetMachine(p, aMachine))
 #define ISession_get_Console(p, aConsole) ((p)->lpVtbl->GetConsole(p, aConsole))
@@ -14525,10 +17646,10 @@ interface ISession
 
 
 /* Start of struct IStorageController declaration */
-#define ISTORAGECONTROLLER_IID_STR "a1556333-09b6-46d9-bfb7-fc239b7fbe1e"
+#define ISTORAGECONTROLLER_IID_STR "49b19d41-4a75-7bd5-c124-259acba3c41d"
 #define ISTORAGECONTROLLER_IID { \
-    0xa1556333, 0x09b6, 0x46d9, \
-    { 0xbf, 0xb7, 0xfc, 0x23, 0x9b, 0x7f, 0xbe, 0x1e } \
+    0x49b19d41, 0x4a75, 0x7bd5, \
+    { 0xc1, 0x24, 0x25, 0x9a, 0xcb, 0xa3, 0xc4, 0x1d } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IStorageController);
@@ -14538,6 +17659,7 @@ struct IStorageController_vtbl
     struct nsISupports_vtbl nsisupports;
 
     nsresult (*GetName)(IStorageController *pThis, PRUnichar * *name);
+    nsresult (*SetName)(IStorageController *pThis, PRUnichar * name);
 
     nsresult (*GetMaxDevicesPerPortCount)(IStorageController *pThis, PRUint32 *maxDevicesPerPortCount);
 
@@ -14560,6 +17682,12 @@ struct IStorageController_vtbl
     nsresult (*SetUseHostIOCache)(IStorageController *pThis, PRBool useHostIOCache);
 
     nsresult (*GetBootable)(IStorageController *pThis, PRBool *bootable);
+
+    nsresult (*GetInternalAndReservedAttribute1IStorageController)(IStorageController *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IStorageController)(IStorageController *pThis, PRUint32 *reserved);
+
+    nsresult (*InternalAndReservedMethod1IStorageController)(IStorageController *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -14569,6 +17697,7 @@ struct IStorageControllerVtbl
     nsrefcnt (*AddRef)(IStorageController *pThis);
     nsrefcnt (*Release)(IStorageController *pThis);
     nsresult (*GetName)(IStorageController *pThis, PRUnichar * *name);
+    nsresult (*SetName)(IStorageController *pThis, PRUnichar * name);
 
     nsresult (*GetMaxDevicesPerPortCount)(IStorageController *pThis, PRUint32 *maxDevicesPerPortCount);
 
@@ -14592,12 +17721,20 @@ struct IStorageControllerVtbl
 
     nsresult (*GetBootable)(IStorageController *pThis, PRBool *bootable);
 
+    nsresult (*GetInternalAndReservedAttribute1IStorageController)(IStorageController *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IStorageController)(IStorageController *pThis, PRUint32 *reserved);
+
+    nsresult (*InternalAndReservedMethod1IStorageController)(IStorageController *pThis);
+
 };
 #define IStorageController_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IStorageController_AddRef(p) ((p)->lpVtbl->AddRef(p))
 #define IStorageController_Release(p) ((p)->lpVtbl->Release(p))
 #define IStorageController_get_Name(p, aName) ((p)->lpVtbl->GetName(p, aName))
 #define IStorageController_GetName(p, aName) ((p)->lpVtbl->GetName(p, aName))
+#define IStorageController_put_Name(p, aName) ((p)->lpVtbl->SetName(p, aName))
+#define IStorageController_SetName(p, aName) ((p)->lpVtbl->SetName(p, aName))
 #define IStorageController_get_MaxDevicesPerPortCount(p, aMaxDevicesPerPortCount) ((p)->lpVtbl->GetMaxDevicesPerPortCount(p, aMaxDevicesPerPortCount))
 #define IStorageController_GetMaxDevicesPerPortCount(p, aMaxDevicesPerPortCount) ((p)->lpVtbl->GetMaxDevicesPerPortCount(p, aMaxDevicesPerPortCount))
 #define IStorageController_get_MinPortCount(p, aMinPortCount) ((p)->lpVtbl->GetMinPortCount(p, aMinPortCount))
@@ -14638,10 +17775,10 @@ interface IStorageController
 
 
 /* Start of struct IPerformanceMetric declaration */
-#define IPERFORMANCEMETRIC_IID_STR "2a1a60ae-9345-4019-ad53-d34ba41cbfe9"
+#define IPERFORMANCEMETRIC_IID_STR "81314d14-fd1c-411a-95c5-e9bb1414e632"
 #define IPERFORMANCEMETRIC_IID { \
-    0x2a1a60ae, 0x9345, 0x4019, \
-    { 0xad, 0x53, 0xd3, 0x4b, 0xa4, 0x1c, 0xbf, 0xe9 } \
+    0x81314d14, 0xfd1c, 0x411a, \
+    { 0x95, 0xc5, 0xe9, 0xbb, 0x14, 0x14, 0xe6, 0x32 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IPerformanceMetric);
@@ -14666,6 +17803,22 @@ struct IPerformanceMetric_vtbl
 
     nsresult (*GetMaximumValue)(IPerformanceMetric *pThis, PRInt32 *maximumValue);
 
+    nsresult (*GetInternalAndReservedAttribute1IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IPerformanceMetricVtbl
@@ -14688,6 +17841,22 @@ struct IPerformanceMetricVtbl
     nsresult (*GetMinimumValue)(IPerformanceMetric *pThis, PRInt32 *minimumValue);
 
     nsresult (*GetMaximumValue)(IPerformanceMetric *pThis, PRInt32 *maximumValue);
+
+    nsresult (*GetInternalAndReservedAttribute1IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IPerformanceMetric)(IPerformanceMetric *pThis, PRUint32 *reserved);
 
 };
 #define IPerformanceMetric_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14723,10 +17892,10 @@ interface IPerformanceMetric
 
 
 /* Start of struct IPerformanceCollector declaration */
-#define IPERFORMANCECOLLECTOR_IID_STR "e22e1acb-ac4a-43bb-a31c-17321659b0c6"
+#define IPERFORMANCECOLLECTOR_IID_STR "b14290ad-cd54-400c-b858-797bcb82570e"
 #define IPERFORMANCECOLLECTOR_IID { \
-    0xe22e1acb, 0xac4a, 0x43bb, \
-    { 0xa3, 0x1c, 0x17, 0x32, 0x16, 0x59, 0xb0, 0xc6 } \
+    0xb14290ad, 0xcd54, 0x400c, \
+    { 0xb8, 0x58, 0x79, 0x7b, 0xcb, 0x82, 0x57, 0x0e } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IPerformanceCollector);
@@ -14737,6 +17906,22 @@ struct IPerformanceCollector_vtbl
 
     nsresult (*GetMetricNames)(IPerformanceCollector *pThis, PRUint32 *metricNamesSize, PRUnichar * **metricNames);
 
+    nsresult (*GetInternalAndReservedAttribute1IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
     nsresult (*GetMetrics)(
         IPerformanceCollector *pThis,
         PRUint32 metricNamesSize,
@@ -14802,6 +17987,14 @@ struct IPerformanceCollector_vtbl
         PRUint32 *returnDataSize,
         PRInt32** returnData
     );
+
+    nsresult (*InternalAndReservedMethod1IPerformanceCollector)(IPerformanceCollector *pThis);
+
+    nsresult (*InternalAndReservedMethod2IPerformanceCollector)(IPerformanceCollector *pThis);
+
+    nsresult (*InternalAndReservedMethod3IPerformanceCollector)(IPerformanceCollector *pThis);
+
+    nsresult (*InternalAndReservedMethod4IPerformanceCollector)(IPerformanceCollector *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -14812,6 +18005,22 @@ struct IPerformanceCollectorVtbl
     nsrefcnt (*Release)(IPerformanceCollector *pThis);
     nsresult (*GetMetricNames)(IPerformanceCollector *pThis, PRUint32 *metricNamesSize, PRUnichar * **metricNames);
 
+    nsresult (*GetInternalAndReservedAttribute1IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute5IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute6IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute7IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute8IPerformanceCollector)(IPerformanceCollector *pThis, PRUint32 *reserved);
+
     nsresult (*GetMetrics)(
         IPerformanceCollector *pThis,
         PRUint32 metricNamesSize,
@@ -14877,6 +18086,14 @@ struct IPerformanceCollectorVtbl
         PRUint32 *returnDataSize,
         PRInt32** returnData
     );
+
+    nsresult (*InternalAndReservedMethod1IPerformanceCollector)(IPerformanceCollector *pThis);
+
+    nsresult (*InternalAndReservedMethod2IPerformanceCollector)(IPerformanceCollector *pThis);
+
+    nsresult (*InternalAndReservedMethod3IPerformanceCollector)(IPerformanceCollector *pThis);
+
+    nsresult (*InternalAndReservedMethod4IPerformanceCollector)(IPerformanceCollector *pThis);
 
 };
 #define IPerformanceCollector_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -14903,10 +18120,10 @@ interface IPerformanceCollector
 
 
 /* Start of struct INATEngine declaration */
-#define INATENGINE_IID_STR "26451b99-3b2d-4dcb-8e4b-d63654218175"
+#define INATENGINE_IID_STR "c1cdb6bf-44cb-e334-66fa-469a17fd09df"
 #define INATENGINE_IID { \
-    0x26451b99, 0x3b2d, 0x4dcb, \
-    { 0x8e, 0x4b, 0xd6, 0x36, 0x54, 0x21, 0x81, 0x75 } \
+    0xc1cdb6bf, 0x44cb, 0xe334, \
+    { 0x66, 0xfa, 0x46, 0x9a, 0x17, 0xfd, 0x09, 0xdf } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_INATEngine);
@@ -14944,6 +18161,14 @@ struct INATEngine_vtbl
 
     nsresult (*GetRedirects)(INATEngine *pThis, PRUint32 *redirectsSize, PRUnichar * **redirects);
 
+    nsresult (*GetInternalAndReservedAttribute1INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
     nsresult (*SetNetworkSettings)(
         INATEngine *pThis,
         PRUint32 mtu,
@@ -14976,6 +18201,10 @@ struct INATEngine_vtbl
         INATEngine *pThis,
         PRUnichar * name
     );
+
+    nsresult (*InternalAndReservedMethod1INATEngine)(INATEngine *pThis);
+
+    nsresult (*InternalAndReservedMethod2INATEngine)(INATEngine *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -15013,6 +18242,14 @@ struct INATEngineVtbl
 
     nsresult (*GetRedirects)(INATEngine *pThis, PRUint32 *redirectsSize, PRUnichar * **redirects);
 
+    nsresult (*GetInternalAndReservedAttribute1INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4INATEngine)(INATEngine *pThis, PRUint32 *reserved);
+
     nsresult (*SetNetworkSettings)(
         INATEngine *pThis,
         PRUint32 mtu,
@@ -15045,6 +18282,10 @@ struct INATEngineVtbl
         INATEngine *pThis,
         PRUnichar * name
     );
+
+    nsresult (*InternalAndReservedMethod1INATEngine)(INATEngine *pThis);
+
+    nsresult (*InternalAndReservedMethod2INATEngine)(INATEngine *pThis);
 
 };
 #define INATEngine_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -15106,10 +18347,10 @@ interface INATEngine
 
 
 /* Start of struct IExtPackPlugIn declaration */
-#define IEXTPACKPLUGIN_IID_STR "58000040-e718-4746-bbce-4b86d96da461"
+#define IEXTPACKPLUGIN_IID_STR "c8e667b2-4234-1f9c-6508-afa9cea4efa1"
 #define IEXTPACKPLUGIN_IID { \
-    0x58000040, 0xe718, 0x4746, \
-    { 0xbb, 0xce, 0x4b, 0x86, 0xd9, 0x6d, 0xa4, 0x61 } \
+    0xc8e667b2, 0x4234, 0x1f9c, \
+    { 0x65, 0x08, 0xaf, 0xa9, 0xce, 0xa4, 0xef, 0xa1 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IExtPackPlugIn);
@@ -15126,6 +18367,10 @@ struct IExtPackPlugIn_vtbl
 
     nsresult (*GetModulePath)(IExtPackPlugIn *pThis, PRUnichar * *modulePath);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackPlugIn)(IExtPackPlugIn *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackPlugIn)(IExtPackPlugIn *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IExtPackPlugInVtbl
@@ -15140,6 +18385,10 @@ struct IExtPackPlugInVtbl
     nsresult (*GetFrontend)(IExtPackPlugIn *pThis, PRUnichar * *frontend);
 
     nsresult (*GetModulePath)(IExtPackPlugIn *pThis, PRUnichar * *modulePath);
+
+    nsresult (*GetInternalAndReservedAttribute1IExtPackPlugIn)(IExtPackPlugIn *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackPlugIn)(IExtPackPlugIn *pThis, PRUint32 *reserved);
 
 };
 #define IExtPackPlugIn_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -15167,10 +18416,10 @@ interface IExtPackPlugIn
 
 
 /* Start of struct IExtPackBase declaration */
-#define IEXTPACKBASE_IID_STR "f79b75d8-2890-4f34-ffff-ffffa144e82c"
+#define IEXTPACKBASE_IID_STR "4bd17415-4438-8657-e78e-80a40713a23c"
 #define IEXTPACKBASE_IID { \
-    0xf79b75d8, 0x2890, 0x4f34, \
-    { 0xff, 0xff, 0xff, 0xff, 0xa1, 0x44, 0xe8, 0x2c } \
+    0x4bd17415, 0x4438, 0x8657, \
+    { 0xe7, 0x8e, 0x80, 0xa4, 0x07, 0x13, 0xa2, 0x3c } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IExtPackBase);
@@ -15201,6 +18450,14 @@ struct IExtPackBase_vtbl
 
     nsresult (*GetLicense)(IExtPackBase *pThis, PRUnichar * *license);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
     nsresult (*QueryLicense)(
         IExtPackBase *pThis,
         PRUnichar * preferredLocale,
@@ -15208,6 +18465,8 @@ struct IExtPackBase_vtbl
         PRUnichar * format,
         PRUnichar * * licenseText
     );
+
+    nsresult (*InternalAndReservedMethod1IExtPackBase)(IExtPackBase *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -15238,6 +18497,14 @@ struct IExtPackBaseVtbl
 
     nsresult (*GetLicense)(IExtPackBase *pThis, PRUnichar * *license);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IExtPackBase)(IExtPackBase *pThis, PRUint32 *reserved);
+
     nsresult (*QueryLicense)(
         IExtPackBase *pThis,
         PRUnichar * preferredLocale,
@@ -15245,6 +18512,8 @@ struct IExtPackBaseVtbl
         PRUnichar * format,
         PRUnichar * * licenseText
     );
+
+    nsresult (*InternalAndReservedMethod1IExtPackBase)(IExtPackBase *pThis);
 
 };
 #define IExtPackBase_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -15334,6 +18603,14 @@ struct IExtPackVtbl
 
     nsresult (*GetLicense)(IExtPack *pThis, PRUnichar * *license);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackBase)(IExtPack *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackBase)(IExtPack *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IExtPackBase)(IExtPack *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IExtPackBase)(IExtPack *pThis, PRUint32 *reserved);
+
     nsresult (*QueryLicense)(
         IExtPack *pThis,
         PRUnichar * preferredLocale,
@@ -15341,6 +18618,8 @@ struct IExtPackVtbl
         PRUnichar * format,
         PRUnichar * * licenseText
     );
+
+    nsresult (*InternalAndReservedMethod1IExtPackBase)(IExtPack *pThis);
 
     nsresult (*QueryObject)(
         IExtPack *pThis,
@@ -15390,10 +18669,10 @@ interface IExtPack
 
 
 /* Start of struct IExtPackFile declaration */
-#define IEXTPACKFILE_IID_STR "b6b49f55-efcc-4f08-b486-56e8d8afb10b"
+#define IEXTPACKFILE_IID_STR "4c7f4bf6-4671-2f75-0fbb-a99f6218cdfc"
 #define IEXTPACKFILE_IID { \
-    0xb6b49f55, 0xefcc, 0x4f08, \
-    { 0xb4, 0x86, 0x56, 0xe8, 0xd8, 0xaf, 0xb1, 0x0b } \
+    0x4c7f4bf6, 0x4671, 0x2f75, \
+    { 0x0f, 0xbb, 0xa9, 0x9f, 0x62, 0x18, 0xcd, 0xfc } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IExtPackFile);
@@ -15404,12 +18683,18 @@ struct IExtPackFile_vtbl
 
     nsresult (*GetFilePath)(IExtPackFile *pThis, PRUnichar * *filePath);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackFile)(IExtPackFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackFile)(IExtPackFile *pThis, PRUint32 *reserved);
+
     nsresult (*Install)(
         IExtPackFile *pThis,
         PRBool replace,
         PRUnichar * displayInfo,
         IProgress * * progess
     );
+
+    nsresult (*InternalAndReservedMethod1IExtPackFile)(IExtPackFile *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -15440,6 +18725,14 @@ struct IExtPackFileVtbl
 
     nsresult (*GetLicense)(IExtPackFile *pThis, PRUnichar * *license);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackBase)(IExtPackFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackBase)(IExtPackFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IExtPackBase)(IExtPackFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IExtPackBase)(IExtPackFile *pThis, PRUint32 *reserved);
+
     nsresult (*QueryLicense)(
         IExtPackFile *pThis,
         PRUnichar * preferredLocale,
@@ -15448,7 +18741,13 @@ struct IExtPackFileVtbl
         PRUnichar * * licenseText
     );
 
+    nsresult (*InternalAndReservedMethod1IExtPackBase)(IExtPackFile *pThis);
+
     nsresult (*GetFilePath)(IExtPackFile *pThis, PRUnichar * *filePath);
+
+    nsresult (*GetInternalAndReservedAttribute1IExtPackFile)(IExtPackFile *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackFile)(IExtPackFile *pThis, PRUint32 *reserved);
 
     nsresult (*Install)(
         IExtPackFile *pThis,
@@ -15456,6 +18755,8 @@ struct IExtPackFileVtbl
         PRUnichar * displayInfo,
         IProgress * * progess
     );
+
+    nsresult (*InternalAndReservedMethod1IExtPackFile)(IExtPackFile *pThis);
 
 };
 #define IExtPackFile_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -15501,10 +18802,10 @@ interface IExtPackFile
 
 
 /* Start of struct IExtPackManager declaration */
-#define IEXTPACKMANAGER_IID_STR "3295e6ce-b051-47b2-9514-2c588bfe7554"
+#define IEXTPACKMANAGER_IID_STR "edba9d10-45d8-b440-1712-46ac0c9bc4c5"
 #define IEXTPACKMANAGER_IID { \
-    0x3295e6ce, 0xb051, 0x47b2, \
-    { 0x95, 0x14, 0x2c, 0x58, 0x8b, 0xfe, 0x75, 0x54 } \
+    0xedba9d10, 0x45d8, 0xb440, \
+    { 0x17, 0x12, 0x46, 0xac, 0x0c, 0x9b, 0xc4, 0xc5 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IExtPackManager);
@@ -15515,6 +18816,10 @@ struct IExtPackManager_vtbl
 
     nsresult (*GetInstalledExtPacks)(IExtPackManager *pThis, PRUint32 *installedExtPacksSize, IExtPack * **installedExtPacks);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackManager)(IExtPackManager *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackManager)(IExtPackManager *pThis, PRUint32 *reserved);
+
     nsresult (*Find)(
         IExtPackManager *pThis,
         PRUnichar * name,
@@ -15549,6 +18854,8 @@ struct IExtPackManager_vtbl
         PRUnichar * name,
         PRBool * usable
     );
+
+    nsresult (*InternalAndReservedMethod1IExtPackManager)(IExtPackManager *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -15559,6 +18866,10 @@ struct IExtPackManagerVtbl
     nsrefcnt (*Release)(IExtPackManager *pThis);
     nsresult (*GetInstalledExtPacks)(IExtPackManager *pThis, PRUint32 *installedExtPacksSize, IExtPack * **installedExtPacks);
 
+    nsresult (*GetInternalAndReservedAttribute1IExtPackManager)(IExtPackManager *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IExtPackManager)(IExtPackManager *pThis, PRUint32 *reserved);
+
     nsresult (*Find)(
         IExtPackManager *pThis,
         PRUnichar * name,
@@ -15593,6 +18904,8 @@ struct IExtPackManagerVtbl
         PRUnichar * name,
         PRBool * usable
     );
+
+    nsresult (*InternalAndReservedMethod1IExtPackManager)(IExtPackManager *pThis);
 
 };
 #define IExtPackManager_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -15620,10 +18933,10 @@ interface IExtPackManager
 
 
 /* Start of struct IBandwidthGroup declaration */
-#define IBANDWIDTHGROUP_IID_STR "badea2d7-0261-4146-89f0-6a57cc34833d"
+#define IBANDWIDTHGROUP_IID_STR "31587f93-2d12-4d7c-ba6d-ce51d0d5b265"
 #define IBANDWIDTHGROUP_IID { \
-    0xbadea2d7, 0x0261, 0x4146, \
-    { 0x89, 0xf0, 0x6a, 0x57, 0xcc, 0x34, 0x83, 0x3d } \
+    0x31587f93, 0x2d12, 0x4d7c, \
+    { 0xba, 0x6d, 0xce, 0x51, 0xd0, 0xd5, 0xb2, 0x65 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IBandwidthGroup);
@@ -15641,6 +18954,14 @@ struct IBandwidthGroup_vtbl
     nsresult (*GetMaxBytesPerSec)(IBandwidthGroup *pThis, PRInt64 *maxBytesPerSec);
     nsresult (*SetMaxBytesPerSec)(IBandwidthGroup *pThis, PRInt64 maxBytesPerSec);
 
+    nsresult (*GetInternalAndReservedAttribute1IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IBandwidthGroupVtbl
@@ -15656,6 +18977,14 @@ struct IBandwidthGroupVtbl
 
     nsresult (*GetMaxBytesPerSec)(IBandwidthGroup *pThis, PRInt64 *maxBytesPerSec);
     nsresult (*SetMaxBytesPerSec)(IBandwidthGroup *pThis, PRInt64 maxBytesPerSec);
+
+    nsresult (*GetInternalAndReservedAttribute1IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IBandwidthGroup)(IBandwidthGroup *pThis, PRUint32 *reserved);
 
 };
 #define IBandwidthGroup_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -15685,10 +19014,10 @@ interface IBandwidthGroup
 
 
 /* Start of struct IBandwidthControl declaration */
-#define IBANDWIDTHCONTROL_IID_STR "e2eb3930-d2f4-4f87-be17-0707e30f019f"
+#define IBANDWIDTHCONTROL_IID_STR "48c7f4c0-c9d6-4742-957c-a6fd52e8c4ae"
 #define IBANDWIDTHCONTROL_IID { \
-    0xe2eb3930, 0xd2f4, 0x4f87, \
-    { 0xbe, 0x17, 0x07, 0x07, 0xe3, 0x0f, 0x01, 0x9f } \
+    0x48c7f4c0, 0xc9d6, 0x4742, \
+    { 0x95, 0x7c, 0xa6, 0xfd, 0x52, 0xe8, 0xc4, 0xae } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IBandwidthControl);
@@ -15699,6 +19028,10 @@ struct IBandwidthControl_vtbl
 
     nsresult (*GetNumGroups)(IBandwidthControl *pThis, PRUint32 *numGroups);
 
+    nsresult (*GetInternalAndReservedAttribute1IBandwidthControl)(IBandwidthControl *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IBandwidthControl)(IBandwidthControl *pThis, PRUint32 *reserved);
+
     nsresult (*CreateBandwidthGroup)(
         IBandwidthControl *pThis,
         PRUnichar * name,
@@ -15722,6 +19055,10 @@ struct IBandwidthControl_vtbl
         PRUint32 *bandwidthGroupsSize,
         IBandwidthGroup *** bandwidthGroups
     );
+
+    nsresult (*InternalAndReservedMethod1IBandwidthControl)(IBandwidthControl *pThis);
+
+    nsresult (*InternalAndReservedMethod2IBandwidthControl)(IBandwidthControl *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -15732,6 +19069,10 @@ struct IBandwidthControlVtbl
     nsrefcnt (*Release)(IBandwidthControl *pThis);
     nsresult (*GetNumGroups)(IBandwidthControl *pThis, PRUint32 *numGroups);
 
+    nsresult (*GetInternalAndReservedAttribute1IBandwidthControl)(IBandwidthControl *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IBandwidthControl)(IBandwidthControl *pThis, PRUint32 *reserved);
+
     nsresult (*CreateBandwidthGroup)(
         IBandwidthControl *pThis,
         PRUnichar * name,
@@ -15755,6 +19096,10 @@ struct IBandwidthControlVtbl
         PRUint32 *bandwidthGroupsSize,
         IBandwidthGroup *** bandwidthGroups
     );
+
+    nsresult (*InternalAndReservedMethod1IBandwidthControl)(IBandwidthControl *pThis);
+
+    nsresult (*InternalAndReservedMethod2IBandwidthControl)(IBandwidthControl *pThis);
 
 };
 #define IBandwidthControl_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -15780,10 +19125,10 @@ interface IBandwidthControl
 
 
 /* Start of struct IVirtualBoxClient declaration */
-#define IVIRTUALBOXCLIENT_IID_STR "d191281f-b0cb-4d83-a8fa-0d9fd6ba234c"
+#define IVIRTUALBOXCLIENT_IID_STR "d2937a8e-cb8d-4382-90ba-b7da78a74573"
 #define IVIRTUALBOXCLIENT_IID { \
-    0xd191281f, 0xb0cb, 0x4d83, \
-    { 0xa8, 0xfa, 0x0d, 0x9f, 0xd6, 0xba, 0x23, 0x4c } \
+    0xd2937a8e, 0xcb8d, 0x4382, \
+    { 0x90, 0xba, 0xb7, 0xda, 0x78, 0xa7, 0x45, 0x73 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IVirtualBoxClient);
@@ -15798,10 +19143,26 @@ struct IVirtualBoxClient_vtbl
 
     nsresult (*GetEventSource)(IVirtualBoxClient *pThis, IEventSource * *eventSource);
 
+    nsresult (*GetInternalAndReservedAttribute1IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
     nsresult (*CheckMachineError)(
         IVirtualBoxClient *pThis,
         IMachine * machine
     );
+
+    nsresult (*InternalAndReservedMethod1IVirtualBoxClient)(IVirtualBoxClient *pThis);
+
+    nsresult (*InternalAndReservedMethod2IVirtualBoxClient)(IVirtualBoxClient *pThis);
+
+    nsresult (*InternalAndReservedMethod3IVirtualBoxClient)(IVirtualBoxClient *pThis);
+
+    nsresult (*InternalAndReservedMethod4IVirtualBoxClient)(IVirtualBoxClient *pThis);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -15816,10 +19177,26 @@ struct IVirtualBoxClientVtbl
 
     nsresult (*GetEventSource)(IVirtualBoxClient *pThis, IEventSource * *eventSource);
 
+    nsresult (*GetInternalAndReservedAttribute1IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute2IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute3IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
+    nsresult (*GetInternalAndReservedAttribute4IVirtualBoxClient)(IVirtualBoxClient *pThis, PRUint32 *reserved);
+
     nsresult (*CheckMachineError)(
         IVirtualBoxClient *pThis,
         IMachine * machine
     );
+
+    nsresult (*InternalAndReservedMethod1IVirtualBoxClient)(IVirtualBoxClient *pThis);
+
+    nsresult (*InternalAndReservedMethod2IVirtualBoxClient)(IVirtualBoxClient *pThis);
+
+    nsresult (*InternalAndReservedMethod3IVirtualBoxClient)(IVirtualBoxClient *pThis);
+
+    nsresult (*InternalAndReservedMethod4IVirtualBoxClient)(IVirtualBoxClient *pThis);
 
 };
 #define IVirtualBoxClient_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
@@ -16450,6 +19827,71 @@ interface IMediumRegisteredEvent
 /* End of struct IMediumRegisteredEvent declaration */
 
 
+/* Start of struct IMediumConfigChangedEvent declaration */
+#define IMEDIUMCONFIGCHANGEDEVENT_IID_STR "dd3e2654-a161-41f1-b583-4892f4a9d5d5"
+#define IMEDIUMCONFIGCHANGEDEVENT_IID { \
+    0xdd3e2654, 0xa161, 0x41f1, \
+    { 0xb5, 0x83, 0x48, 0x92, 0xf4, 0xa9, 0xd5, 0xd5 } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_IMediumConfigChangedEvent);
+#ifndef VBOX_WITH_GLUE
+struct IMediumConfigChangedEvent_vtbl
+{
+    struct IEvent_vtbl ievent;
+
+    nsresult (*GetMedium)(IMediumConfigChangedEvent *pThis, IMedium * *medium);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct IMediumConfigChangedEventVtbl
+{
+    nsresult (*QueryInterface)(IMediumConfigChangedEvent *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IMediumConfigChangedEvent *pThis);
+    nsrefcnt (*Release)(IMediumConfigChangedEvent *pThis);
+    nsresult (*GetType)(IMediumConfigChangedEvent *pThis, PRUint32 *type);
+
+    nsresult (*GetSource)(IMediumConfigChangedEvent *pThis, IEventSource * *source);
+
+    nsresult (*GetWaitable)(IMediumConfigChangedEvent *pThis, PRBool *waitable);
+
+    nsresult (*SetProcessed)(IMediumConfigChangedEvent *pThis );
+
+    nsresult (*WaitProcessed)(
+        IMediumConfigChangedEvent *pThis,
+        PRInt32 timeout,
+        PRBool * result
+    );
+
+    nsresult (*GetMedium)(IMediumConfigChangedEvent *pThis, IMedium * *medium);
+
+};
+#define IMediumConfigChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IMediumConfigChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IMediumConfigChangedEvent_Release(p) ((p)->lpVtbl->Release(p))
+#define IMediumConfigChangedEvent_get_Type(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define IMediumConfigChangedEvent_GetType(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define IMediumConfigChangedEvent_get_Source(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
+#define IMediumConfigChangedEvent_GetSource(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
+#define IMediumConfigChangedEvent_get_Waitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
+#define IMediumConfigChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
+#define IMediumConfigChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
+#define IMediumConfigChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IMediumConfigChangedEvent_get_Medium(p, aMedium) ((p)->lpVtbl->GetMedium(p, aMedium))
+#define IMediumConfigChangedEvent_GetMedium(p, aMedium) ((p)->lpVtbl->GetMedium(p, aMedium))
+#endif /* VBOX_WITH_GLUE */
+
+interface IMediumConfigChangedEvent
+{
+#ifndef VBOX_WITH_GLUE
+    struct IMediumConfigChangedEvent_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct IMediumConfigChangedEventVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct IMediumConfigChangedEvent declaration */
+
+
 /* Start of struct IMachineRegisteredEvent declaration */
 #define IMACHINEREGISTEREDEVENT_IID_STR "c354a762-3ff2-4f2e-8f09-07382ee25088"
 #define IMACHINEREGISTEREDEVENT_IID { \
@@ -16751,6 +20193,8 @@ struct ISnapshotTakenEvent_vtbl
 {
     struct ISnapshotEvent_vtbl isnapshotevent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotTakenEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct ISnapshotTakenEventVtbl
@@ -16776,6 +20220,8 @@ struct ISnapshotTakenEventVtbl
 
     nsresult (*GetSnapshotId)(ISnapshotTakenEvent *pThis, PRUnichar * *snapshotId);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotTakenEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define ISnapshotTakenEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define ISnapshotTakenEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -16792,6 +20238,8 @@ struct ISnapshotTakenEventVtbl
 #define ISnapshotTakenEvent_GetMachineId(p, aMachineId) ((p)->lpVtbl->GetMachineId(p, aMachineId))
 #define ISnapshotTakenEvent_get_SnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
 #define ISnapshotTakenEvent_GetSnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
+#define ISnapshotTakenEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define ISnapshotTakenEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface ISnapshotTakenEvent
@@ -16818,6 +20266,8 @@ struct ISnapshotDeletedEvent_vtbl
 {
     struct ISnapshotEvent_vtbl isnapshotevent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotDeletedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct ISnapshotDeletedEventVtbl
@@ -16843,6 +20293,8 @@ struct ISnapshotDeletedEventVtbl
 
     nsresult (*GetSnapshotId)(ISnapshotDeletedEvent *pThis, PRUnichar * *snapshotId);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotDeletedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define ISnapshotDeletedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define ISnapshotDeletedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -16859,6 +20311,8 @@ struct ISnapshotDeletedEventVtbl
 #define ISnapshotDeletedEvent_GetMachineId(p, aMachineId) ((p)->lpVtbl->GetMachineId(p, aMachineId))
 #define ISnapshotDeletedEvent_get_SnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
 #define ISnapshotDeletedEvent_GetSnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
+#define ISnapshotDeletedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define ISnapshotDeletedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface ISnapshotDeletedEvent
@@ -16870,6 +20324,79 @@ interface ISnapshotDeletedEvent
 #endif /* VBOX_WITH_GLUE */
 };
 /* End of struct ISnapshotDeletedEvent declaration */
+
+
+/* Start of struct ISnapshotRestoredEvent declaration */
+#define ISNAPSHOTRESTOREDEVENT_IID_STR "f4d803b4-9b2d-4377-bfe6-9702e881516b"
+#define ISNAPSHOTRESTOREDEVENT_IID { \
+    0xf4d803b4, 0x9b2d, 0x4377, \
+    { 0xbf, 0xe6, 0x97, 0x02, 0xe8, 0x81, 0x51, 0x6b } \
+}
+/* COM compatibility */
+VBOX_EXTERN_CONST(nsIID, IID_ISnapshotRestoredEvent);
+#ifndef VBOX_WITH_GLUE
+struct ISnapshotRestoredEvent_vtbl
+{
+    struct ISnapshotEvent_vtbl isnapshotevent;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotRestoredEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
+};
+#else /* VBOX_WITH_GLUE */
+struct ISnapshotRestoredEventVtbl
+{
+    nsresult (*QueryInterface)(ISnapshotRestoredEvent *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(ISnapshotRestoredEvent *pThis);
+    nsrefcnt (*Release)(ISnapshotRestoredEvent *pThis);
+    nsresult (*GetType)(ISnapshotRestoredEvent *pThis, PRUint32 *type);
+
+    nsresult (*GetSource)(ISnapshotRestoredEvent *pThis, IEventSource * *source);
+
+    nsresult (*GetWaitable)(ISnapshotRestoredEvent *pThis, PRBool *waitable);
+
+    nsresult (*SetProcessed)(ISnapshotRestoredEvent *pThis );
+
+    nsresult (*WaitProcessed)(
+        ISnapshotRestoredEvent *pThis,
+        PRInt32 timeout,
+        PRBool * result
+    );
+
+    nsresult (*GetMachineId)(ISnapshotRestoredEvent *pThis, PRUnichar * *machineId);
+
+    nsresult (*GetSnapshotId)(ISnapshotRestoredEvent *pThis, PRUnichar * *snapshotId);
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotRestoredEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
+};
+#define ISnapshotRestoredEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define ISnapshotRestoredEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define ISnapshotRestoredEvent_Release(p) ((p)->lpVtbl->Release(p))
+#define ISnapshotRestoredEvent_get_Type(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define ISnapshotRestoredEvent_GetType(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define ISnapshotRestoredEvent_get_Source(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
+#define ISnapshotRestoredEvent_GetSource(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
+#define ISnapshotRestoredEvent_get_Waitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
+#define ISnapshotRestoredEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
+#define ISnapshotRestoredEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
+#define ISnapshotRestoredEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define ISnapshotRestoredEvent_get_MachineId(p, aMachineId) ((p)->lpVtbl->GetMachineId(p, aMachineId))
+#define ISnapshotRestoredEvent_GetMachineId(p, aMachineId) ((p)->lpVtbl->GetMachineId(p, aMachineId))
+#define ISnapshotRestoredEvent_get_SnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
+#define ISnapshotRestoredEvent_GetSnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
+#define ISnapshotRestoredEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define ISnapshotRestoredEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#endif /* VBOX_WITH_GLUE */
+
+interface ISnapshotRestoredEvent
+{
+#ifndef VBOX_WITH_GLUE
+    struct ISnapshotRestoredEvent_vtbl *vtbl;
+#else /* VBOX_WITH_GLUE */
+    CONST_VTBL struct ISnapshotRestoredEventVtbl *lpVtbl;
+#endif /* VBOX_WITH_GLUE */
+};
+/* End of struct ISnapshotRestoredEvent declaration */
 
 
 /* Start of struct ISnapshotChangedEvent declaration */
@@ -16884,6 +20411,8 @@ VBOX_EXTERN_CONST(nsIID, IID_ISnapshotChangedEvent);
 struct ISnapshotChangedEvent_vtbl
 {
     struct ISnapshotEvent_vtbl isnapshotevent;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -16910,6 +20439,8 @@ struct ISnapshotChangedEventVtbl
 
     nsresult (*GetSnapshotId)(ISnapshotChangedEvent *pThis, PRUnichar * *snapshotId);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ISnapshotChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define ISnapshotChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define ISnapshotChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -16926,6 +20457,8 @@ struct ISnapshotChangedEventVtbl
 #define ISnapshotChangedEvent_GetMachineId(p, aMachineId) ((p)->lpVtbl->GetMachineId(p, aMachineId))
 #define ISnapshotChangedEvent_get_SnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
 #define ISnapshotChangedEvent_GetSnapshotId(p, aSnapshotId) ((p)->lpVtbl->GetSnapshotId(p, aSnapshotId))
+#define ISnapshotChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define ISnapshotChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface ISnapshotChangedEvent
@@ -17278,6 +20811,8 @@ struct IAdditionsStateChangedEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IAdditionsStateChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IAdditionsStateChangedEventVtbl
@@ -17299,6 +20834,8 @@ struct IAdditionsStateChangedEventVtbl
         PRBool * result
     );
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IAdditionsStateChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IAdditionsStateChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IAdditionsStateChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -17311,6 +20848,8 @@ struct IAdditionsStateChangedEventVtbl
 #define IAdditionsStateChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
 #define IAdditionsStateChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
 #define IAdditionsStateChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IAdditionsStateChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IAdditionsStateChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IAdditionsStateChangedEvent
@@ -17532,6 +21071,8 @@ struct IStorageControllerChangedEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IStorageControllerChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IStorageControllerChangedEventVtbl
@@ -17553,6 +21094,8 @@ struct IStorageControllerChangedEventVtbl
         PRBool * result
     );
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IStorageControllerChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IStorageControllerChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IStorageControllerChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -17565,6 +21108,8 @@ struct IStorageControllerChangedEventVtbl
 #define IStorageControllerChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
 #define IStorageControllerChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
 #define IStorageControllerChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IStorageControllerChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IStorageControllerChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IStorageControllerChangedEvent
@@ -17708,69 +21253,69 @@ interface IClipboardModeChangedEvent
 /* End of struct IClipboardModeChangedEvent declaration */
 
 
-/* Start of struct IDragAndDropModeChangedEvent declaration */
-#define IDRAGANDDROPMODECHANGEDEVENT_IID_STR "e90b8850-ac8e-4dff-8059-4100ae2c3c3d"
-#define IDRAGANDDROPMODECHANGEDEVENT_IID { \
-    0xe90b8850, 0xac8e, 0x4dff, \
-    { 0x80, 0x59, 0x41, 0x00, 0xae, 0x2c, 0x3c, 0x3d } \
+/* Start of struct IDnDModeChangedEvent declaration */
+#define IDNDMODECHANGEDEVENT_IID_STR "b55cf856-1f8b-4692-abb4-462429fae5e9"
+#define IDNDMODECHANGEDEVENT_IID { \
+    0xb55cf856, 0x1f8b, 0x4692, \
+    { 0xab, 0xb4, 0x46, 0x24, 0x29, 0xfa, 0xe5, 0xe9 } \
 }
 /* COM compatibility */
-VBOX_EXTERN_CONST(nsIID, IID_IDragAndDropModeChangedEvent);
+VBOX_EXTERN_CONST(nsIID, IID_IDnDModeChangedEvent);
 #ifndef VBOX_WITH_GLUE
-struct IDragAndDropModeChangedEvent_vtbl
+struct IDnDModeChangedEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
-    nsresult (*GetDragAndDropMode)(IDragAndDropModeChangedEvent *pThis, PRUint32 *dragAndDropMode);
+    nsresult (*GetDndMode)(IDnDModeChangedEvent *pThis, PRUint32 *dndMode);
 
 };
 #else /* VBOX_WITH_GLUE */
-struct IDragAndDropModeChangedEventVtbl
+struct IDnDModeChangedEventVtbl
 {
-    nsresult (*QueryInterface)(IDragAndDropModeChangedEvent *pThis, const nsID *iid, void **resultp);
-    nsrefcnt (*AddRef)(IDragAndDropModeChangedEvent *pThis);
-    nsrefcnt (*Release)(IDragAndDropModeChangedEvent *pThis);
-    nsresult (*GetType)(IDragAndDropModeChangedEvent *pThis, PRUint32 *type);
+    nsresult (*QueryInterface)(IDnDModeChangedEvent *pThis, const nsID *iid, void **resultp);
+    nsrefcnt (*AddRef)(IDnDModeChangedEvent *pThis);
+    nsrefcnt (*Release)(IDnDModeChangedEvent *pThis);
+    nsresult (*GetType)(IDnDModeChangedEvent *pThis, PRUint32 *type);
 
-    nsresult (*GetSource)(IDragAndDropModeChangedEvent *pThis, IEventSource * *source);
+    nsresult (*GetSource)(IDnDModeChangedEvent *pThis, IEventSource * *source);
 
-    nsresult (*GetWaitable)(IDragAndDropModeChangedEvent *pThis, PRBool *waitable);
+    nsresult (*GetWaitable)(IDnDModeChangedEvent *pThis, PRBool *waitable);
 
-    nsresult (*SetProcessed)(IDragAndDropModeChangedEvent *pThis );
+    nsresult (*SetProcessed)(IDnDModeChangedEvent *pThis );
 
     nsresult (*WaitProcessed)(
-        IDragAndDropModeChangedEvent *pThis,
+        IDnDModeChangedEvent *pThis,
         PRInt32 timeout,
         PRBool * result
     );
 
-    nsresult (*GetDragAndDropMode)(IDragAndDropModeChangedEvent *pThis, PRUint32 *dragAndDropMode);
+    nsresult (*GetDndMode)(IDnDModeChangedEvent *pThis, PRUint32 *dndMode);
 
 };
-#define IDragAndDropModeChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
-#define IDragAndDropModeChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
-#define IDragAndDropModeChangedEvent_Release(p) ((p)->lpVtbl->Release(p))
-#define IDragAndDropModeChangedEvent_get_Type(p, aType) ((p)->lpVtbl->GetType(p, aType))
-#define IDragAndDropModeChangedEvent_GetType(p, aType) ((p)->lpVtbl->GetType(p, aType))
-#define IDragAndDropModeChangedEvent_get_Source(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
-#define IDragAndDropModeChangedEvent_GetSource(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
-#define IDragAndDropModeChangedEvent_get_Waitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
-#define IDragAndDropModeChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
-#define IDragAndDropModeChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
-#define IDragAndDropModeChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
-#define IDragAndDropModeChangedEvent_get_DragAndDropMode(p, aDragAndDropMode) ((p)->lpVtbl->GetDragAndDropMode(p, aDragAndDropMode))
-#define IDragAndDropModeChangedEvent_GetDragAndDropMode(p, aDragAndDropMode) ((p)->lpVtbl->GetDragAndDropMode(p, aDragAndDropMode))
+#define IDnDModeChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
+#define IDnDModeChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
+#define IDnDModeChangedEvent_Release(p) ((p)->lpVtbl->Release(p))
+#define IDnDModeChangedEvent_get_Type(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define IDnDModeChangedEvent_GetType(p, aType) ((p)->lpVtbl->GetType(p, aType))
+#define IDnDModeChangedEvent_get_Source(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
+#define IDnDModeChangedEvent_GetSource(p, aSource) ((p)->lpVtbl->GetSource(p, aSource))
+#define IDnDModeChangedEvent_get_Waitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
+#define IDnDModeChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
+#define IDnDModeChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
+#define IDnDModeChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IDnDModeChangedEvent_get_DndMode(p, aDndMode) ((p)->lpVtbl->GetDndMode(p, aDndMode))
+#define IDnDModeChangedEvent_GetDndMode(p, aDndMode) ((p)->lpVtbl->GetDndMode(p, aDndMode))
 #endif /* VBOX_WITH_GLUE */
 
-interface IDragAndDropModeChangedEvent
+interface IDnDModeChangedEvent
 {
 #ifndef VBOX_WITH_GLUE
-    struct IDragAndDropModeChangedEvent_vtbl *vtbl;
+    struct IDnDModeChangedEvent_vtbl *vtbl;
 #else /* VBOX_WITH_GLUE */
-    CONST_VTBL struct IDragAndDropModeChangedEventVtbl *lpVtbl;
+    CONST_VTBL struct IDnDModeChangedEventVtbl *lpVtbl;
 #endif /* VBOX_WITH_GLUE */
 };
-/* End of struct IDragAndDropModeChangedEvent declaration */
+/* End of struct IDnDModeChangedEvent declaration */
 
 
 /* Start of struct ICPUChangedEvent declaration */
@@ -19187,6 +22732,8 @@ struct IGuestFileOffsetChangedEvent_vtbl
 {
     struct IGuestFileIOEvent_vtbl iguestfileioevent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFileOffsetChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IGuestFileOffsetChangedEventVtbl
@@ -19216,6 +22763,8 @@ struct IGuestFileOffsetChangedEventVtbl
 
     nsresult (*GetProcessed)(IGuestFileOffsetChangedEvent *pThis, PRUint32 *processed);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFileOffsetChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IGuestFileOffsetChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IGuestFileOffsetChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -19236,6 +22785,8 @@ struct IGuestFileOffsetChangedEventVtbl
 #define IGuestFileOffsetChangedEvent_GetOffset(p, aOffset) ((p)->lpVtbl->GetOffset(p, aOffset))
 #define IGuestFileOffsetChangedEvent_get_Processed(p, aProcessed) ((p)->lpVtbl->GetProcessed(p, aProcessed))
 #define IGuestFileOffsetChangedEvent_GetProcessed(p, aProcessed) ((p)->lpVtbl->GetProcessed(p, aProcessed))
+#define IGuestFileOffsetChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestFileOffsetChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IGuestFileOffsetChangedEvent
@@ -19343,6 +22894,8 @@ struct IGuestFileWriteEvent_vtbl
 {
     struct IGuestFileIOEvent_vtbl iguestfileioevent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFileWriteEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IGuestFileWriteEventVtbl
@@ -19372,6 +22925,8 @@ struct IGuestFileWriteEventVtbl
 
     nsresult (*GetProcessed)(IGuestFileWriteEvent *pThis, PRUint32 *processed);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IGuestFileWriteEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IGuestFileWriteEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IGuestFileWriteEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -19392,6 +22947,8 @@ struct IGuestFileWriteEventVtbl
 #define IGuestFileWriteEvent_GetOffset(p, aOffset) ((p)->lpVtbl->GetOffset(p, aOffset))
 #define IGuestFileWriteEvent_get_Processed(p, aProcessed) ((p)->lpVtbl->GetProcessed(p, aProcessed))
 #define IGuestFileWriteEvent_GetProcessed(p, aProcessed) ((p)->lpVtbl->GetProcessed(p, aProcessed))
+#define IGuestFileWriteEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IGuestFileWriteEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IGuestFileWriteEvent
@@ -19418,6 +22975,8 @@ struct IVRDEServerChangedEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IVRDEServerChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IVRDEServerChangedEventVtbl
@@ -19439,6 +22998,8 @@ struct IVRDEServerChangedEventVtbl
         PRBool * result
     );
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IVRDEServerChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IVRDEServerChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IVRDEServerChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -19451,6 +23012,8 @@ struct IVRDEServerChangedEventVtbl
 #define IVRDEServerChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
 #define IVRDEServerChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
 #define IVRDEServerChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IVRDEServerChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IVRDEServerChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IVRDEServerChangedEvent
@@ -19477,6 +23040,8 @@ struct IVRDEServerInfoChangedEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IVRDEServerInfoChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IVRDEServerInfoChangedEventVtbl
@@ -19498,6 +23063,8 @@ struct IVRDEServerInfoChangedEventVtbl
         PRBool * result
     );
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IVRDEServerInfoChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IVRDEServerInfoChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IVRDEServerInfoChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -19510,6 +23077,8 @@ struct IVRDEServerInfoChangedEventVtbl
 #define IVRDEServerInfoChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
 #define IVRDEServerInfoChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
 #define IVRDEServerInfoChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IVRDEServerInfoChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IVRDEServerInfoChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IVRDEServerInfoChangedEvent
@@ -19536,6 +23105,8 @@ struct IVideoCaptureChangedEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IVideoCaptureChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IVideoCaptureChangedEventVtbl
@@ -19557,6 +23128,8 @@ struct IVideoCaptureChangedEventVtbl
         PRBool * result
     );
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IVideoCaptureChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IVideoCaptureChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IVideoCaptureChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -19569,6 +23142,8 @@ struct IVideoCaptureChangedEventVtbl
 #define IVideoCaptureChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
 #define IVideoCaptureChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
 #define IVideoCaptureChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IVideoCaptureChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IVideoCaptureChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IVideoCaptureChangedEvent
@@ -19595,6 +23170,8 @@ struct IUSBControllerChangedEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IUSBControllerChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IUSBControllerChangedEventVtbl
@@ -19616,6 +23193,8 @@ struct IUSBControllerChangedEventVtbl
         PRBool * result
     );
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IUSBControllerChangedEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IUSBControllerChangedEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IUSBControllerChangedEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -19628,6 +23207,8 @@ struct IUSBControllerChangedEventVtbl
 #define IUSBControllerChangedEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
 #define IUSBControllerChangedEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
 #define IUSBControllerChangedEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IUSBControllerChangedEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IUSBControllerChangedEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IUSBControllerChangedEvent
@@ -20009,10 +23590,10 @@ interface IExtraDataChangedEvent
 
 
 /* Start of struct IVetoEvent declaration */
-#define IVETOEVENT_IID_STR "9a1a4130-69fe-472f-ac10-c6fa25d75007"
+#define IVETOEVENT_IID_STR "7c5e945f-2354-4267-883f-2f417d216519"
 #define IVETOEVENT_IID { \
-    0x9a1a4130, 0x69fe, 0x472f, \
-    { 0xac, 0x10, 0xc6, 0xfa, 0x25, 0xd7, 0x50, 0x07 } \
+    0x7c5e945f, 0x2354, 0x4267, \
+    { 0x88, 0x3f, 0x2f, 0x41, 0x7d, 0x21, 0x65, 0x19 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_IVetoEvent);
@@ -20032,6 +23613,22 @@ struct IVetoEvent_vtbl
     );
 
     nsresult (*GetVetos)(
+        IVetoEvent *pThis,
+        PRUint32 *resultSize,
+        PRUnichar *** result
+    );
+
+    nsresult (*AddApproval)(
+        IVetoEvent *pThis,
+        PRUnichar * reason
+    );
+
+    nsresult (*IsApproved)(
+        IVetoEvent *pThis,
+        PRBool * result
+    );
+
+    nsresult (*GetApprovals)(
         IVetoEvent *pThis,
         PRUint32 *resultSize,
         PRUnichar *** result
@@ -20074,6 +23671,22 @@ struct IVetoEventVtbl
         PRUnichar *** result
     );
 
+    nsresult (*AddApproval)(
+        IVetoEvent *pThis,
+        PRUnichar * reason
+    );
+
+    nsresult (*IsApproved)(
+        IVetoEvent *pThis,
+        PRBool * result
+    );
+
+    nsresult (*GetApprovals)(
+        IVetoEvent *pThis,
+        PRUint32 *resultSize,
+        PRUnichar *** result
+    );
+
 };
 #define IVetoEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IVetoEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -20089,6 +23702,9 @@ struct IVetoEventVtbl
 #define IVetoEvent_AddVeto(p, aReason) ((p)->lpVtbl->AddVeto(p, aReason))
 #define IVetoEvent_IsVetoed(p, aResult) ((p)->lpVtbl->IsVetoed(p, aResult))
 #define IVetoEvent_GetVetos(p, aResult) ((p)->lpVtbl->GetVetos(p, aResult))
+#define IVetoEvent_AddApproval(p, aReason) ((p)->lpVtbl->AddApproval(p, aReason))
+#define IVetoEvent_IsApproved(p, aResult) ((p)->lpVtbl->IsApproved(p, aResult))
+#define IVetoEvent_GetApprovals(p, aResult) ((p)->lpVtbl->GetApprovals(p, aResult))
 #endif /* VBOX_WITH_GLUE */
 
 interface IVetoEvent
@@ -20158,6 +23774,22 @@ struct IExtraDataCanChangeEventVtbl
         PRUnichar *** result
     );
 
+    nsresult (*AddApproval)(
+        IExtraDataCanChangeEvent *pThis,
+        PRUnichar * reason
+    );
+
+    nsresult (*IsApproved)(
+        IExtraDataCanChangeEvent *pThis,
+        PRBool * result
+    );
+
+    nsresult (*GetApprovals)(
+        IExtraDataCanChangeEvent *pThis,
+        PRUint32 *resultSize,
+        PRUnichar *** result
+    );
+
     nsresult (*GetMachineId)(IExtraDataCanChangeEvent *pThis, PRUnichar * *machineId);
 
     nsresult (*GetKey)(IExtraDataCanChangeEvent *pThis, PRUnichar * *key);
@@ -20179,6 +23811,9 @@ struct IExtraDataCanChangeEventVtbl
 #define IExtraDataCanChangeEvent_AddVeto(p, aReason) ((p)->lpVtbl->AddVeto(p, aReason))
 #define IExtraDataCanChangeEvent_IsVetoed(p, aResult) ((p)->lpVtbl->IsVetoed(p, aResult))
 #define IExtraDataCanChangeEvent_GetVetos(p, aResult) ((p)->lpVtbl->GetVetos(p, aResult))
+#define IExtraDataCanChangeEvent_AddApproval(p, aReason) ((p)->lpVtbl->AddApproval(p, aReason))
+#define IExtraDataCanChangeEvent_IsApproved(p, aResult) ((p)->lpVtbl->IsApproved(p, aResult))
+#define IExtraDataCanChangeEvent_GetApprovals(p, aResult) ((p)->lpVtbl->GetApprovals(p, aResult))
 #define IExtraDataCanChangeEvent_get_MachineId(p, aMachineId) ((p)->lpVtbl->GetMachineId(p, aMachineId))
 #define IExtraDataCanChangeEvent_GetMachineId(p, aMachineId) ((p)->lpVtbl->GetMachineId(p, aMachineId))
 #define IExtraDataCanChangeEvent_get_Key(p, aKey) ((p)->lpVtbl->GetKey(p, aKey))
@@ -20210,6 +23845,8 @@ VBOX_EXTERN_CONST(nsIID, IID_ICanShowWindowEvent);
 struct ICanShowWindowEvent_vtbl
 {
     struct IVetoEvent_vtbl ivetoevent;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ICanShowWindowEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -20248,6 +23885,24 @@ struct ICanShowWindowEventVtbl
         PRUnichar *** result
     );
 
+    nsresult (*AddApproval)(
+        ICanShowWindowEvent *pThis,
+        PRUnichar * reason
+    );
+
+    nsresult (*IsApproved)(
+        ICanShowWindowEvent *pThis,
+        PRBool * result
+    );
+
+    nsresult (*GetApprovals)(
+        ICanShowWindowEvent *pThis,
+        PRUint32 *resultSize,
+        PRUnichar *** result
+    );
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(ICanShowWindowEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define ICanShowWindowEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define ICanShowWindowEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -20263,6 +23918,11 @@ struct ICanShowWindowEventVtbl
 #define ICanShowWindowEvent_AddVeto(p, aReason) ((p)->lpVtbl->AddVeto(p, aReason))
 #define ICanShowWindowEvent_IsVetoed(p, aResult) ((p)->lpVtbl->IsVetoed(p, aResult))
 #define ICanShowWindowEvent_GetVetos(p, aResult) ((p)->lpVtbl->GetVetos(p, aResult))
+#define ICanShowWindowEvent_AddApproval(p, aReason) ((p)->lpVtbl->AddApproval(p, aReason))
+#define ICanShowWindowEvent_IsApproved(p, aResult) ((p)->lpVtbl->IsApproved(p, aResult))
+#define ICanShowWindowEvent_GetApprovals(p, aResult) ((p)->lpVtbl->GetApprovals(p, aResult))
+#define ICanShowWindowEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define ICanShowWindowEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface ICanShowWindowEvent
@@ -21063,10 +24723,10 @@ interface INATNetworkStartStopEvent
 
 
 /* Start of struct INATNetworkAlterEvent declaration */
-#define INATNETWORKALTEREVENT_IID_STR "3f5a0822-163a-43b1-ad16-8d58b0ef6e75"
+#define INATNETWORKALTEREVENT_IID_STR "d947adf5-4022-dc80-5535-6fb116815604"
 #define INATNETWORKALTEREVENT_IID { \
-    0x3f5a0822, 0x163a, 0x43b1, \
-    { 0xad, 0x16, 0x8d, 0x58, 0xb0, 0xef, 0x6e, 0x75 } \
+    0xd947adf5, 0x4022, 0xdc80, \
+    { 0x55, 0x35, 0x6f, 0xb1, 0x16, 0x81, 0x56, 0x04 } \
 }
 /* COM compatibility */
 VBOX_EXTERN_CONST(nsIID, IID_INATNetworkAlterEvent);
@@ -21074,6 +24734,8 @@ VBOX_EXTERN_CONST(nsIID, IID_INATNetworkAlterEvent);
 struct INATNetworkAlterEvent_vtbl
 {
     struct INATNetworkChangedEvent_vtbl inatnetworkchangedevent;
+
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(INATNetworkAlterEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
 
 };
 #else /* VBOX_WITH_GLUE */
@@ -21098,6 +24760,8 @@ struct INATNetworkAlterEventVtbl
 
     nsresult (*GetNetworkName)(INATNetworkAlterEvent *pThis, PRUnichar * *networkName);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(INATNetworkAlterEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define INATNetworkAlterEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define INATNetworkAlterEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -21112,6 +24776,8 @@ struct INATNetworkAlterEventVtbl
 #define INATNetworkAlterEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
 #define INATNetworkAlterEvent_get_NetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
 #define INATNetworkAlterEvent_GetNetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
+#define INATNetworkAlterEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define INATNetworkAlterEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface INATNetworkAlterEvent
@@ -21163,6 +24829,8 @@ struct INATNetworkCreationDeletionEventVtbl
 
     nsresult (*GetNetworkName)(INATNetworkCreationDeletionEvent *pThis, PRUnichar * *networkName);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(INATNetworkCreationDeletionEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
     nsresult (*GetCreationEvent)(INATNetworkCreationDeletionEvent *pThis, PRBool *creationEvent);
 
 };
@@ -21179,6 +24847,8 @@ struct INATNetworkCreationDeletionEventVtbl
 #define INATNetworkCreationDeletionEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
 #define INATNetworkCreationDeletionEvent_get_NetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
 #define INATNetworkCreationDeletionEvent_GetNetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
+#define INATNetworkCreationDeletionEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define INATNetworkCreationDeletionEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #define INATNetworkCreationDeletionEvent_get_CreationEvent(p, aCreationEvent) ((p)->lpVtbl->GetCreationEvent(p, aCreationEvent))
 #define INATNetworkCreationDeletionEvent_GetCreationEvent(p, aCreationEvent) ((p)->lpVtbl->GetCreationEvent(p, aCreationEvent))
 #endif /* VBOX_WITH_GLUE */
@@ -21240,6 +24910,8 @@ struct INATNetworkSettingEventVtbl
 
     nsresult (*GetNetworkName)(INATNetworkSettingEvent *pThis, PRUnichar * *networkName);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(INATNetworkSettingEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
     nsresult (*GetEnabled)(INATNetworkSettingEvent *pThis, PRBool *enabled);
 
     nsresult (*GetNetwork)(INATNetworkSettingEvent *pThis, PRUnichar * *network);
@@ -21264,6 +24936,8 @@ struct INATNetworkSettingEventVtbl
 #define INATNetworkSettingEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
 #define INATNetworkSettingEvent_get_NetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
 #define INATNetworkSettingEvent_GetNetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
+#define INATNetworkSettingEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define INATNetworkSettingEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #define INATNetworkSettingEvent_get_Enabled(p, aEnabled) ((p)->lpVtbl->GetEnabled(p, aEnabled))
 #define INATNetworkSettingEvent_GetEnabled(p, aEnabled) ((p)->lpVtbl->GetEnabled(p, aEnabled))
 #define INATNetworkSettingEvent_get_Network(p, aNetwork) ((p)->lpVtbl->GetNetwork(p, aNetwork))
@@ -21339,6 +25013,8 @@ struct INATNetworkPortForwardEventVtbl
 
     nsresult (*GetNetworkName)(INATNetworkPortForwardEvent *pThis, PRUnichar * *networkName);
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(INATNetworkPortForwardEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
     nsresult (*GetCreate)(INATNetworkPortForwardEvent *pThis, PRBool *create);
 
     nsresult (*GetIpv6)(INATNetworkPortForwardEvent *pThis, PRBool *ipv6);
@@ -21369,6 +25045,8 @@ struct INATNetworkPortForwardEventVtbl
 #define INATNetworkPortForwardEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
 #define INATNetworkPortForwardEvent_get_NetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
 #define INATNetworkPortForwardEvent_GetNetworkName(p, aNetworkName) ((p)->lpVtbl->GetNetworkName(p, aNetworkName))
+#define INATNetworkPortForwardEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define INATNetworkPortForwardEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #define INATNetworkPortForwardEvent_get_Create(p, aCreate) ((p)->lpVtbl->GetCreate(p, aCreate))
 #define INATNetworkPortForwardEvent_GetCreate(p, aCreate) ((p)->lpVtbl->GetCreate(p, aCreate))
 #define INATNetworkPortForwardEvent_get_Ipv6(p, aIpv6) ((p)->lpVtbl->GetIpv6(p, aIpv6))
@@ -21411,6 +25089,8 @@ struct IHostNameResolutionConfigurationChangeEvent_vtbl
 {
     struct IEvent_vtbl ievent;
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IHostNameResolutionConfigurationChangeEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #else /* VBOX_WITH_GLUE */
 struct IHostNameResolutionConfigurationChangeEventVtbl
@@ -21432,6 +25112,8 @@ struct IHostNameResolutionConfigurationChangeEventVtbl
         PRBool * result
     );
 
+    nsresult (*GetMidlDoesNotLikeEmptyInterfaces)(IHostNameResolutionConfigurationChangeEvent *pThis, PRBool *midlDoesNotLikeEmptyInterfaces);
+
 };
 #define IHostNameResolutionConfigurationChangeEvent_QueryInterface(p, iid, resultp) ((p)->lpVtbl->QueryInterface(p, iid, resultp))
 #define IHostNameResolutionConfigurationChangeEvent_AddRef(p) ((p)->lpVtbl->AddRef(p))
@@ -21444,6 +25126,8 @@ struct IHostNameResolutionConfigurationChangeEventVtbl
 #define IHostNameResolutionConfigurationChangeEvent_GetWaitable(p, aWaitable) ((p)->lpVtbl->GetWaitable(p, aWaitable))
 #define IHostNameResolutionConfigurationChangeEvent_SetProcessed(p) ((p)->lpVtbl->SetProcessed(p))
 #define IHostNameResolutionConfigurationChangeEvent_WaitProcessed(p, aTimeout, aResult) ((p)->lpVtbl->WaitProcessed(p, aTimeout, aResult))
+#define IHostNameResolutionConfigurationChangeEvent_get_MidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
+#define IHostNameResolutionConfigurationChangeEvent_GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces) ((p)->lpVtbl->GetMidlDoesNotLikeEmptyInterfaces(p, aMidlDoesNotLikeEmptyInterfaces))
 #endif /* VBOX_WITH_GLUE */
 
 interface IHostNameResolutionConfigurationChangeEvent

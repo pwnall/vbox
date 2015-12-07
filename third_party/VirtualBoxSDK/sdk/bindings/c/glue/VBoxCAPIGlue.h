@@ -1,4 +1,4 @@
-/* $Revision: 91907 $ */
+/* $Revision: 91752 $ */
 /** @file VBoxCAPIGlue.h
  * Glue for dynamically linking with VBoxCAPI.
  */
@@ -33,7 +33,7 @@
 
 #undef VBOX_WITH_GLUE
 #define VBOX_WITH_GLUE
-#include "VBoxCAPI_v4_3.h"
+#include "VBoxCAPI_v5_0.h"
 
 #ifdef __cplusplus
 extern "C" {

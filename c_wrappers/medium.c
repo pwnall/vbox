@@ -6,8 +6,8 @@ HRESULT GoVboxArrayOutFree(void* array);
 void GoVboxUtf8Free(char* cstring);
 
 
-HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
-    IMedium** cmedium) {
+HRESULT GoVboxCreateMedium(IVirtualBox* cbox, char* cformat, char* clocation,
+    PRUint32 caccessType, PRUint32 cdeviceType, IMedium** cmedium) {
   BSTR wformat;
   HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cformat, &wformat);
   if (FAILED(result))
@@ -20,7 +20,8 @@ HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
     return result;
   }
 
-  result = IVirtualBox_CreateHardDisk(cbox, wformat, wlocation, cmedium);
+  result = IVirtualBox_CreateMedium(cbox, wformat, wlocation, caccessType,
+      cdeviceType, cmedium);
   g_pVBoxFuncs->pfnUtf16Free(wlocation);
   g_pVBoxFuncs->pfnUtf16Free(wformat);
 

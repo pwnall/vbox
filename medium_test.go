@@ -14,7 +14,8 @@ func TestCreateMedium(t *testing.T) {
   testDir := path.Join(cwd, "test_tmp")
 
   imageFile := path.Join(testDir, "test_disk.vdi")
-  medium, err := CreateHardDisk("VDI", imageFile)
+  medium, err := CreateMedium("VDI", imageFile, AccessMode_ReadWrite,
+      DeviceType_HardDisk)
   if err != nil {
     t.Fatal(err)
   }
@@ -43,7 +44,8 @@ func TestMedium_CreateBaseStorage_DeleteStorage(t *testing.T) {
   testDir := path.Join(cwd, "test_tmp")
 
   imageFile := path.Join(testDir, "test_disk.vdi")
-  medium, err := CreateHardDisk("VDI", imageFile)
+  medium, err := CreateMedium("VDI", imageFile, AccessMode_ReadWrite,
+      DeviceType_HardDisk)
   if err != nil {
     t.Fatal(err)
   }
