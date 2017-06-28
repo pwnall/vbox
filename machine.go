@@ -256,6 +256,24 @@ func (machine *Machine) AttachDevice(controllerName string, controllerPort int,
 	return nil
 }
 
+// DetachDevice disconnects a Medium from this VM.
+// deviceSlot is 0 for IDE master and 1 for IDE slave. All other bus types use
+// deviceSlot 0.
+// It returns any error encountered.
+func (machine *Machine) DetachDevice(controllerName string, controllerPort int,
+	deviceSlot int) error {
+	cname := C.CString(controllerName)
+	result := C.GoVboxMachineDetachDevice(machine.cmachine, cname,
+		C.PRInt32(controllerPort), C.PRInt32(deviceSlot))
+	C.free(unsafe.Pointer(cname))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to attach IMedium to IMachine: %x", result))
+	}
+	return nil
+}
+
 // UnmountMedium ejects a removable Medium from this VM.
 // It returns any error encountered.
 func (machine *Machine) UnmountMedium(controllerName string,

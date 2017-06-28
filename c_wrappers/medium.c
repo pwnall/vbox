@@ -20,7 +20,8 @@ HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
     return result;
   }
 
-  result = IVirtualBox_CreateHardDisk(cbox, wformat, wlocation, cmedium);
+  result = IVirtualBox_CreateMedium(cbox, wformat, wlocation,
+      AccessMode_ReadOnly, DeviceType_HardDisk, cmedium);
   g_pVBoxFuncs->pfnUtf16Free(wlocation);
   g_pVBoxFuncs->pfnUtf16Free(wformat);
 

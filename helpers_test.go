@@ -113,6 +113,7 @@ func WithDvdInVm(t *testing.T, isoName string, disableBootPrompt bool,
 	}()
 
 	AddDvdToMachine(t, machine, medium, session)
+	defer RemoveDvdFromMachine(t, machine, session)
 
 	progress, err := machine.Launch(session, "gui", "")
 	if err != nil {
@@ -139,7 +140,7 @@ func WithDvdInVm(t *testing.T, isoName string, disableBootPrompt bool,
 		// TODO(pwnall): Figure out how to get rid of this timeout. The VM should
 		//     be unlocked, according to the check above, but unregistering the VM
 		//     fails if we don't wait.
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 	}()
 
 	if err = progress.WaitForCompletion(50000); err != nil {
@@ -210,6 +211,33 @@ func AddDvdToMachine(t *testing.T, machine Machine, medium Medium,
 	}
 
 	err = smachine.AttachDevice("GoIDE", 1, 0, DeviceType_Dvd, medium)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = smachine.SaveSettings(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func RemoveDvdFromMachine(t *testing.T, machine Machine, session Session) {
+	if err := session.LockMachine(machine, LockType_Write); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := session.UnlockMachine(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// NOTE: Machine modifications require the mutable instance obtained from
+	smachine, err := session.GetMachine()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer smachine.Release()
+
+	err = smachine.DetachDevice("GoIDE", 1, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

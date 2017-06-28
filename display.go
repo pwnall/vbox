@@ -23,23 +23,24 @@ type Display struct {
 
 // Represents the resolution of a running VM's display.
 type Resolution struct {
-	Width        uint
-	Height       uint
-	BitsPerPixel uint
-	XOrigin      int
-	YOrigin      int
+	Width              uint
+	Height             uint
+	BitsPerPixel       uint
+	XOrigin            int
+	YOrigin            int
+	GuestMonitorStatus uint
 }
 
 // GetScreenResolution reads the VM display's resolution.
 // It returns any error encountered.
 func (display *Display) GetScreenResolution(screenId uint,
 	resolution *Resolution) error {
-	var cwidth, cheight, cbitsPerPixel C.PRUint32
+	var cwidth, cheight, cbitsPerPixel, cguestMonitorStatus C.PRUint32
 	var cxOrigin, cyOrigin C.PRInt32
 
 	result := C.GoVboxDisplayGetScreenResolution(display.cdisplay,
 		C.PRUint32(screenId), &cwidth, &cheight, &cbitsPerPixel, &cxOrigin,
-		&cyOrigin)
+		&cyOrigin, &cguestMonitorStatus)
 	if C.GoVboxFAILED(result) != 0 {
 		return errors.New(
 			fmt.Sprintf("Failed to get IDisplay resolution: %x", result))
@@ -50,6 +51,7 @@ func (display *Display) GetScreenResolution(screenId uint,
 	resolution.BitsPerPixel = uint(cbitsPerPixel)
 	resolution.XOrigin = int(cxOrigin)
 	resolution.YOrigin = int(cyOrigin)
+	resolution.GuestMonitorStatus = uint(cguestMonitorStatus)
 	return nil
 }
 
@@ -58,7 +60,7 @@ func (display *Display) GetScreenResolution(screenId uint,
 // RGBA (4 bytes per pixel).
 // It returns any error encountered.
 func (display *Display) TakeScreenShot(screenId uint, imageData []byte,
-	width uint, height uint) ([]byte, error) {
+	width uint, height uint, bitmapFormat uint) ([]byte, error) {
 	dataSize := int(width * height * 4)
 	if dataSize > cap(imageData) {
 		return nil, errors.New(fmt.Sprintf(
@@ -69,7 +71,8 @@ func (display *Display) TakeScreenShot(screenId uint, imageData []byte,
 	imageData = imageData[:dataSize]
 	cdataPtr := (*C.PRUint8)(unsafe.Pointer(&imageData[0]))
 	result := C.GoVboxDisplayTakeScreenShot(display.cdisplay,
-		C.PRUint32(screenId), cdataPtr, C.PRUint32(width), C.PRUint32(height))
+		C.PRUint32(screenId), cdataPtr, C.PRUint32(width), C.PRUint32(height),
+		C.PRUint32(bitmapFormat))
 	if C.GoVboxFAILED(result) != 0 {
 		return nil, errors.New(
 			fmt.Sprintf("Failed to take IDisplay fast screenshot: %x", result))
@@ -86,8 +89,8 @@ func (display *Display) TakeScreenShotToArray(screenId uint,
 	var dataSize C.PRUint32
 
 	result := C.GoVboxDisplayTakeScreenShotToArray(display.cdisplay,
-		C.PRUint32(screenId), C.PRUint32(width), C.PRUint32(height), &dataSize,
-		&cdataPtr)
+		C.PRUint32(screenId), C.PRUint32(width), C.PRUint32(height),
+		C.PRUint32(C.BitmapFormat_RGBA), &dataSize, &cdataPtr)
 	if C.GoVboxFAILED(result) != 0 {
 		return nil, errors.New(
 			fmt.Sprintf("Failed to take IDisplay screenshot: %x", result))
@@ -106,9 +109,9 @@ func (display *Display) TakeScreenShotPngToArray(screenId uint,
 	var cdataPtr *C.PRUint8
 	var dataSize C.PRUint32
 
-	result := C.GoVboxDisplayTakeScreenShotPNGToArray(display.cdisplay,
-		C.PRUint32(screenId), C.PRUint32(width), C.PRUint32(height), &dataSize,
-		&cdataPtr)
+	result := C.GoVboxDisplayTakeScreenShotToArray(display.cdisplay,
+		C.PRUint32(screenId), C.PRUint32(width), C.PRUint32(height),
+		C.PRUint32(C.BitmapFormat_PNG), &dataSize, &cdataPtr)
 	if C.GoVboxFAILED(result) != 0 {
 		return nil, errors.New(
 			fmt.Sprintf("Failed to take IDisplay PNG screenshot: %x", result))
