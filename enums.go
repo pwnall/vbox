@@ -19,6 +19,15 @@ const (
 	AccessMode_ReadWrite = C.AccessMode_ReadWrite
 )
 
+// Enumeration of APICMode values
+type APICMode uint
+
+const (
+	APICMode_Disabled = C.APICMode_Disabled
+	APICMode_APIC     = C.APICMode_APIC
+	APICMode_X2APIC   = C.APICMode_X2APIC
+)
+
 // Enumeration of BIOSBootMenuMode values
 type BootMenuMode uint
 
