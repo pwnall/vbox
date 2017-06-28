@@ -65,6 +65,85 @@ const (
 	DeviceType_SharedFolder = C.DeviceType_SharedFolder
 )
 
+// Enumeration of VBoxEventType values
+type EventType uint
+
+const (
+	EventType_Invalid                                 = C.VBoxEventType_Invalid
+	EventType_Any                                     = C.VBoxEventType_Any
+	EventType_Vetoable                                = C.VBoxEventType_Vetoable
+	EventType_MachineEvent                            = C.VBoxEventType_MachineEvent
+	EventType_SnapshotEvent                           = C.VBoxEventType_SnapshotEvent
+	EventType_InputEvent                              = C.VBoxEventType_InputEvent
+	EventType_LastWildcard                            = C.VBoxEventType_LastWildcard
+	EventType_OnMachineStateChanged                   = C.VBoxEventType_OnMachineStateChanged
+	EventType_OnMachineDataChanged                    = C.VBoxEventType_OnMachineDataChanged
+	EventType_OnExtraDataChanged                      = C.VBoxEventType_OnExtraDataChanged
+	EventType_OnExtraDataCanChange                    = C.VBoxEventType_OnExtraDataCanChange
+	EventType_OnMediumRegistered                      = C.VBoxEventType_OnMediumRegistered
+	EventType_OnMachineRegistered                     = C.VBoxEventType_OnMachineRegistered
+	EventType_OnSessionStateChanged                   = C.VBoxEventType_OnSessionStateChanged
+	EventType_OnSnapshotTaken                         = C.VBoxEventType_OnSnapshotTaken
+	EventType_OnSnapshotDeleted                       = C.VBoxEventType_OnSnapshotDeleted
+	EventType_OnSnapshotChanged                       = C.VBoxEventType_OnSnapshotChanged
+	EventType_OnGuestPropertyChanged                  = C.VBoxEventType_OnGuestPropertyChanged
+	EventType_OnMousePointerShapeChanged              = C.VBoxEventType_OnMousePointerShapeChanged
+	EventType_OnMouseCapabilityChanged                = C.VBoxEventType_OnMouseCapabilityChanged
+	EventType_OnKeyboardLedsChanged                   = C.VBoxEventType_OnKeyboardLedsChanged
+	EventType_OnStateChanged                          = C.VBoxEventType_OnStateChanged
+	EventType_OnAdditionsStateChanged                 = C.VBoxEventType_OnAdditionsStateChanged
+	EventType_OnNetworkAdapterChanged                 = C.VBoxEventType_OnNetworkAdapterChanged
+	EventType_OnSerialPortChanged                     = C.VBoxEventType_OnSerialPortChanged
+	EventType_OnParallelPortChanged                   = C.VBoxEventType_OnParallelPortChanged
+	EventType_OnStorageControllerChanged              = C.VBoxEventType_OnStorageControllerChanged
+	EventType_OnMediumChanged                         = C.VBoxEventType_OnMediumChanged
+	EventType_OnVRDEServerChanged                     = C.VBoxEventType_OnVRDEServerChanged
+	EventType_OnUSBControllerChanged                  = C.VBoxEventType_OnUSBControllerChanged
+	EventType_OnUSBDeviceStateChanged                 = C.VBoxEventType_OnUSBDeviceStateChanged
+	EventType_OnSharedFolderChanged                   = C.VBoxEventType_OnSharedFolderChanged
+	EventType_OnRuntimeError                          = C.VBoxEventType_OnRuntimeError
+	EventType_OnCanShowWindow                         = C.VBoxEventType_OnCanShowWindow
+	EventType_OnShowWindow                            = C.VBoxEventType_OnShowWindow
+	EventType_OnCPUChanged                            = C.VBoxEventType_OnCPUChanged
+	EventType_OnVRDEServerInfoChanged                 = C.VBoxEventType_OnVRDEServerInfoChanged
+	EventType_OnEventSourceChanged                    = C.VBoxEventType_OnEventSourceChanged
+	EventType_OnCPUExecutionCapChanged                = C.VBoxEventType_OnCPUExecutionCapChanged
+	EventType_OnGuestKeyboard                         = C.VBoxEventType_OnGuestKeyboard
+	EventType_OnGuestMouse                            = C.VBoxEventType_OnGuestMouse
+	EventType_OnNATRedirect                           = C.VBoxEventType_OnNATRedirect
+	EventType_OnHostPCIDevicePlug                     = C.VBoxEventType_OnHostPCIDevicePlug
+	EventType_OnVBoxSVCAvailabilityChanged            = C.VBoxEventType_OnVBoxSVCAvailabilityChanged
+	EventType_OnBandwidthGroupChanged                 = C.VBoxEventType_OnBandwidthGroupChanged
+	EventType_OnGuestMonitorChanged                   = C.VBoxEventType_OnGuestMonitorChanged
+	EventType_OnStorageDeviceChanged                  = C.VBoxEventType_OnStorageDeviceChanged
+	EventType_OnClipboardModeChanged                  = C.VBoxEventType_OnClipboardModeChanged
+	EventType_OnDnDModeChanged                        = C.VBoxEventType_OnDnDModeChanged
+	EventType_OnNATNetworkChanged                     = C.VBoxEventType_OnNATNetworkChanged
+	EventType_OnNATNetworkStartStop                   = C.VBoxEventType_OnNATNetworkStartStop
+	EventType_OnNATNetworkAlter                       = C.VBoxEventType_OnNATNetworkAlter
+	EventType_OnNATNetworkCreationDeletion            = C.VBoxEventType_OnNATNetworkCreationDeletion
+	EventType_OnNATNetworkSetting                     = C.VBoxEventType_OnNATNetworkSetting
+	EventType_OnNATNetworkPortForward                 = C.VBoxEventType_OnNATNetworkPortForward
+	EventType_OnGuestSessionStateChanged              = C.VBoxEventType_OnGuestSessionStateChanged
+	EventType_OnGuestSessionRegistered                = C.VBoxEventType_OnGuestSessionRegistered
+	EventType_OnGuestProcessRegistered                = C.VBoxEventType_OnGuestProcessRegistered
+	EventType_OnGuestProcessStateChanged              = C.VBoxEventType_OnGuestProcessStateChanged
+	EventType_OnGuestProcessInputNotify               = C.VBoxEventType_OnGuestProcessInputNotify
+	EventType_OnGuestProcessOutput                    = C.VBoxEventType_OnGuestProcessOutput
+	EventType_OnGuestFileRegistered                   = C.VBoxEventType_OnGuestFileRegistered
+	EventType_OnGuestFileStateChanged                 = C.VBoxEventType_OnGuestFileStateChanged
+	EventType_OnGuestFileOffsetChanged                = C.VBoxEventType_OnGuestFileOffsetChanged
+	EventType_OnGuestFileRead                         = C.VBoxEventType_OnGuestFileRead
+	EventType_OnGuestFileWrite                        = C.VBoxEventType_OnGuestFileWrite
+	EventType_OnVideoCaptureChanged                   = C.VBoxEventType_OnVideoCaptureChanged
+	EventType_OnGuestUserStateChanged                 = C.VBoxEventType_OnGuestUserStateChanged
+	EventType_OnGuestMultiTouch                       = C.VBoxEventType_OnGuestMultiTouch
+	EventType_OnHostNameResolutionConfigurationChange = C.VBoxEventType_OnHostNameResolutionConfigurationChange
+	EventType_OnSnapshotRestored                      = C.VBoxEventType_OnSnapshotRestored
+	EventType_OnMediumConfigChanged                   = C.VBoxEventType_OnMediumConfigChanged
+	EventType_Last                                    = C.VBoxEventType_Last
+)
+
 type LockType uint
 
 const (

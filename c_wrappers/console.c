@@ -18,6 +18,10 @@ HRESULT GoVboxGetConsoleMouse(IConsole* cconsole, IMouse** cmouse) {
 HRESULT GoVboxGetConsoleMachine(IConsole* cconsole, IMachine** cmachine) {
   return IConsole_GetMachine(cconsole, cmachine);
 }
+HRESULT GoVboxGetConsoleEventSource(IConsole* cconsole,
+    IEventSource** ceventSource) {
+  return IConsole_GetEventSource(cconsole, ceventSource);
+}
 HRESULT GoVboxConsolePowerDown(IConsole* cconsole, IProgress** cprogress) {
   return IConsole_PowerDown(cconsole, cprogress);
 }

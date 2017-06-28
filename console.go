@@ -68,6 +68,17 @@ func (console *Console) GetMachine() (Machine, error) {
 	return machine, nil
 }
 
+func (console *Console) GetEventSource() (EventSource, error) {
+	var eventSource EventSource
+	result := C.GoVboxGetConsoleEventSource(console.cconsole,
+		&eventSource.ceventSource)
+	if C.GoVboxFAILED(result) != 0 || eventSource.ceventSource == nil {
+		return eventSource, errors.New(
+			fmt.Sprintf("Failed to get IEventSource: %x", result))
+	}
+	return eventSource, nil
+}
+
 // PowerDown starts forcibly powering off the controlled VM.
 // It returns a Progress and any error encountered.
 func (console *Console) PowerDown() (Progress, error) {
