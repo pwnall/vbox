@@ -49,6 +49,15 @@ HRESULT GoVboxGetMachineVRAMSize(IMachine* cmachine, PRUint32* cvram) {
 HRESULT GoVboxSetMachineVRAMSize(IMachine* cmachine, PRUint32 cvram) {
   return IMachine_SetVRAMSize(cmachine, cvram);
 }
+HRESULT GoVboxGetMachineCPUCount(IMachine* cmachine, PRUint32* ccpus) {
+  return IMachine_GetCPUCount(cmachine, ccpus);
+}
+HRESULT GoVboxSetMachineCPUCount(IMachine* cmachine, PRUint32 ccpus) {
+  return IMachine_SetCPUCount(cmachine, ccpus);
+}
+HRESULT GoVboxGetMachineState(IMachine* cmachine, PRUint32* cstate) {
+  return IMachine_GetState(cmachine, cstate);
+}
 HRESULT GoVboxGetMachinePointingHIDType(IMachine* cmachine, PRUint32* ctype) {
   return IMachine_GetPointingHIDType(cmachine, ctype);
 }
@@ -134,6 +143,10 @@ HRESULT GoVboxMachineGetMedium(IMachine* cmachine, char* cname, PRInt32
 
   return result;
 }
+HRESULT GoVboxMachineGetNetworkAdapter(IMachine* cmachine, PRInt32 cdevice,
+    INetworkAdapter** cadapter) {
+  return IMachine_GetNetworkAdapter(cmachine, cdevice, cadapter);
+}
 HRESULT GoVboxMachineLaunchVMProcess(IMachine* cmachine, ISession* csession,
     char* cuiType, char* cenvironment, IProgress** cprogress) {
   BSTR wuiType;
@@ -152,6 +165,73 @@ HRESULT GoVboxMachineLaunchVMProcess(IMachine* cmachine, ISession* csession,
       cprogress);
   g_pVBoxFuncs->pfnUtf16Free(wenvironment);
   g_pVBoxFuncs->pfnUtf16Free(wuiType);
+
+  return result;
+}
+HRESULT GoVboxMachineSetExtraData(IMachine* cmachine, char* ckey, char *cvalue) {
+  BSTR wkey;
+  BSTR wvalue;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(ckey, &wkey);
+  if (FAILED(result))
+    return result;
+
+  result = g_pVBoxFuncs->pfnUtf8ToUtf16(cvalue, &wvalue);
+  if (FAILED(result)) {
+    g_pVBoxFuncs->pfnUtf16Free(wkey);
+    return result;
+  }
+
+  result = IMachine_SetExtraData(cmachine, wkey, wvalue);
+  g_pVBoxFuncs->pfnUtf16Free(wkey);
+  g_pVBoxFuncs->pfnUtf16Free(wvalue);
+
+  return result;
+}
+HRESULT GoVboxGetMachineAccelerate2DVideoEnabled(IMachine* cmachine,
+    PRBool* cenabled) {
+  return IMachine_GetAccelerate2DVideoEnabled(cmachine, cenabled);
+}
+HRESULT GoVboxSetMachineAccelerate2DVideoEnabled(IMachine* cmachine,
+    PRBool cenabled) {
+  return IMachine_SetAccelerate2DVideoEnabled(cmachine, cenabled);
+}
+HRESULT GoVboxGetMachineAccelerate3DEnabled(IMachine* cmachine,
+    PRBool* cenabled) {
+  return IMachine_GetAccelerate3DEnabled(cmachine, cenabled);
+}
+HRESULT GoVboxSetMachineAccelerate3DEnabled(IMachine* cmachine,
+    PRBool cenabled) {
+  return IMachine_SetAccelerate3DEnabled(cmachine, cenabled);
+}
+HRESULT GoVboxMachineCreateSharedFolder(IMachine* cmachine, char* cname,
+    char *chostPath, PRBool writable, PRBool automount) {
+  BSTR wname;
+  BSTR whostPath;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
+  if (FAILED(result))
+    return result;
+
+  result = g_pVBoxFuncs->pfnUtf8ToUtf16(chostPath, &whostPath);
+  if (FAILED(result)) {
+    g_pVBoxFuncs->pfnUtf16Free(wname);
+    return result;
+  }
+
+  result = IMachine_CreateSharedFolder(cmachine, wname, whostPath, writable,
+      automount);
+  g_pVBoxFuncs->pfnUtf16Free(wname);
+  g_pVBoxFuncs->pfnUtf16Free(whostPath);
+
+  return result;
+}
+HRESULT GoVboxMachineRemoveSharedFolder(IMachine* cmachine, char* cname) {
+  BSTR wname;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
+  if (FAILED(result))
+    return result;
+
+  result = IMachine_RemoveSharedFolder(cmachine, wname);
+  g_pVBoxFuncs->pfnUtf16Free(wname);
 
   return result;
 }

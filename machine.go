@@ -165,6 +165,37 @@ func (machine *Machine) SetVramSize(vram uint) error {
 	return nil
 }
 
+func (machine *Machine) GetCPUCount() (uint, error) {
+	var ccpus C.PRUint32
+
+	result := C.GoVboxGetMachineCPUCount(machine.cmachine, &ccpus)
+	if C.GoVboxFAILED(result) != 0 {
+		return 0, errors.New(
+			fmt.Sprintf("Failed to get IMachine CPU count: %x", result))
+	}
+	return uint(ccpus), nil
+}
+
+func (machine *Machine) SetCPUCount(cpus uint) error {
+	result := C.GoVboxSetMachineCPUCount(machine.cmachine, C.PRUint32(cpus))
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set IMachine CPU count: %x", result))
+	}
+	return nil
+}
+
+func (machine *Machine) GetState() (uint, error) {
+	var cstate C.PRUint32
+
+	result := C.GoVboxGetMachineState(machine.cmachine, &cstate)
+	if C.GoVboxFAILED(result) != 0 {
+		return 0, errors.New(
+			fmt.Sprintf("Failed to get IMachine state: %x", result))
+	}
+	return uint(cstate), nil
+}
+
 // Register adds this to VirtualBox's list of registered machines.
 // Once a VM is registered, it becomes immutable. Its configuration can only be
 // changed by creating a Session, LockMachine-ing the machine to the session,
@@ -312,6 +343,20 @@ func (machine *Machine) GetMedium(controllerName string, controllerPort int,
 	return medium, nil
 }
 
+// GetMedium returns a Medium connected to this VM.
+// It returns the requested Medium and any error encountered.
+func (machine *Machine) GetNetworkAdapter(deviceSlot int) (NetworkAdapter, error) {
+	var adapter NetworkAdapter
+	result := C.GoVboxMachineGetNetworkAdapter(machine.cmachine,
+		C.PRInt32(deviceSlot), &adapter.cadapter)
+
+	if C.GoVboxFAILED(result) != 0 || (adapter.cadapter == nil) {
+		return adapter, errors.New(
+			fmt.Sprintf("Failed to get INetworkAdapter from IMachine: %x", result))
+	}
+	return adapter, nil
+}
+
 // Launch swapns a process that executes this VM.
 // The given session will receive a shared lock on the VM.
 // It returns a Progress and any error encountered.
@@ -330,6 +375,100 @@ func (machine *Machine) Launch(session Session, uiType string,
 			fmt.Sprintf("Failed to launch IMachine VM: %x", result))
 	}
 	return progress, nil
+}
+
+func (machine *Machine) SetExtraData(key string, value string) error {
+	ckey := C.CString(key)
+	cvalue := C.CString(value)
+	result := C.GoVboxMachineSetExtraData(machine.cmachine, ckey, cvalue)
+	C.free(unsafe.Pointer(ckey))
+	C.free(unsafe.Pointer(cvalue))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set extra data on IMachine: %x", result))
+	}
+	return nil
+}
+
+func (machine *Machine) GetAccelerate2DVideoEnabled() (bool, error) {
+	var cenabled C.PRBool
+	result := C.GoVboxGetMachineAccelerate2DVideoEnabled(machine.cmachine, &cenabled)
+	if C.GoVboxFAILED(result) != 0 {
+		return false, errors.New(
+			fmt.Sprintf("Failed to get IMachine 2D video acceleration: %x", result))
+	}
+	return cenabled != 0, nil
+}
+
+func (machine *Machine) SetAccelerate2DVideoEnabled(enabled bool) error {
+	cenabled := C.PRBool(0)
+	if enabled {
+		cenabled = C.PRBool(1)
+	}
+	result := C.GoVboxSetMachineAccelerate2DVideoEnabled(machine.cmachine, cenabled)
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set IMachine 2D video acceleration: %x", result))
+	}
+	return nil
+}
+
+func (machine *Machine) GetAccelerate3DEnabled() (bool, error) {
+	var cenabled C.PRBool
+	result := C.GoVboxGetMachineAccelerate3DEnabled(machine.cmachine, &cenabled)
+	if C.GoVboxFAILED(result) != 0 {
+		return false, errors.New(
+			fmt.Sprintf("Failed to get IMachine 3D acceleration: %x", result))
+	}
+	return cenabled != 0, nil
+}
+
+func (machine *Machine) SetAccelerate3DEnabled(enabled bool) error {
+	cenabled := C.PRBool(0)
+	if enabled {
+		cenabled = C.PRBool(1)
+	}
+	result := C.GoVboxSetMachineAccelerate3DEnabled(machine.cmachine, cenabled)
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set IMachine 3D acceleration: %x", result))
+	}
+	return nil
+}
+
+func (machine *Machine) CreateSharedFolder(name string, hostPath string, writable bool, automount bool) error {
+	cname := C.CString(name)
+	chostPath := C.CString(hostPath)
+	cwritable := C.PRBool(0)
+	if writable {
+		cwritable = C.PRBool(1)
+	}
+	cautomount := C.PRBool(0)
+	if automount {
+		cautomount = C.PRBool(1)
+	}
+	result := C.GoVboxMachineCreateSharedFolder(machine.cmachine, cname, chostPath, cwritable, cautomount)
+	C.free(unsafe.Pointer(cname))
+	C.free(unsafe.Pointer(chostPath))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to create shared folder on IMachine: %x", result))
+	}
+	return nil
+}
+
+func (machine *Machine) RemoveSharedFolder(name string) error {
+	cname := C.CString(name)
+	result := C.GoVboxMachineRemoveSharedFolder(machine.cmachine, cname)
+	C.free(unsafe.Pointer(cname))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to remove shared folder on IMachine: %x", result))
+	}
+	return nil
 }
 
 // Release frees up the associated VirtualBox data.
