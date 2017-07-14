@@ -22,6 +22,9 @@ HRESULT GoVboxGetConsoleEventSource(IConsole* cconsole,
     IEventSource** ceventSource) {
   return IConsole_GetEventSource(cconsole, ceventSource);
 }
+HRESULT GoVboxConsolePowerUp(IConsole* cconsole, IProgress** cprogress) {
+  return IConsole_PowerUp(cconsole, cprogress);
+}
 HRESULT GoVboxConsolePowerDown(IConsole* cconsole, IProgress** cprogress) {
   return IConsole_PowerDown(cconsole, cprogress);
 }

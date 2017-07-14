@@ -19,7 +19,6 @@ HRESULT GoVboxGetBiosSettingsLogoImagePath(IBIOSSettings* csettings,
 }
 HRESULT GoVboxSetBiosSettingsLogoImagePath(IBIOSSettings* csettings,
     char* clogoImagePath) {
-
   BSTR wlogoImagePath;
   HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(clogoImagePath, &wlogoImagePath);
   if (FAILED(result))

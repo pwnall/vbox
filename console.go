@@ -79,6 +79,16 @@ func (console *Console) GetEventSource() (EventSource, error) {
 	return eventSource, nil
 }
 
+func (console *Console) PowerUp() (Progress, error) {
+	var progress Progress
+	result := C.GoVboxConsolePowerUp(console.cconsole, &progress.cprogress)
+	if C.GoVboxFAILED(result) != 0 || progress.cprogress == nil {
+		return progress, errors.New(
+			fmt.Sprintf("Failed to power up VM via IConsole: %x", result))
+	}
+	return progress, nil
+}
+
 // PowerDown starts forcibly powering off the controlled VM.
 // It returns a Progress and any error encountered.
 func (console *Console) PowerDown() (Progress, error) {
