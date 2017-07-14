@@ -243,6 +243,32 @@ const (
 	MouseButtonState_XButton2     = C.MouseButtonState_XButton2
 )
 
+// Enumeration of NetworkAdapterType values
+type NetworkAdapterType uint
+
+const (
+	NetworkAdapterType_Null      = C.NetworkAdapterType_Null
+	NetworkAdapterType_Am79C970A = C.NetworkAdapterType_Am79C970A
+	NetworkAdapterType_Am79C973  = C.NetworkAdapterType_Am79C973
+	NetworkAdapterType_I82540EM  = C.NetworkAdapterType_I82540EM
+	NetworkAdapterType_I82543GC  = C.NetworkAdapterType_I82543GC
+	NetworkAdapterType_I82545EM  = C.NetworkAdapterType_I82545EM
+	NetworkAdapterType_Virtio    = C.NetworkAdapterType_Virtio
+)
+
+// Enumeration of NetworkAttachmentType values
+type NetworkAttachmentType uint
+
+const (
+	NetworkAttachmentType_Null       = C.NetworkAttachmentType_Null
+	NetworkAttachmentType_NAT        = C.NetworkAttachmentType_NAT
+	NetworkAttachmentType_Bridged    = C.NetworkAttachmentType_Bridged
+	NetworkAttachmentType_Internal   = C.NetworkAttachmentType_Internal
+	NetworkAttachmentType_HostOnly   = C.NetworkAttachmentType_HostOnly
+	NetworkAttachmentType_Generic    = C.NetworkAttachmentType_Generic
+	NetworkAttachmentType_NATNetwork = C.NetworkAttachmentType_NATNetwork
+)
+
 // Enumeration of PointingHIDType values
 type PointingHidType uint
 
