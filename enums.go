@@ -163,6 +163,40 @@ const (
 )
 
 // Enumeration of MediumState values
+type MachineState uint
+
+const (
+	MachineState_Null                   = C.MachineState_Null
+	MachineState_PoweredOff             = C.MachineState_PoweredOff
+	MachineState_Saved                  = C.MachineState_Saved
+	MachineState_Teleported             = C.MachineState_Teleported
+	MachineState_Aborted                = C.MachineState_Aborted
+	MachineState_Running                = C.MachineState_Running
+	MachineState_Paused                 = C.MachineState_Paused
+	MachineState_Stuck                  = C.MachineState_Stuck
+	MachineState_Teleporting            = C.MachineState_Teleporting
+	MachineState_LiveSnapshotting       = C.MachineState_LiveSnapshotting
+	MachineState_Starting               = C.MachineState_Starting
+	MachineState_Stopping               = C.MachineState_Stopping
+	MachineState_Saving                 = C.MachineState_Saving
+	MachineState_Restoring              = C.MachineState_Restoring
+	MachineState_TeleportingPausedVM    = C.MachineState_TeleportingPausedVM
+	MachineState_TeleportingIn          = C.MachineState_TeleportingIn
+	MachineState_FaultTolerantSyncing   = C.MachineState_FaultTolerantSyncing
+	MachineState_DeletingSnapshotOnline = C.MachineState_DeletingSnapshotOnline
+	MachineState_DeletingSnapshotPaused = C.MachineState_DeletingSnapshotPaused
+	MachineState_OnlineSnapshotting     = C.MachineState_OnlineSnapshotting
+	MachineState_RestoringSnapshot      = C.MachineState_RestoringSnapshot
+	MachineState_DeletingSnapshot       = C.MachineState_DeletingSnapshot
+	MachineState_SettingUp              = C.MachineState_SettingUp
+	MachineState_Snapshotting           = C.MachineState_Snapshotting
+	MachineState_FirstOnline            = C.MachineState_FirstOnline
+	MachineState_LastOnline             = C.MachineState_LastOnline
+	MachineState_FirstTransient         = C.MachineState_FirstTransient
+	MachineState_LastTransient          = C.MachineState_LastTransient
+)
+
+// Enumeration of MediumState values
 type MediumState uint
 
 const (
