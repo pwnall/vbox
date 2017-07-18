@@ -5,7 +5,7 @@ import (
 )
 
 func TestMachine_AddStorageController(t *testing.T) {
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}

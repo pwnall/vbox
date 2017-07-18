@@ -11,7 +11,7 @@ func TestSession_LockMachine_UnlockMachine(t *testing.T) {
 	}
 	defer session.Release()
 
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}

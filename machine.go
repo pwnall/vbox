@@ -471,6 +471,19 @@ func (machine *Machine) RemoveSharedFolder(name string) error {
 	return nil
 }
 
+func (machine *Machine) SetSettingsFilePath(path string) (Progress, error) {
+	var progress Progress
+	cpath := C.CString(path)
+	result := C.GoVboxMachineSetSettingsFilePath(machine.cmachine, cpath, &progress.cprogress)
+	C.free(unsafe.Pointer(cpath))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return progress, errors.New(
+			fmt.Sprintf("Failed to set settings file path for IMachine: %x", result))
+	}
+	return progress, nil
+}
+
 // Release frees up the associated VirtualBox data.
 // After the call, this instance is invalid, and using it will cause errors.
 // It returns any error encountered.
@@ -496,17 +509,19 @@ func (machine *Machine) Initialized() bool {
 // Flags is comma-separated. The most interesting flag is forceOverwrite=1.
 // It returns the created machine and any error encountered.
 func CreateMachine(
-	name string, osTypeId string, flags string) (Machine, error) {
+	settings string, name string, osTypeId string, flags string) (Machine, error) {
 	var machine Machine
 	if err := Init(); err != nil {
 		return machine, err
 	}
 
+	csettings := C.CString(settings)
 	cname := C.CString(name)
 	cosTypeId := C.CString(osTypeId)
 	cflags := C.CString(flags)
-	result := C.GoVboxCreateMachine(cbox, cname, cosTypeId, cflags,
+	result := C.GoVboxCreateMachine(cbox, csettings, cname, cosTypeId, cflags,
 		&machine.cmachine)
+	C.free(unsafe.Pointer(csettings))
 	C.free(unsafe.Pointer(cname))
 	C.free(unsafe.Pointer(cosTypeId))
 	C.free(unsafe.Pointer(cflags))

@@ -36,7 +36,7 @@ func TestConsole_GetEventSource(t *testing.T) {
 	}
 	defer session.Release()
 
-	machine, err := CreateMachine("pwnall_vbox_test", "Ubuntu", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Ubuntu", "")
 	if err != nil {
 		t.Fatal(err)
 	}

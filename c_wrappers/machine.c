@@ -235,20 +235,38 @@ HRESULT GoVboxMachineRemoveSharedFolder(IMachine* cmachine, char* cname) {
 
   return result;
 }
+HRESULT GoVboxMachineSetSettingsFilePath(IMachine* cmachine, char* cpath,
+    IProgress** cprogress) {
+  BSTR wpath;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cpath, &wpath);
+  if (FAILED(result))
+    return result;
+
+  result = IMachine_SetSettingsFilePath(cmachine, wpath, cprogress);
+  g_pVBoxFuncs->pfnUtf16Free(wpath);
+
+  return result;
+}
 HRESULT GoVboxIMachineRelease(IMachine* cmachine) {
   return IMachine_Release(cmachine);
 }
 
-HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char* cname, char* cosTypeId,
-    char* cflags, IMachine** cmachine) {
+HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char *settingsFile, char* cname,
+    char* cosTypeId, char* cflags, IMachine** cmachine) {
+  BSTR wsettings = NULL;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wsettings);
+  if (FAILED(result))
+    return result;
+
   BSTR wname;
-  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
+  result = g_pVBoxFuncs->pfnUtf8ToUtf16(cname, &wname);
   if (FAILED(result))
     return result;
 
   BSTR wosTypeId;
   result = g_pVBoxFuncs->pfnUtf8ToUtf16(cosTypeId, &wosTypeId);
   if (FAILED(result)) {
+    g_pVBoxFuncs->pfnUtf16Free(wsettings);
     g_pVBoxFuncs->pfnUtf16Free(wname);
     return result;
   }
@@ -256,18 +274,20 @@ HRESULT GoVboxCreateMachine(IVirtualBox* cbox, char* cname, char* cosTypeId,
   BSTR wflags = NULL;
   result = g_pVBoxFuncs->pfnUtf8ToUtf16(cflags, &wflags);
   if (FAILED(result)) {
+    g_pVBoxFuncs->pfnUtf16Free(wsettings);
     g_pVBoxFuncs->pfnUtf16Free(wosTypeId);
     g_pVBoxFuncs->pfnUtf16Free(wname);
   }
 
   SAFEARRAY *pSafeArray = g_pVBoxFuncs->pfnSafeArrayCreateVector(
       VT_BSTR, 0, 0);
-  result = IVirtualBox_CreateMachine(cbox, NULL, wname,
+  result = IVirtualBox_CreateMachine(cbox, wsettings, wname,
       ComSafeArrayAsInParam(pSafeArray), wosTypeId, wflags, cmachine);
   g_pVBoxFuncs->pfnSafeArrayDestroy(pSafeArray);
   g_pVBoxFuncs->pfnUtf16Free(wflags);
   g_pVBoxFuncs->pfnUtf16Free(wosTypeId);
   g_pVBoxFuncs->pfnUtf16Free(wname);
+  g_pVBoxFuncs->pfnUtf16Free(wsettings);
 
   return result;
 }

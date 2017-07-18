@@ -12,7 +12,7 @@ func TestCreateMachine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestCreateMachine(t *testing.T) {
 }
 
 func TestMachine_SaveSettings(t *testing.T) {
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestMachine_SaveSettings(t *testing.T) {
 }
 
 func TestMachine_SetPointingHidType(t *testing.T) {
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestMachine_SetPointingHidType(t *testing.T) {
 }
 
 func TestMachine_SetMemorySize_SetVramSize(t *testing.T) {
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestMachine_SetMemorySize_SetVramSize(t *testing.T) {
 }
 
 func TestMachine_Register_Unregister(t *testing.T) {
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestMachine_Register_Unregister(t *testing.T) {
 }
 
 func TestFindMachine(t *testing.T) {
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestMachine_AttachDevice_GetMedium(t *testing.T) {
 		medium.Release()
 	}()
 
-	machine, err := CreateMachine("pwnall_vbox_test", "Linux", "")
+	machine, err := CreateMachine("", "pwnall_vbox_test", "Linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
