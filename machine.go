@@ -343,8 +343,6 @@ func (machine *Machine) GetMedium(controllerName string, controllerPort int,
 	return medium, nil
 }
 
-// GetMedium returns a Medium connected to this VM.
-// It returns the requested Medium and any error encountered.
 func (machine *Machine) GetNetworkAdapter(deviceSlot int) (NetworkAdapter, error) {
 	var adapter NetworkAdapter
 	result := C.GoVboxMachineGetNetworkAdapter(machine.cmachine,

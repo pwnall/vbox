@@ -9,7 +9,7 @@ void GoVboxUtf8Free(char* cstring);
 HRESULT GoVboxGetStorageControllerName(IStorageController* ccontroller,
     char** cname) {
   BSTR wname = NULL;
-  HRESULT result = IStorageController_GetName(ccontroller, &wname);
+  HRESULT result = IStorageController_get_Name(ccontroller, &wname);
   if (FAILED(result))
     return result;
 
@@ -19,15 +19,15 @@ HRESULT GoVboxGetStorageControllerName(IStorageController* ccontroller,
 }
 HRESULT GoVboxGetStorageControllerBus(IStorageController* ccontroller,
     PRUint32* cbus) {
-  return IStorageController_GetBus(ccontroller, cbus);
+  return IStorageController_get_Bus(ccontroller, cbus);
 }
 HRESULT GoVboxGetStorageControllerType(IStorageController* ccontroller,
     PRUint32* ctype) {
-  return IStorageController_GetControllerType(ccontroller, ctype);
+  return IStorageController_get_ControllerType(ccontroller, ctype);
 }
 HRESULT GoVboxSetStorageControllerType(IStorageController* ccontroller,
     PRUint32 ctype) {
-  return IStorageController_SetControllerType(ccontroller, ctype);
+  return IStorageController_put_ControllerType(ccontroller, ctype);
 }
 HRESULT GoVboxIStorageControllerRelease(IStorageController* ccontroller) {
   return IStorageController_Release(ccontroller);

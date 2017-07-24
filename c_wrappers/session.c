@@ -13,20 +13,20 @@ HRESULT GoVboxISessionRelease(ISession* csession) {
   return ISession_Release(csession);
 }
 HRESULT GoVboxGetSessionConsole(ISession* csession, IConsole** cconsole) {
-  return ISession_GetConsole(csession, cconsole);
+  return ISession_get_Console(csession, cconsole);
 }
 HRESULT GoVboxGetSessionMachine(ISession* csession, IMachine** cmachine) {
-  return ISession_GetMachine(csession, cmachine);
+  return ISession_get_Machine(csession, cmachine);
 }
 HRESULT GoVboxGetSessionState(ISession* csession, PRUint32* cstate) {
-  return ISession_GetState(csession, cstate);
+  return ISession_get_State(csession, cstate);
 }
 HRESULT GoVboxGetSessionType(ISession* csession, PRUint32* ctype) {
-  return ISession_GetType(csession, ctype);
+  return ISession_get_Type(csession, ctype);
 }
 
 HRESULT GoVboxGetSession(IVirtualBoxClient* client, ISession** csession) {
-  return IVirtualBoxClient_GetSession(client, csession);
+  return IVirtualBoxClient_get_Session(client, csession);
 }
 
 HRESULT GoVboxLockMachine(IMachine* cmachine, ISession* csession,

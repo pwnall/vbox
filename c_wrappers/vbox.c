@@ -38,11 +38,11 @@ void GoVboxClientUninitialize() {
   g_pVBoxFuncs->pfnClientUninitialize();
 }
 HRESULT GoVboxGetVirtualBox(IVirtualBoxClient* client, IVirtualBox** cbox) {
-  return IVirtualBoxClient_GetVirtualBox(client, cbox);
+  return IVirtualBoxClient_get_VirtualBox(client, cbox);
 }
 
 HRESULT GoVboxGetRevision(IVirtualBox* cbox, ULONG* revision) {
-  return IVirtualBox_GetRevision(cbox, revision);
+  return IVirtualBox_get_Revision(cbox, revision);
 }
 HRESULT GoVboxIVirtualBoxRelease(IVirtualBox* cbox) {
   return IVirtualBox_Release(cbox);

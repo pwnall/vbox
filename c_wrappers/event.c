@@ -10,13 +10,13 @@ HRESULT GoVboxIEventRelease(IEvent* cevent) {
   return IEvent_Release(cevent);
 }
 HRESULT GoVboxEventGetType(IEvent* cevent, PRUint32 *ceventType) {
-  return IEvent_GetType(cevent, ceventType);
+  return IEvent_get_Type(cevent, ceventType);
 }
 HRESULT GoVboxEventGetSource(IEvent* cevent, IEventSource **ceventSource) {
-  return IEvent_GetSource(cevent, ceventSource);
+  return IEvent_get_Source(cevent, ceventSource);
 }
 HRESULT GoVboxEventGetWaitable(IEvent* cevent, PRBool *cwaitable) {
-  return IEvent_GetWaitable(cevent, cwaitable);
+  return IEvent_get_Waitable(cevent, cwaitable);
 }
 HRESULT GoVboxEventSetProcessed(IEvent* cevent) {
   return IEvent_SetProcessed(cevent);

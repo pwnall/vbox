@@ -9,7 +9,7 @@ void GoVboxUtf8Free(char* cstring);
 HRESULT GoVboxGetBiosSettingsLogoImagePath(IBIOSSettings* csettings,
     char** clogoImagePath) {
   BSTR wlogoImagePath = NULL;
-  HRESULT result = IBIOSSettings_GetLogoImagePath(csettings, &wlogoImagePath);
+  HRESULT result = IBIOSSettings_get_LogoImagePath(csettings, &wlogoImagePath);
   if (FAILED(result))
     return result;
 
@@ -24,82 +24,82 @@ HRESULT GoVboxSetBiosSettingsLogoImagePath(IBIOSSettings* csettings,
   if (FAILED(result))
     return result;
 
-  result = IBIOSSettings_SetLogoImagePath(csettings, wlogoImagePath);
+  result = IBIOSSettings_put_LogoImagePath(csettings, wlogoImagePath);
   g_pVBoxFuncs->pfnUtf16Free(wlogoImagePath);
 
   return result;
 }
 HRESULT GoVboxGetBiosSettingsLogoFadeIn(IBIOSSettings* csettings,
     PRBool* clogoFadeIn) {
-  return IBIOSSettings_GetLogoFadeIn(csettings, clogoFadeIn);
+  return IBIOSSettings_get_LogoFadeIn(csettings, clogoFadeIn);
 }
 HRESULT GoVboxSetBiosSettingsLogoFadeIn(IBIOSSettings* csettings,
     PRBool clogoFadeIn) {
-  return IBIOSSettings_SetLogoFadeIn(csettings, clogoFadeIn);
+  return IBIOSSettings_put_LogoFadeIn(csettings, clogoFadeIn);
 }
 HRESULT GoVboxGetBiosSettingsLogoFadeOut(IBIOSSettings* csettings,
     PRBool* clogoFadeOut) {
-  return IBIOSSettings_GetLogoFadeOut(csettings, clogoFadeOut);
+  return IBIOSSettings_get_LogoFadeOut(csettings, clogoFadeOut);
 }
 HRESULT GoVboxSetBiosSettingsLogoFadeOut(IBIOSSettings* csettings,
     PRBool clogoFadeOut) {
-  return IBIOSSettings_SetLogoFadeOut(csettings, clogoFadeOut);
+  return IBIOSSettings_put_LogoFadeOut(csettings, clogoFadeOut);
 }
 HRESULT GoVboxGetBiosSettingsLogoDisplayTime(IBIOSSettings* csettings,
     PRUint32* cdisplayTime) {
-  return IBIOSSettings_GetLogoDisplayTime(csettings, cdisplayTime);
+  return IBIOSSettings_get_LogoDisplayTime(csettings, cdisplayTime);
 }
 HRESULT GoVboxSetBiosSettingsLogoDisplayTime(IBIOSSettings* csettings,
     PRUint32 cdisplayTime) {
-  return IBIOSSettings_SetLogoDisplayTime(csettings, cdisplayTime);
+  return IBIOSSettings_put_LogoDisplayTime(csettings, cdisplayTime);
 }
 HRESULT GoVboxGetBiosSettingsBootMenuMode(IBIOSSettings* csettings,
     PRUint32* cmenuMode) {
-  return IBIOSSettings_GetBootMenuMode(csettings, cmenuMode);
+  return IBIOSSettings_get_BootMenuMode(csettings, cmenuMode);
 }
 HRESULT GoVboxSetBiosSettingsBootMenuMode(IBIOSSettings* csettings,
     PRUint32 cmenuMode) {
-  return IBIOSSettings_SetBootMenuMode(csettings, cmenuMode);
+  return IBIOSSettings_put_BootMenuMode(csettings, cmenuMode);
 }
 HRESULT GoVboxGetBiosSettingsACPIEnabled(IBIOSSettings* csettings,
     PRBool* cacpiEnabled) {
-  return IBIOSSettings_GetACPIEnabled(csettings, cacpiEnabled);
+  return IBIOSSettings_get_ACPIEnabled(csettings, cacpiEnabled);
 }
 HRESULT GoVboxSetBiosSettingsACPIEnabled(IBIOSSettings* csettings,
     PRBool cacpiEnabled) {
-  return IBIOSSettings_SetACPIEnabled(csettings, cacpiEnabled);
+  return IBIOSSettings_put_ACPIEnabled(csettings, cacpiEnabled);
 }
 HRESULT GoVboxGetBiosSettingsIOAPICEnabled(IBIOSSettings* csettings,
     PRBool* cioapicEnabled) {
-  return IBIOSSettings_GetIOAPICEnabled(csettings, cioapicEnabled);
+  return IBIOSSettings_get_IOAPICEnabled(csettings, cioapicEnabled);
 }
 HRESULT GoVboxSetBiosSettingsIOAPICEnabled(IBIOSSettings* csettings,
     PRBool cioapicEnabled) {
-  return IBIOSSettings_SetIOAPICEnabled(csettings, cioapicEnabled);
+  return IBIOSSettings_put_IOAPICEnabled(csettings, cioapicEnabled);
 }
 HRESULT GoVboxGetBiosSettingsAPICMode(IBIOSSettings* csettings,
     PRUint32* capicMode) {
-  return IBIOSSettings_GetAPICMode(csettings, capicMode);
+  return IBIOSSettings_get_APICMode(csettings, capicMode);
 }
 HRESULT GoVboxSetBiosSettingsAPICMode(IBIOSSettings* csettings,
     PRUint32 capicMode) {
-  return IBIOSSettings_SetAPICMode(csettings, capicMode);
+  return IBIOSSettings_put_APICMode(csettings, capicMode);
 }
 HRESULT GoVboxGetBiosSettingsTimeOffset(IBIOSSettings* csettings,
     PRInt64* ctimeOffset) {
-  return IBIOSSettings_GetTimeOffset(csettings, ctimeOffset);
+  return IBIOSSettings_get_TimeOffset(csettings, ctimeOffset);
 }
 HRESULT GoVboxSetBiosSettingsTimeOffset(IBIOSSettings* csettings,
     PRInt64 ctimeOffset) {
-  return IBIOSSettings_SetTimeOffset(csettings, ctimeOffset);
+  return IBIOSSettings_put_TimeOffset(csettings, ctimeOffset);
 }
 HRESULT GoVboxSetBiosSettingsPXEDebugEnabled(IBIOSSettings* csettings,
     PRBool cPXEDebugEnabled) {
-  return IBIOSSettings_SetPXEDebugEnabled(csettings, cPXEDebugEnabled);
+  return IBIOSSettings_put_PXEDebugEnabled(csettings, cPXEDebugEnabled);
 }
 HRESULT GoVboxGetBiosSettingsPXEDebugEnabled(IBIOSSettings* csettings,
     PRBool* cPXEDebugEnabled) {
-  return IBIOSSettings_GetPXEDebugEnabled(csettings, cPXEDebugEnabled);
+  return IBIOSSettings_get_PXEDebugEnabled(csettings, cPXEDebugEnabled);
 }
 HRESULT GoVboxIBiosSettingsRelease(IBIOSSettings* csettings) {
   return IBIOSSettings_Release(csettings);
@@ -107,5 +107,5 @@ HRESULT GoVboxIBiosSettingsRelease(IBIOSSettings* csettings) {
 
 HRESULT GoVboxGetMachineBIOSSettings(IMachine* cmachine,
     IBIOSSettings** csettings) {
-  return IMachine_GetBIOSSettings(cmachine, csettings);
+  return IMachine_get_BIOSSettings(cmachine, csettings);
 }

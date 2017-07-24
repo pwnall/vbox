@@ -10,24 +10,24 @@ HRESULT GoVboxINetworkAdapterRelease(INetworkAdapter* cadapter) {
   return INetworkAdapter_Release(cadapter);
 }
 HRESULT GoVboxNetworkAdapterGetAdapterType(INetworkAdapter* cadapter, PRUint32 *cadapterType) {
-  return INetworkAdapter_GetAdapterType(cadapter, cadapterType);
+  return INetworkAdapter_get_AdapterType(cadapter, cadapterType);
 }
 HRESULT GoVboxNetworkAdapterSetAdapterType(INetworkAdapter* cadapter, PRUint32 cadapterType) {
-  return INetworkAdapter_SetAdapterType(cadapter, cadapterType);
+  return INetworkAdapter_put_AdapterType(cadapter, cadapterType);
 }
 HRESULT GoVboxNetworkAdapterGetSlot(INetworkAdapter* cadapter, PRUint32 *cslot) {
-  return INetworkAdapter_GetSlot(cadapter, cslot);
+  return INetworkAdapter_get_Slot(cadapter, cslot);
 }
 HRESULT GoVboxNetworkAdapterGetEnabled(INetworkAdapter* cadapter, PRBool *cenabled) {
-  return INetworkAdapter_GetEnabled(cadapter, cenabled);
+  return INetworkAdapter_get_Enabled(cadapter, cenabled);
 }
 HRESULT GoVboxNetworkAdapterSetEnabled(INetworkAdapter* cadapter, PRBool cenabled) {
-  return INetworkAdapter_SetEnabled(cadapter, cenabled);
+  return INetworkAdapter_put_Enabled(cadapter, cenabled);
 }
 HRESULT GoVboxNetworkAdapterGetMACAddress(INetworkAdapter* cadapter,
     char** cmacAddress) {
   BSTR wmacAddress = NULL;
-  HRESULT result = INetworkAdapter_GetMACAddress(cadapter, &wmacAddress);
+  HRESULT result = INetworkAdapter_get_MACAddress(cadapter, &wmacAddress);
   if (FAILED(result))
     return result;
 
@@ -42,21 +42,21 @@ HRESULT GoVboxNetworkAdapterSetMACAddress(INetworkAdapter* cadapter,
   if (FAILED(result))
     return result;
 
-  result = INetworkAdapter_SetMACAddress(cadapter, wmacAddress);
+  result = INetworkAdapter_put_MACAddress(cadapter, wmacAddress);
   g_pVBoxFuncs->pfnUtf16Free(wmacAddress);
 
   return result;
 }
 HRESULT GoVboxNetworkAdapterGetAttachmentType(INetworkAdapter* cadapter, PRUint32 *cattachmentType) {
-  return INetworkAdapter_GetAttachmentType(cadapter, cattachmentType);
+  return INetworkAdapter_get_AttachmentType(cadapter, cattachmentType);
 }
 HRESULT GoVboxNetworkAdapterSetAttachmentType(INetworkAdapter* cadapter, PRUint32 cattachmentType) {
-  return INetworkAdapter_SetAttachmentType(cadapter, cattachmentType);
+  return INetworkAdapter_put_AttachmentType(cadapter, cattachmentType);
 }
 HRESULT GoVboxNetworkAdapterGetBridgedInterface(INetworkAdapter* cadapter,
     char** cbridgedInterface) {
   BSTR wbridgedInterface = NULL;
-  HRESULT result = INetworkAdapter_GetBridgedInterface(cadapter, &wbridgedInterface);
+  HRESULT result = INetworkAdapter_get_BridgedInterface(cadapter, &wbridgedInterface);
   if (FAILED(result))
     return result;
 
@@ -71,7 +71,7 @@ HRESULT GoVboxNetworkAdapterSetBridgedInterface(INetworkAdapter* cadapter,
   if (FAILED(result))
     return result;
 
-  result = INetworkAdapter_SetBridgedInterface(cadapter, wbridgedInterface);
+  result = INetworkAdapter_put_BridgedInterface(cadapter, wbridgedInterface);
   g_pVBoxFuncs->pfnUtf16Free(wbridgedInterface);
 
   return result;
@@ -79,7 +79,7 @@ HRESULT GoVboxNetworkAdapterSetBridgedInterface(INetworkAdapter* cadapter,
 HRESULT GoVboxNetworkAdapterGetHostOnlyInterface(INetworkAdapter* cadapter,
     char** chostOnlyInterface) {
   BSTR whostOnlyInterface = NULL;
-  HRESULT result = INetworkAdapter_GetHostOnlyInterface(cadapter, &whostOnlyInterface);
+  HRESULT result = INetworkAdapter_get_HostOnlyInterface(cadapter, &whostOnlyInterface);
   if (FAILED(result))
     return result;
 
@@ -94,7 +94,7 @@ HRESULT GoVboxNetworkAdapterSetHostOnlyInterface(INetworkAdapter* cadapter,
   if (FAILED(result))
     return result;
 
-  result = INetworkAdapter_SetHostOnlyInterface(cadapter, whostOnlyInterface);
+  result = INetworkAdapter_put_HostOnlyInterface(cadapter, whostOnlyInterface);
   g_pVBoxFuncs->pfnUtf16Free(whostOnlyInterface);
 
   return result;
@@ -102,7 +102,7 @@ HRESULT GoVboxNetworkAdapterSetHostOnlyInterface(INetworkAdapter* cadapter,
 HRESULT GoVboxNetworkAdapterGetInternalNetwork(INetworkAdapter* cadapter,
     char** cinternalNetwork) {
   BSTR winternalNetwork = NULL;
-  HRESULT result = INetworkAdapter_GetInternalNetwork(cadapter, &winternalNetwork);
+  HRESULT result = INetworkAdapter_get_InternalNetwork(cadapter, &winternalNetwork);
   if (FAILED(result))
     return result;
 
@@ -117,7 +117,7 @@ HRESULT GoVboxNetworkAdapterSetInternalNetwork(INetworkAdapter* cadapter,
   if (FAILED(result))
     return result;
 
-  result = INetworkAdapter_SetInternalNetwork(cadapter, winternalNetwork);
+  result = INetworkAdapter_put_InternalNetwork(cadapter, winternalNetwork);
   g_pVBoxFuncs->pfnUtf16Free(winternalNetwork);
 
   return result;
@@ -125,7 +125,7 @@ HRESULT GoVboxNetworkAdapterSetInternalNetwork(INetworkAdapter* cadapter,
 HRESULT GoVboxNetworkAdapterGetNATNetwork(INetworkAdapter* cadapter,
     char** cnatNetwork) {
   BSTR wnatNetwork = NULL;
-  HRESULT result = INetworkAdapter_GetNATNetwork(cadapter, &wnatNetwork);
+  HRESULT result = INetworkAdapter_get_NATNetwork(cadapter, &wnatNetwork);
   if (FAILED(result))
     return result;
 
@@ -140,7 +140,7 @@ HRESULT GoVboxNetworkAdapterSetNATNetwork(INetworkAdapter* cadapter,
   if (FAILED(result))
     return result;
 
-  result = INetworkAdapter_SetNATNetwork(cadapter, wnatNetwork);
+  result = INetworkAdapter_put_NATNetwork(cadapter, wnatNetwork);
   g_pVBoxFuncs->pfnUtf16Free(wnatNetwork);
 
   return result;
@@ -148,7 +148,7 @@ HRESULT GoVboxNetworkAdapterSetNATNetwork(INetworkAdapter* cadapter,
 HRESULT GoVboxNetworkAdapterGetGenericDriver(INetworkAdapter* cadapter,
     char** cgenericDriver) {
   BSTR wgenericDriver = NULL;
-  HRESULT result = INetworkAdapter_GetGenericDriver(cadapter, &wgenericDriver);
+  HRESULT result = INetworkAdapter_get_GenericDriver(cadapter, &wgenericDriver);
   if (FAILED(result))
     return result;
 
@@ -163,14 +163,14 @@ HRESULT GoVboxNetworkAdapterSetGenericDriver(INetworkAdapter* cadapter,
   if (FAILED(result))
     return result;
 
-  result = INetworkAdapter_SetGenericDriver(cadapter, wgenericDriver);
+  result = INetworkAdapter_put_GenericDriver(cadapter, wgenericDriver);
   g_pVBoxFuncs->pfnUtf16Free(wgenericDriver);
 
   return result;
 }
 HRESULT GoVboxNetworkAdapterGetCableConnected(INetworkAdapter* cadapter, PRBool *ccableConnected) {
-  return INetworkAdapter_GetCableConnected(cadapter, ccableConnected);
+  return INetworkAdapter_get_CableConnected(cadapter, ccableConnected);
 }
 HRESULT GoVboxNetworkAdapterSetCableConnected(INetworkAdapter* cadapter, PRBool ccableConnected) {
-  return INetworkAdapter_SetCableConnected(cadapter, ccableConnected);
+  return INetworkAdapter_put_CableConnected(cadapter, ccableConnected);
 }

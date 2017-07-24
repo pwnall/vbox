@@ -9,7 +9,7 @@ void GoVboxUtf8Free(char* cstring);
 HRESULT GoVboxGetUsbControllerName(IUSBController* ccontroller,
     char** cname) {
   BSTR wname = NULL;
-  HRESULT result = IUSBController_GetName(ccontroller, &wname);
+  HRESULT result = IUSBController_get_Name(ccontroller, &wname);
   if (FAILED(result))
     return result;
 
@@ -19,11 +19,11 @@ HRESULT GoVboxGetUsbControllerName(IUSBController* ccontroller,
 }
 HRESULT GoVboxGetUsbControllerStandard(IUSBController* ccontroller,
     PRUint16* cstandard) {
-  return IUSBController_GetUSBStandard(ccontroller, cstandard);
+  return IUSBController_get_USBStandard(ccontroller, cstandard);
 }
 HRESULT GoVboxGetUsbControllerType(IUSBController* ccontroller,
     PRUint32* ctype) {
-  return IUSBController_GetType(ccontroller, ctype);
+  return IUSBController_get_Type(ccontroller, ctype);
 }
 HRESULT GoVboxIUSBControllerRelease(IUSBController* ccontroller) {
   return IUSBController_Release(ccontroller);

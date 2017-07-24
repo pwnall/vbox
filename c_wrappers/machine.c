@@ -8,7 +8,7 @@ void GoVboxUtf8Free(char* cstring);
 
 HRESULT GoVboxGetMachineName(IMachine* cmachine, char** cname) {
   BSTR wname = NULL;
-  HRESULT result = IMachine_GetName(cmachine, &wname);
+  HRESULT result = IMachine_get_Name(cmachine, &wname);
   if (FAILED(result))
     return result;
 
@@ -18,7 +18,7 @@ HRESULT GoVboxGetMachineName(IMachine* cmachine, char** cname) {
 }
 HRESULT GoVboxGetMachineOSTypeId(IMachine* cmachine, char** cosTypeId) {
   BSTR wosTypeId = NULL;
-  HRESULT result = IMachine_GetOSTypeId(cmachine, &wosTypeId);
+  HRESULT result = IMachine_get_OSTypeId(cmachine, &wosTypeId);
   if (FAILED(result))
     return result;
 
@@ -29,7 +29,7 @@ HRESULT GoVboxGetMachineOSTypeId(IMachine* cmachine, char** cosTypeId) {
 }
 HRESULT GoVboxGetMachineSettingsFilePath(IMachine* cmachine, char** cpath) {
   BSTR wpath = NULL;
-  HRESULT result = IMachine_GetSettingsFilePath(cmachine, &wpath);
+  HRESULT result = IMachine_get_SettingsFilePath(cmachine, &wpath);
   if (FAILED(result))
     return result;
 
@@ -38,35 +38,35 @@ HRESULT GoVboxGetMachineSettingsFilePath(IMachine* cmachine, char** cpath) {
   return result;
 }
 HRESULT GoVboxGetMachineMemorySize(IMachine* cmachine, PRUint32* cram) {
-  return IMachine_GetMemorySize(cmachine, cram);
+  return IMachine_get_MemorySize(cmachine, cram);
 }
 HRESULT GoVboxSetMachineMemorySize(IMachine* cmachine, PRUint32 cram) {
-  return IMachine_SetMemorySize(cmachine, cram);
+  return IMachine_put_MemorySize(cmachine, cram);
 }
 HRESULT GoVboxGetMachineVRAMSize(IMachine* cmachine, PRUint32* cvram) {
-  return IMachine_GetVRAMSize(cmachine, cvram);
+  return IMachine_get_VRAMSize(cmachine, cvram);
 }
 HRESULT GoVboxSetMachineVRAMSize(IMachine* cmachine, PRUint32 cvram) {
-  return IMachine_SetVRAMSize(cmachine, cvram);
+  return IMachine_put_VRAMSize(cmachine, cvram);
 }
 HRESULT GoVboxGetMachineCPUCount(IMachine* cmachine, PRUint32* ccpus) {
-  return IMachine_GetCPUCount(cmachine, ccpus);
+  return IMachine_get_CPUCount(cmachine, ccpus);
 }
 HRESULT GoVboxSetMachineCPUCount(IMachine* cmachine, PRUint32 ccpus) {
-  return IMachine_SetCPUCount(cmachine, ccpus);
+  return IMachine_put_CPUCount(cmachine, ccpus);
 }
 HRESULT GoVboxGetMachineState(IMachine* cmachine, PRUint32* cstate) {
-  return IMachine_GetState(cmachine, cstate);
+  return IMachine_get_State(cmachine, cstate);
 }
 HRESULT GoVboxGetMachinePointingHIDType(IMachine* cmachine, PRUint32* ctype) {
-  return IMachine_GetPointingHIDType(cmachine, ctype);
+  return IMachine_get_PointingHIDType(cmachine, ctype);
 }
 HRESULT GoVboxSetMachinePointingHIDType(IMachine* cmachine, PRUint32 ctype) {
-  return IMachine_SetPointingHIDType(cmachine, ctype);
+  return IMachine_put_PointingHIDType(cmachine, ctype);
 }
 HRESULT GoVboxGetMachineSettingsModified(IMachine* cmachine,
     PRBool* cmodified) {
-  return IMachine_GetSettingsModified(cmachine, cmodified);
+  return IMachine_get_SettingsModified(cmachine, cmodified);
 }
 HRESULT GoVboxMachineSaveSettings(IMachine* cmachine) {
   return IMachine_SaveSettings(cmachine);
@@ -189,19 +189,19 @@ HRESULT GoVboxMachineSetExtraData(IMachine* cmachine, char* ckey, char *cvalue) 
 }
 HRESULT GoVboxGetMachineAccelerate2DVideoEnabled(IMachine* cmachine,
     PRBool* cenabled) {
-  return IMachine_GetAccelerate2DVideoEnabled(cmachine, cenabled);
+  return IMachine_get_Accelerate2DVideoEnabled(cmachine, cenabled);
 }
 HRESULT GoVboxSetMachineAccelerate2DVideoEnabled(IMachine* cmachine,
     PRBool cenabled) {
-  return IMachine_SetAccelerate2DVideoEnabled(cmachine, cenabled);
+  return IMachine_put_Accelerate2DVideoEnabled(cmachine, cenabled);
 }
 HRESULT GoVboxGetMachineAccelerate3DEnabled(IMachine* cmachine,
     PRBool* cenabled) {
-  return IMachine_GetAccelerate3DEnabled(cmachine, cenabled);
+  return IMachine_get_Accelerate3DEnabled(cmachine, cenabled);
 }
 HRESULT GoVboxSetMachineAccelerate3DEnabled(IMachine* cmachine,
     PRBool cenabled) {
-  return IMachine_SetAccelerate3DEnabled(cmachine, cenabled);
+  return IMachine_put_Accelerate3DEnabled(cmachine, cenabled);
 }
 HRESULT GoVboxMachineCreateSharedFolder(IMachine* cmachine, char* cname,
     char *chostPath, PRBool writable, PRBool automount) {
@@ -306,7 +306,7 @@ HRESULT GoVboxFindMachine(IVirtualBox* cbox, char* cnameOrId,
 HRESULT GoVboxGetMachines(IVirtualBox* cbox, IMachine*** cmachines,
     ULONG* machineCount) {
   SAFEARRAY *safeArray = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();
-  HRESULT result = IVirtualBox_GetMachines(cbox,
+  HRESULT result = IVirtualBox_get_Machines(cbox,
       ComSafeArrayAsOutIfaceParam(safeArray, IMachine *));
   if (!FAILED(result)) {
     result = g_pVBoxFuncs->pfnSafeArrayCopyOutIfaceParamHelper(

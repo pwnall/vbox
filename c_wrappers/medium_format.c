@@ -21,7 +21,7 @@ HRESULT GoVboxGetMediumFormats(ISystemProperties* cprops,
 
 HRESULT GoVboxGetMediumFormatId(IMediumFormat* cformat, char** cid) {
   BSTR wid = NULL;
-  HRESULT result = IMediumFormat_GetId(cformat, &wid);
+  HRESULT result = IMedium_get_Id(cformat, &wid);
   if (FAILED(result))
     return result;
 

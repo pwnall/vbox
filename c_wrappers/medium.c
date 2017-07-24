@@ -62,7 +62,7 @@ HRESULT GoVboxMediumClose(IMedium* cmedium) {
 }
 HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
   BSTR wlocation = NULL;
-  HRESULT result = IMedium_GetLocation(cmedium, &wlocation);
+  HRESULT result = IMedium_get_Location(cmedium, &wlocation);
   if (FAILED(result))
     return result;
 
@@ -71,10 +71,10 @@ HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
   return result;
 }
 HRESULT GoVboxGetMediumState(IMedium* cmedium, PRUint32* cstate) {
-  return IMedium_GetState(cmedium, cstate);
+  return IMedium_get_State(cmedium, cstate);
 }
 HRESULT GoVboxGetMediumSize(IMedium* cmedium, PRInt64* csize) {
-  return IMedium_GetSize(cmedium, csize);
+  return IMedium_get_Size(cmedium, csize);
 }
 HRESULT GoVboxIMediumRelease(IMedium* cmedium) {
   return IMedium_Release(cmedium);
