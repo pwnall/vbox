@@ -7,6 +7,7 @@ package vbox
 
 #include <stdlib.h>
 #include "c_wrappers/event.c"
+
 */
 import "C"
 import (
@@ -75,4 +76,63 @@ func (event *Event) WaitProcessed(timeout int32) (bool, error) {
 		return false, errors.New(fmt.Sprintf("Failed to wait for event to processed: %x", result))
 	}
 	return processed != 0, nil
+}
+
+type GuestPropertyChangedEvent struct {
+	Event
+	cevent *C.IGuestPropertyChangedEvent
+}
+
+func (event *GuestPropertyChangedEvent) GetName() (string, error) {
+	var cname *C.char
+	result := C.GoVboxGuestPropertyChangedEventGetName(event.cevent, &cname)
+	if C.GoVboxFAILED(result) != 0 || cname == nil {
+		return "", errors.New(
+			fmt.Sprintf("Failed to get IGuestPropertyChangedEvent property name: %x", result))
+	}
+
+	name := C.GoString(cname)
+	C.GoVboxUtf8Free(cname)
+	return name, nil
+}
+
+func (event *GuestPropertyChangedEvent) GetValue() (string, error) {
+	var cvalue *C.char
+	result := C.GoVboxGuestPropertyChangedEventGetValue(event.cevent, &cvalue)
+	if C.GoVboxFAILED(result) != 0 || cvalue == nil {
+		return "", errors.New(
+			fmt.Sprintf("Failed to get IGuestPropertyChangedEvent property value: %x", result))
+	}
+
+	value := C.GoString(cvalue)
+	C.GoVboxUtf8Free(cvalue)
+	return value, nil
+}
+
+func (event *GuestPropertyChangedEvent) GetFlags() (string, error) {
+	var cflags *C.char
+	result := C.GoVboxGuestPropertyChangedEventGetFlags(event.cevent, &cflags)
+	if C.GoVboxFAILED(result) != 0 || cflags == nil {
+		return "", errors.New(
+			fmt.Sprintf("Failed to get IGuestPropertyChangedEvent property flags: %x", result))
+	}
+
+	flags := C.GoString(cflags)
+	C.GoVboxUtf8Free(cflags)
+	return flags, nil
+}
+
+func NewGuestPropertyChangedEvent(event *Event) (GuestPropertyChangedEvent, error) {
+	var guestPropEvent GuestPropertyChangedEvent
+
+	result := C.GoVboxEventGetGuestPropertyChangedEvent(event.cevent, &guestPropEvent.cevent)
+	if C.GoVboxFAILED(result) != 0 || guestPropEvent.cevent == nil {
+		return guestPropEvent, errors.New(
+			fmt.Sprintf("Failed to convert to IGuestPropertyChangedEvent event: %x", result))
+	}
+
+	return GuestPropertyChangedEvent{
+		Event:  *event,
+		cevent: guestPropEvent.cevent,
+	}, nil
 }
