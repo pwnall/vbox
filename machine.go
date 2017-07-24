@@ -355,6 +355,18 @@ func (machine *Machine) GetNetworkAdapter(deviceSlot int) (NetworkAdapter, error
 	return adapter, nil
 }
 
+func (machine *Machine) GetAudioAdapter() (AudioAdapter, error) {
+	var adapter AudioAdapter
+	result := C.GoVboxMachineGetAudioAdapter(machine.cmachine,
+		&adapter.caudioadapter)
+
+	if C.GoVboxFAILED(result) != 0 || (adapter.caudioadapter == nil) {
+		return adapter, errors.New(
+			fmt.Sprintf("Failed to get IAudioAdapter from IMachine: %x", result))
+	}
+	return adapter, nil
+}
+
 // Launch swapns a process that executes this VM.
 // The given session will receive a shared lock on the VM.
 // It returns a Progress and any error encountered.

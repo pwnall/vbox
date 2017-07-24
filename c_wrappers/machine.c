@@ -147,6 +147,10 @@ HRESULT GoVboxMachineGetNetworkAdapter(IMachine* cmachine, PRInt32 cdevice,
     INetworkAdapter** cadapter) {
   return IMachine_GetNetworkAdapter(cmachine, cdevice, cadapter);
 }
+HRESULT GoVboxMachineGetAudioAdapter(IMachine* cmachine,
+    IAudioAdapter** cadapter) {
+  return IMachine_get_AudioAdapter(cmachine, cadapter);
+}
 HRESULT GoVboxMachineLaunchVMProcess(IMachine* cmachine, ISession* csession,
     char* cuiType, char* cenvironment, IProgress** cprogress) {
   BSTR wuiType;
