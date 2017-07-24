@@ -55,6 +55,18 @@ HRESULT GoVboxGetMachineCPUCount(IMachine* cmachine, PRUint32* ccpus) {
 HRESULT GoVboxSetMachineCPUCount(IMachine* cmachine, PRUint32 ccpus) {
   return IMachine_put_CPUCount(cmachine, ccpus);
 }
+HRESULT GoVboxGetClipboardMode(IMachine* cmachine, PRUint32* cmode) {
+  return IMachine_get_ClipboardMode(cmachine, cmode);
+}
+HRESULT GoVboxSetClipboardMode(IMachine* cmachine, PRUint32 cmode) {
+  return IMachine_put_ClipboardMode(cmachine, cmode);
+}
+HRESULT GoVboxGetDnDMode(IMachine* cmachine, PRUint32* cmode) {
+  return IMachine_get_DnDMode(cmachine, cmode);
+}
+HRESULT GoVboxSetDnDMode(IMachine* cmachine, PRUint32 cmode) {
+  return IMachine_put_DnDMode(cmachine, cmode);
+}
 HRESULT GoVboxGetMachineState(IMachine* cmachine, PRUint32* cstate) {
   return IMachine_get_State(cmachine, cstate);
 }

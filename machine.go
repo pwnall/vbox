@@ -434,6 +434,46 @@ func (machine *Machine) GetAccelerate3DEnabled() (bool, error) {
 	return cenabled != 0, nil
 }
 
+func (machine *Machine) GetClipboardMode() (ClipboardMode, error) {
+	var cmode C.PRUint32
+
+	result := C.GoVboxSetClipboardMode(machine.cmachine, cmode)
+	if C.GoVboxFAILED(result) != 0 {
+		return 0, errors.New(
+			fmt.Sprintf("Failed to get IMachine clipboard mode: %x", result))
+	}
+	return ClipboardMode(cmode), nil
+}
+
+func (machine *Machine) SetClipboardMode(mode ClipboardMode) error {
+	result := C.GoVboxSetClipboardMode(machine.cmachine, C.PRUint32(mode))
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set IMachine clipboard mode: %x", result))
+	}
+	return nil
+}
+
+func (machine *Machine) GetDnDMode() (DnDMode, error) {
+	var cmode C.PRUint32
+
+	result := C.GoVboxSetDnDMode(machine.cmachine, cmode)
+	if C.GoVboxFAILED(result) != 0 {
+		return 0, errors.New(
+			fmt.Sprintf("Failed to get IMachine DnD mode: %x", result))
+	}
+	return DnDMode(cmode), nil
+}
+
+func (machine *Machine) SetDnDMode(mode DnDMode) error {
+	result := C.GoVboxSetDnDMode(machine.cmachine, C.PRUint32(mode))
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set IMachine DnD mode: %x", result))
+	}
+	return nil
+}
+
 func (machine *Machine) SetAccelerate3DEnabled(enabled bool) error {
 	cenabled := C.PRBool(0)
 	if enabled {

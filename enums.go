@@ -54,6 +54,17 @@ const (
 	CleanupMode_Full = C.CleanupMode_Full
 )
 
+// Enumeration of ClipboardMode values
+
+type ClipboardMode uint
+
+const (
+	ClipboardMode_Disabled      = C.ClipboardMode_Disabled
+	ClipboardMode_HostToGuest   = C.ClipboardMode_HostToGuest
+	ClipboardMode_GuestToHost   = C.ClipboardMode_GuestToHost
+	ClipboardMode_Bidirectional = C.ClipboardMode_Bidirectional
+)
+
 // Enumeration of DeviceType values
 type DeviceType uint
 
@@ -72,6 +83,17 @@ const (
 	DeviceType_Usb = C.DeviceType_USB
 	// Hard disk device
 	DeviceType_SharedFolder = C.DeviceType_SharedFolder
+)
+
+// Enumeration of DnDMode values
+
+type DnDMode uint
+
+const (
+	DnDMode_Disabled      = C.DnDMode_Disabled
+	DnDMode_HostToGuest   = C.DnDMode_HostToGuest
+	DnDMode_GuestToHost   = C.DnDMode_GuestToHost
+	DnDMode_Bidirectional = C.DnDMode_Bidirectional
 )
 
 // Enumeration of VBoxEventType values
