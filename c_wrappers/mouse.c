@@ -1,10 +1,4 @@
-#include "VBoxCAPIGlue.h"
-
-// Wrappers declared in vbox.c
-HRESULT GoVboxFAILED(HRESULT result);
-HRESULT GoVboxArrayOutFree(void* array);
-void GoVboxUtf8Free(char* cstring);
-
+#include "glue.h"
 
 HRESULT GoVboxGetMouseAbsoluteSupported(IMouse* cmouse, PRBool* csupported) {
   return IMouse_get_AbsoluteSupported(cmouse, csupported);

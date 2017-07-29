@@ -1,10 +1,13 @@
-#include "VBoxCAPIGlue.h"
+#include "glue.h"
 
 // NOTE: Including the C file is a sketchy but working method for getting it
 //       compiled and linked with the Go source. The C must only be included in
 //       one Go file. By convention, this is the file that wraps the
 //       ClientInitialize() function.
 #include "VBoxCAPIGlue.c"
+#ifdef WIN32
+#include "../third_party/VirtualBoxSDK/sdk/bindings/mscom/lib/VirtualBox_i.c"
+#endif
 
 HRESULT GoVboxFAILED(HRESULT result) {
   return FAILED(result);

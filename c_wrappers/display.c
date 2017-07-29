@@ -1,10 +1,4 @@
-#include "VBoxCAPIGlue.h"
-
-// Wrappers declared in vbox.c
-HRESULT GoVboxFAILED(HRESULT result);
-HRESULT GoVboxArrayOutFree(void* array);
-void GoVboxUtf8Free(char* cstring);
-
+#include "glue.h"
 
 HRESULT GoVboxDisplayGetScreenResolution(IDisplay* cdisplay,
     PRUint32 cscreenId, PRUint32* cwidth, PRUint32* cheight,

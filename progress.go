@@ -3,7 +3,7 @@ package vbox
 /*
 #cgo CFLAGS: -I third_party/VirtualBoxSDK/sdk/bindings/c/include
 #cgo CFLAGS: -I third_party/VirtualBoxSDK/sdk/bindings/c/glue
-#cgo LDFLAGS: -ldl -lpthread
+#cgo !windows LDFLAGS: -ldl -lpthread
 
 #include <stdlib.h>
 #include "c_wrappers/progress.c"

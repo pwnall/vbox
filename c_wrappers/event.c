@@ -1,10 +1,4 @@
-#include "VBoxCAPIGlue.h"
-
-// Wrappers declared in vbox.c
-HRESULT GoVboxFAILED(HRESULT result);
-HRESULT GoVboxArrayOutFree(void* array);
-void GoVboxUtf8Free(char* cstring);
-
+#include "glue.h"
 
 HRESULT GoVboxIEventRelease(IEvent* cevent) {
   return IEvent_Release(cevent);
@@ -25,7 +19,9 @@ HRESULT GoVboxEventWaitProcessed(IEvent* cevent, PRInt32 ctimeout, PRBool *cproc
   return IEvent_WaitProcessed(cevent, ctimeout, cprocessed);
 }
 
+#ifndef WIN32
 const nsIID IID_IGuestPropertyChangedEvent = IGUESTPROPERTYCHANGEDEVENT_IID;
+#endif
 HRESULT GoVboxEventGetGuestPropertyChangedEvent(IEvent *cevent, IGuestPropertyChangedEvent **cguestPropEvent) {
   return IEvent_QueryInterface(cevent, &IID_IGuestPropertyChangedEvent, (void **)cguestPropEvent);
 }
