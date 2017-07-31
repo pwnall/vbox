@@ -521,6 +521,150 @@ func (machine *Machine) RemoveSharedFolder(name string) error {
 	return nil
 }
 
+func (machine *Machine) GetGuestProperty(key string) (string, int, string, error) {
+	var cvalue *C.char
+	var ctimestamp C.PRInt64
+	var cflags *C.char
+	ckey := C.CString(key)
+	result := C.GoVboxMachineGetGuestProperty(machine.cmachine, ckey, &cvalue, &ctimestamp, &cflags)
+	C.free(unsafe.Pointer(ckey))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return "", 0, "", errors.New(
+			fmt.Sprintf("Failed to get guest property %s for IMachine: %x", key, result))
+	}
+
+	value := C.GoString(cvalue)
+	C.GoVboxUtf8Free(cvalue)
+	flags := C.GoString(cflags)
+	C.GoVboxUtf8Free(cflags)
+	return value, int(ctimestamp), flags, nil
+}
+
+func (machine *Machine) GetGuestPropertyValue(key string) (string, error) {
+	var cvalue *C.char
+	ckey := C.CString(key)
+	result := C.GoVboxMachineGetGuestPropertyValue(machine.cmachine, ckey, &cvalue)
+	C.free(unsafe.Pointer(ckey))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return "", errors.New(
+			fmt.Sprintf("Failed to get guest property %s for IMachine: %x", key, result))
+	}
+
+	value := C.GoString(cvalue)
+	C.GoVboxUtf8Free(cvalue)
+	return value, nil
+}
+
+func (machine *Machine) SetGuestProperty(key string, value string, flags string) error {
+	ckey := C.CString(key)
+	cvalue := C.CString(value)
+	cflags := C.CString(flags)
+	result := C.GoVboxMachineSetGuestProperty(machine.cmachine, ckey, cvalue, cflags)
+	C.free(unsafe.Pointer(ckey))
+	C.free(unsafe.Pointer(cvalue))
+	C.free(unsafe.Pointer(cflags))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set guest property %s = %s for IMachine: %x", key, value, result))
+	}
+	return nil
+}
+
+func (machine *Machine) SetGuestPropertyValue(key string, value string) error {
+	ckey := C.CString(key)
+	cvalue := C.CString(value)
+	result := C.GoVboxMachineSetGuestPropertyValue(machine.cmachine, ckey, cvalue)
+	C.free(unsafe.Pointer(ckey))
+	C.free(unsafe.Pointer(cvalue))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set guest property %s = %s for IMachine: %x", key, value, result))
+	}
+	return nil
+}
+
+func (machine *Machine) DeleteGuestProperty(key string) error {
+	ckey := C.CString(key)
+	result := C.GoVboxMachineDeleteGuestProperty(machine.cmachine, ckey)
+	C.free(unsafe.Pointer(ckey))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to delete guest property %s for IMachine: %x", key, result))
+	}
+	return nil
+}
+
+type GuestProperty struct {
+	Name      string
+	Value     string
+	Flags     string
+	Timestamp int64
+}
+
+func (machine *Machine) EnumerateGuestProperties(pattern string) ([]GuestProperty, error) {
+	cpattern := C.CString(pattern)
+	var (
+		cnames, cvalues, cflags                          **C.char
+		ctimestamps                                      *C.LONG64
+		nameCount, valueCount, timestampCount, flagCount C.ULONG
+	)
+
+	result := C.GoVboxMachineEnumerateGuestProperties(machine.cmachine, cpattern,
+		&cnames, &nameCount,
+		&cvalues, &valueCount,
+		&ctimestamps, &timestampCount,
+		&cflags, &flagCount)
+	C.free(unsafe.Pointer(cpattern))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return nil, errors.New(
+			fmt.Sprintf("Failed to enumerate guest properties %s for IMachine: %x", pattern, result))
+	}
+
+	copyStringArray := func(ar **C.char) (result []string) {
+		sliceHeader := reflect.SliceHeader{
+			Data: uintptr(unsafe.Pointer(ar)),
+			Len:  int(nameCount),
+			Cap:  int(nameCount),
+		}
+		slice := *(*[]*C.char)(unsafe.Pointer(&sliceHeader))
+		for i := 0; i < int(nameCount); i++ {
+			result = append(result, C.GoString(slice[i]))
+			C.GoVboxUtf8Free(slice[i])
+		}
+		C.free(unsafe.Pointer(ar))
+		return
+	}
+
+	names := copyStringArray(cnames)
+	values := copyStringArray(cvalues)
+	flags := copyStringArray(cflags)
+
+	sliceHeader := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(ctimestamps)),
+		Len:  int(timestampCount),
+		Cap:  int(timestampCount),
+	}
+	slice := *(*[]int64)(unsafe.Pointer(&sliceHeader))
+
+	var guestProperties = make([]GuestProperty, nameCount)
+	for i := 0; i < int(nameCount); i++ {
+		guestProperties[i].Name = names[i]
+		guestProperties[i].Flags = flags[i]
+		guestProperties[i].Value = values[i]
+		guestProperties[i].Timestamp = slice[i]
+	}
+
+	C.GoVboxArrayOutFree(unsafe.Pointer(ctimestamps))
+
+	return guestProperties, nil
+}
+
 func (machine *Machine) SetSettingsFilePath(path string) (Progress, error) {
 	var progress Progress
 	cpath := C.CString(path)
