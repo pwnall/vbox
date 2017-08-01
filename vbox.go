@@ -133,3 +133,21 @@ func ComposeMachineFilename(
 	C.GoVboxUtf8Free(cpath)
 	return path, nil
 }
+
+func SetExtraData(key string, value string) error {
+	if err := Init(); err != nil {
+		return err
+	}
+
+	ckey := C.CString(key)
+	cvalue := C.CString(value)
+	result := C.GoVboxSetExtraData(cbox, ckey, cvalue)
+	C.free(unsafe.Pointer(ckey))
+	C.free(unsafe.Pointer(cvalue))
+
+	if C.GoVboxFAILED(result) != 0 {
+		return errors.New(
+			fmt.Sprintf("Failed to set extra data on IVirtualBox: %x", result))
+	}
+	return nil
+}

@@ -86,3 +86,22 @@ HRESULT GoVboxComposeMachineFilename(IVirtualBox* cbox, char* cname,
   g_pVBoxFuncs->pfnComUnallocString(wpath);
   return result;
 }
+HRESULT GoVboxSetExtraData(IVirtualBox* cbox, char* ckey, char *cvalue) {
+  BSTR wkey;
+  BSTR wvalue;
+  HRESULT result = g_pVBoxFuncs->pfnUtf8ToUtf16(ckey, &wkey);
+  if (FAILED(result))
+    return result;
+
+  result = g_pVBoxFuncs->pfnUtf8ToUtf16(cvalue, &wvalue);
+  if (FAILED(result)) {
+    g_pVBoxFuncs->pfnUtf16Free(wkey);
+    return result;
+  }
+
+  result = IVirtualBox_SetExtraData(cbox, wkey, wvalue);
+  g_pVBoxFuncs->pfnUtf16Free(wkey);
+  g_pVBoxFuncs->pfnUtf16Free(wvalue);
+
+  return result;
+}
