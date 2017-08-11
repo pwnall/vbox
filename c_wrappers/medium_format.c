@@ -1,15 +1,9 @@
-#include "VBoxCAPIGlue.h"
-
-// Wrappers declared in vbox.c
-HRESULT GoVboxFAILED(HRESULT result);
-HRESULT GoVboxArrayOutFree(void* array);
-void GoVboxUtf8Free(char* cstring);
-
+#include "glue.h"
 
 HRESULT GoVboxGetMediumFormats(ISystemProperties* cprops,
     IMediumFormat*** cformats, ULONG* formatCount) {
   SAFEARRAY *safeArray = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();
-  HRESULT result = ISystemProperties_GetMediumFormats(cprops,
+  HRESULT result = ISystemProperties_get_MediumFormats(cprops,
       ComSafeArrayAsOutIfaceParam(safeArray, IMediumFormat *));
   if (!FAILED(result)) {
     result = g_pVBoxFuncs->pfnSafeArrayCopyOutIfaceParamHelper(
@@ -21,7 +15,7 @@ HRESULT GoVboxGetMediumFormats(ISystemProperties* cprops,
 
 HRESULT GoVboxGetMediumFormatId(IMediumFormat* cformat, char** cid) {
   BSTR wid = NULL;
-  HRESULT result = IMediumFormat_GetId(cformat, &wid);
+  HRESULT result = IMedium_get_Id(cformat, &wid);
   if (FAILED(result))
     return result;
 

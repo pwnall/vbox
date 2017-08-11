@@ -1,10 +1,10 @@
-/* $Revision: 97956 $ */
+/* $Id: VBoxCAPIGlue.c 111586 2016-10-28 11:59:09Z klaus $ */
 /** @file
  * Glue code for dynamically linking to VBoxCAPI.
  */
 
 /*
- * Copyright (C) 2008-2015 Oracle Corporation
+ * Copyright (C) 2008-2016 Oracle Corporation
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -28,15 +28,22 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/*******************************************************************************
-*   Header Files                                                               *
-*******************************************************************************/
+
+/*********************************************************************************************************************************
+*   Header Files                                                                                                                 *
+*********************************************************************************************************************************/
+/* NOTE: do NOT use any include files here which are only available in the
+ * VirtualBox tree, e.g. iprt. They are not available in the SDK, which is
+ * where this file will provided as source code and has to be compilable. */
 #include "VBoxCAPIGlue.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#ifdef WIN32
+# define _INTPTR 2 /* on Windows stdint.h compares this in #if, causing warnings if not defined */
+#endif /* WIN32 */
 #include <stdint.h>
 #ifndef WIN32
 # include <dlfcn.h>
@@ -46,9 +53,9 @@
 #endif /* WIN32 */
 
 
-/*******************************************************************************
-*   Defined Constants And Macros                                               *
-*******************************************************************************/
+/*********************************************************************************************************************************
+*   Defined Constants And Macros                                                                                                 *
+*********************************************************************************************************************************/
 #if defined(__linux__) || defined(__linux_gnu__) || defined(__sun__) || defined(__FreeBSD__)
 # define DYNLIB_NAME        "VBoxXPCOMC.so"
 #elif defined(__APPLE__)
@@ -62,9 +69,9 @@
 #endif
 
 
-/*******************************************************************************
-*   Global Variables                                                           *
-*******************************************************************************/
+/*********************************************************************************************************************************
+*   Global Variables                                                                                                             *
+*********************************************************************************************************************************/
 /** The so/dynsym/dll handle for VBoxCAPI. */
 #ifndef WIN32
 void *g_hVBoxCAPI = NULL;

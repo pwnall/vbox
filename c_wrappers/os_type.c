@@ -1,15 +1,9 @@
-#include "VBoxCAPIGlue.h"
-
-// Wrappers declared in vbox.c
-HRESULT GoVboxFAILED(HRESULT result);
-HRESULT GoVboxArrayOutFree(void* array);
-void GoVboxUtf8Free(char* cstring);
-
+#include "glue.h"
 
 HRESULT GoVboxGetGuestOSTypes(IVirtualBox* cbox, IGuestOSType*** ctypes,
     ULONG* typeCount) {
   SAFEARRAY *safeArray = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();
-  HRESULT result = IVirtualBox_GetGuestOSTypes(cbox,
+  HRESULT result = IVirtualBox_get_GuestOSTypes(cbox,
       ComSafeArrayAsOutIfaceParam(safeArray, IGuestOSType *));
   if (!FAILED(result)) {
     result = g_pVBoxFuncs->pfnSafeArrayCopyOutIfaceParamHelper(
@@ -21,7 +15,7 @@ HRESULT GoVboxGetGuestOSTypes(IVirtualBox* cbox, IGuestOSType*** ctypes,
 
 HRESULT GoVboxGetGuestOSTypeId(IGuestOSType* ctype, char** cid) {
   BSTR wid = NULL;
-  HRESULT result = IGuestOSType_GetId(ctype, &wid);
+  HRESULT result = IGuestOSType_get_Id(ctype, &wid);
   if (FAILED(result))
     return result;
 

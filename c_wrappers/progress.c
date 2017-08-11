@@ -1,19 +1,13 @@
-#include "VBoxCAPIGlue.h"
-
-// Wrappers declared in vbox.c
-HRESULT GoVboxFAILED(HRESULT result);
-HRESULT GoVboxArrayOutFree(void* array);
-void GoVboxUtf8Free(char* cstring);
-
+#include "glue.h"
 
 HRESULT GoVboxProgressWaitForCompletion(IProgress* cprogress, int timeout) {
   return IProgress_WaitForCompletion(cprogress, timeout);
 }
 HRESULT GoVboxGetProgressPercent(IProgress* cprogress, PRUint32* cpercent) {
-  return IProgress_GetPercent(cprogress, cpercent);
+  return IProgress_get_Percent(cprogress, cpercent);
 }
 HRESULT GoVboxGetProgressResultCode(IProgress* cprogress, PRInt32* code) {
-  return IProgress_GetResultCode(cprogress, code);
+  return IProgress_get_ResultCode(cprogress, code);
 }
 HRESULT GoVboxIProgressRelease(IProgress* cprogress) {
   return IProgress_Release(cprogress);

@@ -1,10 +1,4 @@
-#include "VBoxCAPIGlue.h"
-
-// Wrappers declared in vbox.c
-HRESULT GoVboxFAILED(HRESULT result);
-HRESULT GoVboxArrayOutFree(void* array);
-void GoVboxUtf8Free(char* cstring);
-
+#include "glue.h"
 
 HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
     IMedium** cmedium) {
@@ -20,7 +14,8 @@ HRESULT GoVboxCreateHardDisk(IVirtualBox* cbox, char* cformat, char* clocation,
     return result;
   }
 
-  result = IVirtualBox_CreateHardDisk(cbox, wformat, wlocation, cmedium);
+  result = IVirtualBox_CreateMedium(cbox, wformat, wlocation,
+      AccessMode_ReadOnly, DeviceType_HardDisk, cmedium);
   g_pVBoxFuncs->pfnUtf16Free(wlocation);
   g_pVBoxFuncs->pfnUtf16Free(wformat);
 
@@ -61,7 +56,7 @@ HRESULT GoVboxMediumClose(IMedium* cmedium) {
 }
 HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
   BSTR wlocation = NULL;
-  HRESULT result = IMedium_GetLocation(cmedium, &wlocation);
+  HRESULT result = IMedium_get_Location(cmedium, &wlocation);
   if (FAILED(result))
     return result;
 
@@ -70,10 +65,10 @@ HRESULT GoVboxGetMediumLocation(IMedium* cmedium, char** clocation) {
   return result;
 }
 HRESULT GoVboxGetMediumState(IMedium* cmedium, PRUint32* cstate) {
-  return IMedium_GetState(cmedium, cstate);
+  return IMedium_get_State(cmedium, cstate);
 }
 HRESULT GoVboxGetMediumSize(IMedium* cmedium, PRInt64* csize) {
-  return IMedium_GetSize(cmedium, csize);
+  return IMedium_get_Size(cmedium, csize);
 }
 HRESULT GoVboxIMediumRelease(IMedium* cmedium) {
   return IMedium_Release(cmedium);
